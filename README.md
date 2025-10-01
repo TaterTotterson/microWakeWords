@@ -17,7 +17,7 @@ wifi:
 edit lines 1596-1597 to the url of the wake work you want to use and edit id to match
 ```
   models:
-    - model: https://git.phooey.cloud/mastaful/microWakeWord-Trainer-AppleSilicon/raw/branch/main/mww_tater/hey_tater.json
+    - model: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/microWakeWords/hey_tater.json
       id: hey_tater
 ```
 
