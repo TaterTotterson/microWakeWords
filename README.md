@@ -21,7 +21,7 @@ edit lines 1596-1597 to the url of the wake work you want to use and edit id to 
       id: hey_tater
 ```
 
-edit lines 1659-1666 change "hey_tater" to the name of the wake word, same as line 1597
+edit lines 1659-1666 change "hey_tater" to the name of the wake word, same as the id on line 1597
 ```
       lambda: |-
         if (x == "Slightly sensitive") {
