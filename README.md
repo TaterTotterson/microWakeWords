@@ -6,7 +6,7 @@ edit lines 32 and 33 to the name you want
   friendly_name: TaterVPE
 ```
 
-edit lines 77-79 to your wifi or use secrect, change ip address to you ha voice ip or remove this line
+edit lines 77-79 to your wifi or use secrets, change ip address to your ha voice ip or remove this line
 ```
 wifi:
   ssid: !secret wifi_ssid
