@@ -14,7 +14,7 @@ wifi:
   use_address: 10.4.20.60
 ```
 
-edit lines 1596-1597 to the url of the wake work you want to use and name
+edit lines 1596-1597 to the url of the wake work you want to use and edit id to match
 ```
   models:
     - model: https://git.phooey.cloud/mastaful/microWakeWord-Trainer-AppleSilicon/raw/branch/main/mww_tater/hey_tater.json
