@@ -1,3 +1,5 @@
+Create a issue to request a word!
+
 edit home-assistant-voice.yaml to use the wake word you want to use and paste it in ESPhome and update your Home Assistant Voice!
 
 edit lines 32 and 33 to the name you want
