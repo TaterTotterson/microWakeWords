@@ -38,5 +38,5 @@ edit lines 1659-1666 change "hey_tater" to the name of the wake word, same as th
 ## Optional - Change the Wake Sound
 edit line 25 with the url to your wake sound
 ```
-wake_word_triggered_sound_file: https://github.com/TaterTotterson/microWakeWords/raw/refs/heads/main/wakeSounds/yes-ryan_high.flac
+wake_word_triggered_sound_file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/wake_word_triggered.flac
 ```
