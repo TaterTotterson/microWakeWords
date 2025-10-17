@@ -1,5 +1,5 @@
-Create a issue to request a word!
-
+## Create a issue to request a word!
+---
 edit home-assistant-voice.yaml to use the wake word you want to use and paste it in ESPhome and update your Home Assistant Voice!
 
 edit lines 32 and 33 to the name you want
@@ -33,4 +33,10 @@ edit lines 1659-1666 change "hey_tater" to the name of the wake word, same as th
         } else if (x == "Very sensitive") {
           id(hey_tater).set_probability_cutoff(143);    // 0.56 -> 0.751 FAPH on DipCo
         }
+```
+---
+## Optional - Change the Wake Sound
+edit line 25 with the url to your wake sound
+```
+wake_word_triggered_sound_file: https://github.com/TaterTotterson/microWakeWords/raw/refs/heads/main/wakeSounds/yes-ryan_high.flac
 ```
