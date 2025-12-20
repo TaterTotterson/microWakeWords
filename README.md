@@ -25,14 +25,14 @@ edit lines 1596-1597 to the url of the wake work you want to use and edit id to 
 
 edit lines 1659-1666 change "hey_tater" to the name of the wake word, same as the id on line 1597
 ```
-      lambda: |-
-        if (x == "Slightly sensitive") {
-          id(hey_tater).set_probability_cutoff(250);    // 0.98 -> 0.000 FAPH
-        } else if (x == "Moderately sensitive") {
-          id(hey_tater).set_probability_cutoff(245);    // 0.96 -> 0.187 FAPH
-        } else if (x == "Very sensitive") {
-          id(hey_tater).set_probability_cutoff(222);    // 0.87 -> 0.375 FAPH
-        }
+lambda: |-
+  if (x == "Slightly sensitive") {
+    id(hey_tater).set_probability_cutoff(250);    // 0.98 -> 0.000 FAPH
+  } else if (x == "Moderately sensitive") {
+    id(hey_tater).set_probability_cutoff(245);    // 0.96 -> 0.187 FAPH
+  } else if (x == "Very sensitive") {
+    id(hey_tater).set_probability_cutoff(222);    // 0.87 -> 0.375 FAPH
+  }
 ```
 ---
 ## Optional - Change the Wake Sound
