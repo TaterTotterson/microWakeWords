@@ -27,11 +27,11 @@ edit lines 1659-1666 change "hey_tater" to the name of the wake word, same as th
 ```
       lambda: |-
         if (x == "Slightly sensitive") {
-          id(hey_tater).set_probability_cutoff(217);    // 0.85 -> 0.000 FAPH on DipCo (Manifest's default)
+          id(hey_tater).set_probability_cutoff(250);    // 0.98 -> 0.000 FAPH
         } else if (x == "Moderately sensitive") {
-          id(hey_tater).set_probability_cutoff(176);    // 0.69 -> 0.376 FAPH on DipCo
+          id(hey_tater).set_probability_cutoff(245);    // 0.96 -> 0.187 FAPH
         } else if (x == "Very sensitive") {
-          id(hey_tater).set_probability_cutoff(143);    // 0.56 -> 0.751 FAPH on DipCo
+          id(hey_tater).set_probability_cutoff(222);    // 0.87 -> 0.375 FAPH
         }
 ```
 ---
