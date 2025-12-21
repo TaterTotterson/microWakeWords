@@ -2,7 +2,7 @@
   "type": "micro",
   "wake_word": "taters",
   "author": "Tater Totterson",
-  "website": "https://github.com/TaterTotterson/microWakeWord-Trainer-Nvidia-Docker.git",
+  "website": "https://github.com/TaterTotterson/microWakeWord-Trainer-AppleSilicon",
   "model": "taters.tflite",
   "trained_languages": [
     "en"
