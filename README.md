@@ -1,3 +1,4 @@
+## Create a pull request to add words you have trained!
 ## Create a issue to request a word!
 ---
 edit home-assistant-voice.yaml to use the wake word you want to use and paste it in ESPhome and update your Home Assistant Voice!
