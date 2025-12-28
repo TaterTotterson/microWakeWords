@@ -1831,7 +1831,7 @@ micro_wake_word:
     gain_factor: 4
   stop_after_detection: false
   models:
-    - model: https://github.com/kahrendt/microWakeWord/releases/download/okay_nabu_20241226.3/hey_tater.json
+    - model: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/microWakeWords/hey_tater.json
       id: hey_tater
     - model: https://github.com/kahrendt/microWakeWord/releases/download/stop/stop.json
       id: stop
