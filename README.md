@@ -11,10 +11,11 @@ You can request a new microWakeWord model by opening a GitHub issue.
 mww: your wake word here
 
 Examples:
+```
 mww: hey tater  
 mww: tater totterson  
 mww: hello computer  
-
+```
 That’s it — no labels, no templates, no body text required.
 
 ---
