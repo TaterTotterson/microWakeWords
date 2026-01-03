@@ -28,9 +28,13 @@ That’s it — no labels, no templates, no body text required.
 
 ### ⚠️ Notes
 
+- **Test your wake word with TTS first.**  
+  Make sure your text-to-speech engine pronounces the phrase the way you expect.  
+  You may need to spell it *phonetically* or a little “funny” so TTS says it correctly — the trainer uses the same pronunciation.
 - Please request **one wake word per issue**
 - Avoid punctuation or emojis in the title
 - Training runs sequentially if multiple requests are open
+
 ---
 
 ## 🗣️ Set Up Your Custom Wake Word on Home Assistant Voice
