@@ -1,6 +1,39 @@
-## Create a pull request to add words you have trained!
-## Create a issue to request a word!
+## 🗣️ Request a New Wake Word
+
+You can request a new microWakeWord model by opening a GitHub issue.
+
+### ✅ How to request a word
+
+1. Go to the **Issues** tab  
+2. Click **New issue**
+3. Set the **title** to:
+
+mww: your wake word here
+
+Examples:
+mww: hey tater  
+mww: tater totterson  
+mww: hello computer  
+
+That’s it — no labels, no templates, no body text required.
+
 ---
+
+### 🔄 What happens next
+- The `.tflite` and `.json` files are added to the repository
+- The issue is labeled, commented on, and closed when complete
+
+---
+
+### ⚠️ Notes
+
+- Please request **one wake word per issue**
+- Avoid punctuation or emojis in the title
+- Training runs sequentially if multiple requests are open
+---
+
+## 🗣️ Set Up Your Custom Wake Word on Home Assistant Voice
+
 edit home-assistant-voice.yaml to use the wake word you want to use and paste it in ESPhome and update your Home Assistant Voice!
 
 edit lines 32 and 33 to the name you want
