@@ -39,43 +39,68 @@ That’s it — no labels, no templates, no body text required.
 
 ## 🗣️ Set Up Your Custom Wake Word on Home Assistant Voice
 
-edit home-assistant-voice.yaml to use the wake word you want to use and paste it in ESPhome and update your Home Assistant Voice!
+⚠️ **Important:** All of the settings below are located **at the very top of the YAML file**
+inside the `substitutions:` section.  
+You no longer need to hunt for line numbers — everything commonly edited lives in one place.
 
-edit lines 32 and 33 to the name you want
-```
-  name: tatervpe
-  friendly_name: TaterVPE
-```
+Open `voicePE-TaterTimer.yaml` (or `home-assistant-voice.yaml`) and edit the `substitutions:` block.
 
-edit lines 77-79 to your wifi or use secrets, change ip address to your ha voice ip or remove this line
-```
-wifi:
-  ssid: !secret wifi_ssid
-  password: !secret wifi_password
-  use_address: 10.4.20.60
-```
-
-edit lines 1596-1597 to the url of the wake work you want to use and edit id to match
-```
-  models:
-    - model: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/microWakeWords/hey_tater.json
-      id: hey_tater
-```
-
-edit lines 1659-1666 change "hey_tater" to the name of the wake word, same as the id on line 1597
-```
-lambda: |-
-  if (x == "Slightly sensitive") {
-    id(hey_tater).set_probability_cutoff(250);    // 0.98 -> 0.000 FAPH
-  } else if (x == "Moderately sensitive") {
-    id(hey_tater).set_probability_cutoff(245);    // 0.96 -> 0.187 FAPH
-  } else if (x == "Very sensitive") {
-    id(hey_tater).set_probability_cutoff(222);    // 0.87 -> 0.375 FAPH
-  }
-```
 ---
-## Optional - Change the Wake Sound
-edit line 25 with the url to your wake sound
-```
+
+### 🧾 Device Name & Friendly Name
+Change how the device appears in ESPHome and Home Assistant:
+
+device_name: tatervpe
+friendly_name: TaterVPE
+
+---
+
+### 📡 Wi-Fi & Network Settings
+Set your Wi-Fi credentials (or use secrets) and optionally pin the device to a Home Assistant Voice IP:
+
+wifi_ssid: !secret wifi_ssid
+wifi_password: !secret wifi_password
+ha_voice_ip: "10.4.20.60"
+
+If you don’t want a fixed IP, simply remove `ha_voice_ip` and the device will use DHCP.
+
+---
+
+### 🎙️ Wake Word Model
+Choose the wake word model and give it a matching ID:
+
+wake_word_name: hey_tater
+wake_word_model_url: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/microWakeWords/hey_tater.json
+
+The `wake_word_name` **must match** the model ID used internally.
+
+---
+
+### 🎚️ Wake Word Sensitivity
+Tune how sensitive the wake word detection is:
+
+wake_cutoff_slight: "250"     # Slightly sensitive (very strict)
+wake_cutoff_moderate: "245"   # Balanced
+wake_cutoff_very: "222"       # Very sensitive
+
+Lower numbers = more sensitive  
+Higher numbers = fewer false activations
+
+---
+
+### 🔔 Optional – Change the Wake Sound
+You can customize the sound played when the wake word is detected.
+
+Edit the wake sound URL in the substitutions section:
+
 wake_word_triggered_sound_file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/wake_word_triggered.flac
-```
+
+You can point this to any compatible `.wav` or `.flac` file hosted online.
+
+---
+
+### ✅ Final Notes
+• These values are read throughout the config automatically  
+• No other parts of the YAML need to be edited  
+• Test your wake word in **TTS first** to ensure it’s pronounced correctly  
+  (you may need to spell it creatively for best results)
