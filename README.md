@@ -43,7 +43,7 @@ That’s it — no labels, no templates, no body text required.
 inside the `substitutions:` section.  
 You no longer need to hunt for line numbers — everything commonly edited lives in one place.
 
-Open `voicePE-TaterTimer.yaml` (or `home-assistant-voice.yaml`) and edit the `substitutions:` block.
+Open `voicePE-TaterTimer.yaml` and edit the `substitutions:` block.
 
 ---
 
