@@ -95,7 +95,7 @@ Edit the wake sound URL in the substitutions section:
 ```
 wake_word_triggered_sound_file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/wake_word_triggered.flac
 ```
-You can point this to any compatible `.wav` or `.flac` file hosted online.
+You can point this to any compatible `.mp3` or `.flac` file hosted online.
 
 ---
 
