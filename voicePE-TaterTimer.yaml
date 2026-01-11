@@ -1,4 +1,30 @@
 substitutions:
+  # ─────────────────────────────────────────
+  # DEVICE IDENTITY
+  # ─────────────────────────────────────────
+  device_name: tatervpe
+  friendly_name: TaterVPE
+
+  # ─────────────────────────────────────────
+  # WIFI / NETWORK
+  # ─────────────────────────────────────────
+  wifi_ssid: !secret wifi_ssid
+  wifi_password: !secret wifi_password
+  ha_voice_ip: "127.0.0.1"   # optional – remove if not needed
+
+  # ─────────────────────────────────────────
+  # WAKE WORD CONFIG
+  # ─────────────────────────────────────────
+  wake_word_name: hey_tater
+  wake_word_model_url: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/microWakeWords/hey_tater.json
+
+  # ─────────────────────────────────────────
+  # WAKE WORD SENSITIVITY (probability cutoff)
+  # ─────────────────────────────────────────
+  wake_cutoff_slight: "250"     # ~0.98
+  wake_cutoff_moderate: "245"   # ~0.96
+  wake_cutoff_very: "222"       # ~0.87
+  
   # Phases of the Voice Assistant
   # The voice assistant is ready to be triggered by a wake word
   voice_assist_idle_phase_id: '1'
@@ -35,8 +61,8 @@ substitutions:
   error_cloud_expired_sound_file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/error_cloud_expired.mp3
 
 esphome:
-  name: tatervpe
-  friendly_name: TaterVPE
+  name: ${device_name}
+  friendly_name: ${friendly_name}
   name_add_mac_suffix: true
   min_version: 2025.12.0
   on_boot:
@@ -81,9 +107,9 @@ esp32:
       CONFIG_MBEDTLS_SSL_PROTO_TLS1_3: "y"  # TLS1.3 support isn't enabled by default in IDF 5.1.5
 
 wifi:
-  ssid: !secret wifi_ssid
-  password: !secret wifi_password
-  use_address: 10.4.20.60
+  ssid: ${wifi_ssid}
+  password: ${wifi_password}
+  use_address: ${ha_voice_ip}
   id: wifi_id
   fast_connect: ${hidden_ssid}
   on_connect:
@@ -1581,6 +1607,11 @@ script:
   #   This allows us to prevent having the deactivation of the stop word before its own activation.
   - id: activate_stop_word_once
     then:
+      - wait_until:
+          condition:
+            media_player.is_announcing:
+              id: external_media_player
+          timeout: 5s
       - delay: 1s
       # Enable stop wake word
       - if:
@@ -1808,13 +1839,13 @@ external_components:
       # https://github.com/esphome/esphome/pull/12284
       type: git
       url: https://github.com/esphome/esphome
-      ref: aef3a4afd9c7186751fc9d097742325b3390572f
+      ref: 71c8c6bdfc8006902eb0ea7b15bc86c575cef9be
     components: [mdns, sendspin]
   - source:
       # https://github.com/esphome/esphome/pull/12429
       type: git
       url: https://github.com/esphome/esphome
-      ref: 627572d9aa0c372f4ca8adcbdaf68c1c2e65b84c
+      ref: f5c1a8111df78e32d07d7a7bb800018808cdc0e7
     refresh: 0s
     components: [file, http_request, media_source, speaker_source]
 
@@ -1831,8 +1862,8 @@ micro_wake_word:
     gain_factor: 4
   stop_after_detection: false
   models:
-    - model: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/microWakeWords/hey_tater.json
-      id: hey_tater
+    - model: ${wake_word_model_url}
+      id: ${wake_word_name}
     - model: https://github.com/kahrendt/microWakeWord/releases/download/stop/stop.json
       id: stop
       internal: true
@@ -1898,11 +1929,11 @@ select:
       # These cutoffs apply only to the specific models included in the firmware: okay_nabu@20241226.3, hey_jarvis@v2, hey_mycroft@v2
       lambda: |-
         if (x == "Slightly sensitive") {
-          id(hey_tater).set_probability_cutoff(250);    // 0.98 -> 0.000 FAPH
+          id(${wake_word_name}).set_probability_cutoff(${wake_cutoff_slight});
         } else if (x == "Moderately sensitive") {
-          id(hey_tater).set_probability_cutoff(245);    // 0.96 -> 0.187 FAPH
+          id(${wake_word_name}).set_probability_cutoff(${wake_cutoff_moderate});
         } else if (x == "Very sensitive") {
-          id(hey_tater).set_probability_cutoff(222);    // 0.87 -> 0.375 FAPH
+          id(${wake_word_name}).set_probability_cutoff(${wake_cutoff_very});
         }
 
 voice_assistant:
