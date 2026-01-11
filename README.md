@@ -49,40 +49,40 @@ Open `voicePE-TaterTimer.yaml` and edit the `substitutions:` block.
 
 ### 🧾 Device Name & Friendly Name
 Change how the device appears in ESPHome and Home Assistant:
-
+```
 device_name: tatervpe
 friendly_name: TaterVPE
-
+```
 ---
 
 ### 📡 Wi-Fi & Network Settings
 Set your Wi-Fi credentials (or use secrets) and optionally pin the device to a Home Assistant Voice IP:
-
+```
 wifi_ssid: !secret wifi_ssid
 wifi_password: !secret wifi_password
-ha_voice_ip: "10.4.20.60"
-
+ha_voice_ip: "127.0.0.1"
+```
 If you don’t want a fixed IP, simply remove `ha_voice_ip` and the device will use DHCP.
 
 ---
 
 ### 🎙️ Wake Word Model
 Choose the wake word model and give it a matching ID:
-
+```
 wake_word_name: hey_tater
 wake_word_model_url: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/microWakeWords/hey_tater.json
-
+```
 The `wake_word_name` **must match** the model ID used internally.
 
 ---
 
 ### 🎚️ Wake Word Sensitivity
 Tune how sensitive the wake word detection is:
-
+```
 wake_cutoff_slight: "250"     # Slightly sensitive (very strict)
 wake_cutoff_moderate: "245"   # Balanced
 wake_cutoff_very: "222"       # Very sensitive
-
+```
 Lower numbers = more sensitive  
 Higher numbers = fewer false activations
 
