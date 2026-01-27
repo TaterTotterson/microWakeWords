@@ -39,8 +39,7 @@ That’s it — no labels, no templates, no body text required.
 
 ## 🗣️ Set Up Your Custom Wake Word on Home Assistant Voice
 
-⚠️ **Important:**  
-voicePE-TaterTimer.yaml is for **Voice PE**, but the same structure and steps apply to *any* Home Assistant voice device.  
+⚠️ **Important:** voicePE-TaterTimer.yaml is for **Voice PE**, but the same structure and steps apply to *any* Home Assistant voice device.  
 You can **mimic these instructions** for your own hardware by updating the equivalent file for your device.
 
 All of the settings below are located **at the very top of the YAML file** inside the `substitutions:` section.  
