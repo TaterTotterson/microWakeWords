@@ -64,7 +64,7 @@ esphome:
   name: ${device_name}
   friendly_name: ${friendly_name}
   name_add_mac_suffix: true
-  min_version: 2025.12.0
+  min_version: 2026.2.0
   on_boot:
     priority: 375
     then:
@@ -88,7 +88,7 @@ esp32:
   flash_size: 16MB
   framework:
     type: esp-idf
-    version: 5.5.1
+    version: recommended
     sdkconfig_options:
       CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
       CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
@@ -316,7 +316,7 @@ switch:
       # Disable stop wake word
       - micro_wake_word.disable_model: stop
       - script.execute: disable_repeat
-      # Stop any current annoucement (ie: stop the timer ring mid playback)
+      # Stop any current announcement (ie: stop the timer ring mid playback)
       - if:
           condition:
             media_player.is_announcing:
@@ -1577,11 +1577,11 @@ script:
   - id: fetch_first_active_timer
     then:
       - lambda: |
-          const auto timers = id(va).get_timers();
-          auto output_timer = timers.begin()->second;
-          for (auto &iterable_timer : timers) {
-            if (iterable_timer.second.is_active && iterable_timer.second.seconds_left <= output_timer.seconds_left) {
-              output_timer = iterable_timer.second;
+          const auto &timers = id(va).get_timers();
+          auto output_timer = *timers.begin();
+          for (const auto &timer : timers) {
+            if (timer.is_active && timer.seconds_left <= output_timer.seconds_left) {
+              output_timer = timer;
             }
           }
           id(first_active_timer) = output_timer;
@@ -1590,13 +1590,11 @@ script:
   - id: check_if_timers_active
     then:
       - lambda: |
-          const auto timers = id(va).get_timers();
+          const auto &timers = id(va).get_timers();
           bool output = false;
-          if (timers.size() > 0) {
-            for (auto &iterable_timer : timers) {
-              if(iterable_timer.second.is_active) {
-                output = true;
-              }
+          for (const auto &timer : timers) {
+            if (timer.is_active) {
+              output = true;
             }
           }
           id(is_timer_active) = output;
@@ -1827,25 +1825,31 @@ external_components:
       # https://github.com/esphome/esphome/pull/12256
       type: git
       url: https://github.com/esphome/esphome
-      ref: 047ba60f01af84513f8d5aabaa2a53074facee8f
+      ref: a2d98e1d5e020200db8f3caf27a74a939a661dc4
     components: [audio]
   - source:
       # https://github.com/esphome/esphome/pull/12258
       type: git
       url: https://github.com/esphome/esphome
-      ref: bff22983a390352360796f8e1363127e0cd1f898
+      ref: b4b7c5b25ebe0f2ab988f700219fa3c57b2377b7
     components: [media_player]
   - source:
       # https://github.com/esphome/esphome/pull/12284
       type: git
       url: https://github.com/esphome/esphome
-      ref: 71c8c6bdfc8006902eb0ea7b15bc86c575cef9be
-    components: [mdns, sendspin]
+      ref: d48058e140c98f5c2d902661d851a6b712d62434
+    components: [sendspin]
+  - source:
+      # https://github.com/esphome/esphome/pull/14013
+      type: git
+      url: https://github.com/esphome/esphome
+      ref: 51dcce3d1f22865ebb458a5447bbc877ac946b5a
+    components: [mdns]
   - source:
       # https://github.com/esphome/esphome/pull/12429
       type: git
       url: https://github.com/esphome/esphome
-      ref: f5c1a8111df78e32d07d7a7bb800018808cdc0e7
+      ref: b49b09b6ae56502aa3ce51be86f90d732d019b2c
     refresh: 0s
     components: [file, http_request, media_source, speaker_source]
 
