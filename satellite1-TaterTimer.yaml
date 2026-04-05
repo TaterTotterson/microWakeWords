@@ -123,6 +123,8 @@ ota:
   - platform: esphome
     id: ota_esphome
 
+logger:
+
 dashboard_import:
   package_import_url: github://futureproofhomes/satellite1-esphome/config/satellite1.dashboard.yaml@staging
   import_full_config: true
