@@ -90,7 +90,7 @@ esphome:
   name: ${node_name}
   name_add_mac_suffix: true
   friendly_name: ${friendly_name}
-  min_version: 2026.2.4
+  min_version: 2026.2.0
 
   project:
     name: ${company_name}.${project_name}
@@ -989,6 +989,7 @@ packages:
         - model: ${wake_model_stop_url}
           id: stop
           internal: true
+      vad:
       microphone:
         microphone: sat1_mics
         channels: 1
