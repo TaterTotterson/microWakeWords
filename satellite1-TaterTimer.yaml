@@ -124,6 +124,9 @@ ota:
     id: ota_esphome
 
 logger:
+  level: DEBUG
+  logs:
+    sensor: WARN  # avoids logging frequent sensor updates
 
 dashboard_import:
   package_import_url: github://futureproofhomes/satellite1-esphome/config/satellite1.dashboard.yaml@staging
