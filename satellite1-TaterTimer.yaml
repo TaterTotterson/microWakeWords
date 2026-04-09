@@ -90,7 +90,7 @@ esphome:
   name: ${node_name}
   name_add_mac_suffix: true
   friendly_name: ${friendly_name}
-  min_version: 2026.2.0
+  min_version: 2026.2.4
 
   project:
     name: ${company_name}.${project_name}
