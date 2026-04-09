@@ -989,7 +989,6 @@ packages:
         - model: ${wake_model_stop_url}
           id: stop
           internal: true
-      vad:
       microphone:
         microphone: sat1_mics
         channels: 1
