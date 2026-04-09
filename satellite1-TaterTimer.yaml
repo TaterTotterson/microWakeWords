@@ -27,7 +27,6 @@ substitutions:
   # -----------------------------
   esp32_fw_version: dev
   xmos_fw_version: "v1.0.3"
-  ext_comp_repo_ref: staging
 
   # -----------------------------
   # WAKE WORD CONFIG
@@ -133,7 +132,7 @@ external_components:
   - source:
       type: git
       url: https://github.com/FutureProofHomes/Satellite1-ESPHome
-      ref: ${ext_comp_repo_ref}
+      ref: staging
     components:
       - audio
       - fusb302b
