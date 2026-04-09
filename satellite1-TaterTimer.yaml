@@ -132,7 +132,7 @@ external_components:
   - source:
       type: git
       url: https://github.com/FutureProofHomes/Satellite1-ESPHome
-      ref: develop
+      ref: staging
       path: esphome/components
     components:
       - audio
@@ -984,7 +984,7 @@ packages:
       microphone:
         microphone: sat1_mics
         channels: 1
-        gain_factor: 6
+        gain_factor: 4
       stop_after_detection: false
       on_wake_word_detected:
         # If the wake word is detected when the device is muted (Possible with the software mute switch): Do nothing
