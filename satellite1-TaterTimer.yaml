@@ -27,6 +27,7 @@ substitutions:
   # -----------------------------
   esp32_fw_version: dev
   xmos_fw_version: "v1.0.3"
+  ext_comp_repo_ref: staging
 
   # -----------------------------
   # WAKE WORD CONFIG
@@ -132,8 +133,7 @@ external_components:
   - source:
       type: git
       url: https://github.com/FutureProofHomes/Satellite1-ESPHome
-      ref: staging
-      path: esphome/components
+      ref: ${ext_comp_repo_ref}
     components:
       - audio
       - fusb302b
@@ -149,6 +149,16 @@ external_components:
       - tas2780
 
 packages:
+  dashboard_build:
+    button:
+      # Flashes Sat1 HAT with XMOS firmware embedded in the ESP32 firmware
+      - platform: template
+        id: flash_embedded
+        name: "XMOS Flash Embedded FW"
+        entity_category: diagnostic
+        on_press:
+          then:
+            - memory_flasher.write_embedded_image:
   core_board:
     esphome:
       platformio_options:
