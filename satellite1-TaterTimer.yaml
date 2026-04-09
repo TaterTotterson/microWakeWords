@@ -128,10 +128,6 @@ logger:
   logs:
     sensor: WARN  # avoids logging frequent sensor updates
 
-dashboard_import:
-  package_import_url: github://futureproofhomes/satellite1-esphome/config/satellite1.dashboard.yaml@staging
-  import_full_config: true
-
 external_components:
   - source:
       type: git
