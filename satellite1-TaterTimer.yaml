@@ -32,7 +32,7 @@ substitutions:
   # WAKE WORD CONFIG
   # -----------------------------
   wake_word_name: hey_tater
-  wake_word_model_url: https://github.com/TaterTotterson/microWakeWords/raw/refs/heads/main/microWakeWordsV2/hey_tater.json
+  wake_word_model_url: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/microWakeWords/hey_tater.json
   wake_model_stop_url: https://github.com/kahrendt/microWakeWord/releases/download/stop/stop.json
 
   # -----------------------------
@@ -128,16 +128,11 @@ logger:
   logs:
     sensor: WARN  # avoids logging frequent sensor updates
 
-dashboard_import:
-  package_import_url: github://futureproofhomes/satellite1-esphome/config/satellite1.dashboard.yaml@staging
-  import_full_config: true
-
 external_components:
   - source:
       type: git
       url: https://github.com/FutureProofHomes/Satellite1-ESPHome
-      ref: develop
-      path: esphome/components
+      ref: staging
     components:
       - audio
       - fusb302b
@@ -153,6 +148,16 @@ external_components:
       - tas2780
 
 packages:
+  dashboard_build:
+    button:
+      # Flashes Sat1 HAT with XMOS firmware embedded in the ESP32 firmware
+      - platform: template
+        id: flash_embedded
+        name: "XMOS Flash Embedded FW"
+        entity_category: diagnostic
+        on_press:
+          then:
+            - memory_flasher.write_embedded_image:
   core_board:
     esphome:
       platformio_options:
@@ -988,7 +993,7 @@ packages:
       microphone:
         microphone: sat1_mics
         channels: 1
-        gain_factor: 6
+        gain_factor: 4
       stop_after_detection: false
       on_wake_word_detected:
         # If the wake word is detected when the device is muted (Possible with the software mute switch): Do nothing
