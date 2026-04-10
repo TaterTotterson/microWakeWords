@@ -1,0 +1,66 @@
+select:
+  - platform: template
+    name: TAS2780 AMP LEVEL (dbV)
+    id: tas_amp_level_select
+    options:
+      - "11"
+      - "11.5"
+      - "12"
+      - "12.5"
+      - "13"
+      - "13.5"
+      - "14"
+      - "14.5"
+      - "15"
+      - "15.5"
+      - "16"
+      - "16.5"
+      - "17"
+      - "17.5"
+      - "18"
+      - "18.5"
+      - "19"
+      - "19.5"
+      - "20"
+      - "20.5"
+      - "21"
+    initial_option: "15"
+    optimistic: true
+    on_value:
+      - tas2780.update_config:
+          amp_level_idx: !lambda |-
+            auto index = id(tas_amp_level_select).active_index();
+            if (index.has_value()){
+              return index.value();
+            }
+            ESP_LOGI("main", "No amp level selected");
+            return 15;
+
+number:
+  - platform: template
+    name: Volume Range Min
+    id: vol_rng_min
+    mode: "slider"
+    optimistic: true
+    min_value: 0
+    max_value: 1.
+    step: .05
+    initial_value: .3
+    on_value:
+      then:
+        - tas2780.update_config:
+            vol_range_min: !lambda "return x;"
+
+  - platform: template
+    name: Volume Range Max
+    id: vol_rng_max
+    mode: "slider"
+    optimistic: true
+    min_value: 0
+    max_value: 1.
+    initial_value: 1.
+    step: .05
+    on_value:
+      then:
+        - tas2780.update_config:
+            vol_range_max: !lambda "return x;"

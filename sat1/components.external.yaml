@@ -1,0 +1,21 @@
+substitutions:
+  ext_comp_repo_ref: develop
+
+external_components:
+  - source:
+      type: git
+      url: https://github.com/FutureProofHomes/Satellite1-ESPHome
+      ref: ${ext_comp_repo_ref}
+    components:
+      - audio
+      - fusb302b
+      - i2s_audio
+      - memory_flasher
+      - micro_wake_word
+      - mixer
+      - pcm5122
+      - resampler
+      - satellite1
+      - snapcast
+      - speaker
+      - tas2780

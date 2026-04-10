@@ -1,0 +1,83 @@
+esphome:
+  platformio_options:
+    board_build.flash_mode: dio
+    board_upload.maximum_size: 16777216
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: ESP32S3
+  flash_size: 16MB
+  framework:
+    type: esp-idf
+
+    sdkconfig_options:
+      CONFIG_ESP32_S3_BOX_BOARD: "y"
+      CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: "y"
+
+      CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ: "240"
+
+      CONFIG_SPIRAM_RODATA: "y"
+      CONFIG_SPIRAM_FETCH_INSTRUCTIONS: "y"
+      CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY: "y"
+
+      # FreeRTOS
+      CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY: "y"
+
+      # LWIP
+      CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP: "y"
+      CONFIG_LWIP_IRAM_OPTIMIZATION: "y"
+      CONFIG_LWIP_TCPIP_TASK_PRIO: "18"
+      CONFIG_LWIP_TCPIP_TASK_AFFINITY_CPU0: "y"
+
+      CONFIG_LWIP_TCP_SND_BUF_DEFAULT: "65535"
+      CONFIG_LWIP_TCP_WND_DEFAULT: "65535"
+      CONFIG_LWIP_TCPIP_RECVMBOX_SIZE: "64"
+      CONFIG_LWIP_TCP_RECVMBOX_SIZE: "64"
+      CONFIG_LWIP_UDP_RECVMBOX_SIZE: "64"
+      CONFIG_LWIP_TCP_RTO_TIME: "500"        # Default was 1500ms
+      CONFIG_LWIP_TCP_SACK_OUT: "y"          # Default was disabled
+      CONFIG_LWIP_TCP_OOSEQ_MAX_PBUFS: "8"   # Default was 4
+
+      # WiFi
+      CONFIG_ESP_WIFI_AMPDU_RX_ENABLED: "y"
+      CONFIG_ESP_WIFI_RX_BA_WIN: "32"
+      CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM: "16"
+      CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM: "128"
+      CONFIG_ESP_WIFI_DYNAMIC_TX_BUFFER_NUM: "64"
+      CONFIG_ESP_WIFI_AMPDU_TX_ENABLED: "y"
+      CONFIG_ESP_WIFI_TX_BA_WIN: "32"
+
+      # BT
+      CONFIG_BT_ALLOCATION_FROM_SPIRAM_FIRST: "y"
+      CONFIG_BT_BLE_DYNAMIC_ENV_MEMORY: "y"
+
+      # MDNS
+      CONFIG_MDNS_MEMORY_ALLOC_SPIRAM: "y"
+
+psram:
+  mode: octal
+  speed: 80MHz
+  ignore_not_found: false
+
+i2c:
+  - id: i2c_0
+    sda: GPIO5
+    scl: GPIO6
+    frequency: 400kHz
+    scan: True
+
+spi:
+  - id: spi_0
+    clk_pin: GPIO12
+    mosi_pin: GPIO11
+    miso_pin: GPIO13
+    interface: SPI2
+
+i2s_audio:
+  - id: i2s_shared
+    i2s_lrclk_pin: GPIO07
+    i2s_bclk_pin: GPIO08
+    i2s_mclk_pin: GPIO16
+    access_mode: duplex
+    i2s_mode: secondary
+    use_legacy: false
