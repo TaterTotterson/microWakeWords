@@ -1,0 +1,65 @@
+sensor:
+  - platform: aht10
+    id: "aht20_temp_hum_sensor"
+    address: 0x38
+    variant: AHT20
+    temperature:
+      name: Temperature
+      id: temperature_sensor
+      filters:
+        - offset: ${temp_offset}
+        - lambda: "return x + id(temp_offset_ui).state;"
+    humidity:
+      name: Humidity
+      id: humidity_sensor
+      filters:
+        - offset: ${humidity_offset}
+        - lambda: "return x + id(humidity_offset_ui).state;"
+  - platform: wifi_signal
+    name: "Wi-Fi Signal Strength"
+    entity_category: "diagnostic"
+    update_interval: 60s
+
+  - platform: ltr_als_ps
+    address: 0x29
+    type: ALS
+    update_interval: 60s
+
+    # short variant of sensor definition:
+    ambient_light: "Ambient Light"
+
+number:
+  # Dynamically adjust the temperature and humidity offset.  Credit goes to Lewis over @ EverythingSmartHome.  I admire your work and hope to meet someday.  Beers on me.
+  - platform: template
+    name: "Offset Temperature"
+    id: temp_offset_ui
+    device_class: temperature
+    min_value: -20
+    max_value: 20
+    step: 0.1
+    mode: box
+    update_interval: never
+    optimistic: true
+    restore_value: true
+    initial_value: 0
+    icon: "mdi:thermometer"
+    entity_category: config
+    on_value:
+      - lambda: 'id(aht20_temp_hum_sensor).update();'
+
+  - platform: template
+    name: "Offset Humidity"
+    id: humidity_offset_ui
+    unit_of_measurement: "%"
+    min_value: -50
+    max_value: 50
+    step: 0.1
+    mode: box
+    update_interval: never
+    optimistic: true
+    restore_value: true
+    initial_value: 0
+    icon: "mdi:water-percent"
+    entity_category: config
+    on_value:
+      - lambda: 'id(aht20_temp_hum_sensor).update();'

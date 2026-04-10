@@ -1,0 +1,84 @@
+api:
+  id: api_id
+  on_client_connected:
+    - lambda: id(init_in_progress) = false;
+    - script.execute: control_leds
+  on_client_disconnected:
+    - script.execute: control_leds
+  encryption:   # Uses key set by Home Assistant
+
+button:
+  # Restarts Sat1 Device
+  - platform: restart
+    name: "Restart Sat1"
+    entity_category: diagnostic
+
+  # Restores the Sat1 ESP back to factory settings
+  - platform: factory_reset
+    id: factory_reset_button
+    name: "Factory Reset ESP32 FW"
+    entity_category: diagnostic
+    internal: true
+
+switch:
+  # Wake Word Sound Switch.
+  - platform: template
+    id: wake_sound
+    name: Wake sound
+    icon: "mdi:bullhorn"
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+
+    # This is the master mute switch. It is exposed to Home Assistant. The user can only turn it on and off if the hardware switch is off. (The hardware switch overrides the software one)
+  - platform: template
+    id: master_mute_switch
+    restore_mode: RESTORE_DEFAULT_OFF
+    icon: "mdi:microphone-off"
+    name: Mute Microphones
+    entity_category: config
+    turn_on_action:
+      - if:
+          condition:
+            binary_sensor.is_off: btn_left
+          then:
+            - switch.template.publish:
+                id: master_mute_switch
+                state: ON
+    turn_off_action:
+      - if:
+          condition:
+            binary_sensor.is_off: btn_left
+          then:
+            - switch.template.publish:
+                id: master_mute_switch
+                state: OFF
+          else:
+            - lambda: id(warning) = true;
+            - script.execute: control_leds
+    on_turn_on:
+      - script.execute: control_leds
+    on_turn_off:
+      - script.execute: control_leds
+
+text_sensor:
+  - platform: template
+    id: pd_state_text
+    name: "USB-C Power Supply"
+    icon: "mdi:usb-c-port"
+    entity_category: "diagnostic"
+    update_interval: never
+    lambda: |-
+      if( id(pd_fusb302b).state == power_delivery::PD_STATE_DISCONNECTED){
+        return std::string("Detached");
+      } else {
+        return id(pd_fusb302b).contract;
+      }
+
+  - platform: template
+    id: xmos_firmware_version_text
+    name: "XMOS Firmware"
+    icon: "mdi:memory"
+    entity_category: "diagnostic"
+    update_interval: never
+    lambda: return id(satellite1_id).status_string();

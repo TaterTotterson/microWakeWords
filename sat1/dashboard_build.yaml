@@ -1,0 +1,11 @@
+## Configuration used by dashboard builds only
+
+button:
+  # Flashes Sat1 HAT with XMOS firmware embedded in the ESP32 firmware
+  - platform: template
+    id: flash_embedded
+    name: "XMOS Flash Embedded FW"
+    entity_category: diagnostic
+    on_press:
+      then:
+        - memory_flasher.write_embedded_image:

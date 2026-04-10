@@ -1,0 +1,266 @@
+globals:
+  # Global variable tracking if the volume button was recently touched.
+  - id: volume_buttons_touched
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
+  # Global variable tracking if the action button was recently touched.
+  - id: action_button_touched
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
+  - id: factory_reset_requested
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
+event:
+  # Event entity exposed to the user to automate on complex action button presses.
+  # The simple press is not exposed as it is used to control the device itself.
+  - platform: template
+    id: action_button_press_event
+    name: "Action Button Press"
+    icon: mdi:button-pointer
+    device_class: button
+    event_types:
+      - single_press
+      - double_press
+      - triple_press
+      - long_press
+
+binary_sensor:
+  - platform: gpio
+    id: btn_up
+    pin:
+      satellite1:
+      port: INPUT_A
+      pin: 0
+      inverted: true
+    name: "Button Up (Vol+)"
+    icon: "mdi:volume-plus"
+    on_press:
+      then:
+        - lambda: id(volume_buttons_touched) = true;
+        - script.execute:
+            id: control_volume
+            increase_volume: true
+
+  - platform: gpio
+    id: btn_down
+    pin:
+      satellite1:
+      port: INPUT_A
+      pin: 2
+      inverted: true
+    name: "Button Down (Vol-)"
+    icon: "mdi:volume-minus"
+    on_press:
+      then:
+        - lambda: id(volume_buttons_touched) = true;
+        - script.execute:
+            id: control_volume
+            increase_volume: false
+
+  - platform: gpio
+    id: btn_left
+    pin:
+      satellite1:
+      port: INPUT_A
+      pin: 3
+      inverted: false
+    name: "Button Left (HW Mute)"
+    icon: "mdi:microphone-off"
+    on_state:
+      - if:
+          condition:
+            binary_sensor.is_off: btn_left
+          then:
+            - script.execute:
+                id: play_sound
+                priority: false
+                sound_file: !lambda return id(mute_switch_off_sound);
+            - switch.template.publish:
+                id: master_mute_switch
+                state: OFF
+          else:
+            - script.execute:
+                id: play_sound
+                priority: false
+                sound_file: !lambda return id(mute_switch_on_sound);
+            - switch.template.publish:
+                id: master_mute_switch
+                state: ON
+
+  - platform: gpio
+    id: btn_action
+    pin:
+      number: 0
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+      ignore_strapping_warning: true
+    name: "Button Right (Action)"
+    icon: "mdi:gesture-tap"
+    on_press:
+      - script.execute: control_leds
+    on_release:
+      - script.execute: control_leds
+    on_multi_click:
+      # Simple Click:
+      #   - Abort "things" in order
+      #     - Timer
+      #     - Announcements
+      #     - Voice Assistant Pipeline run
+      #     - Music
+      #   - Starts the voice assistant if it is not yet running and if the device is not muted.
+      - timing:
+          - ON for at most 1s
+          - OFF for at least 0.25s
+        then:
+          - if:
+              condition:
+                lambda: return !id(init_in_progress);
+              then:
+                - event.trigger:
+                    id: action_button_press_event
+                    event_type: "single_press"
+                - if:
+                    condition:
+                      switch.is_on: timer_ringing
+                    then:
+                      - switch.turn_off: timer_ringing
+                    else:
+                      - if:
+                          condition:
+                            voice_assistant.is_running:
+                          then:
+                            - voice_assistant.stop:
+                          else:
+                            - if:
+                                condition:
+                                  media_player.is_announcing:
+                                then:
+                                  media_player.stop:
+                                    announcement: true
+                                else:
+                                  - if:
+                                      condition:
+                                        media_player.is_playing:
+                                      then:
+                                        - media_player.pause:
+                                      else:
+                                        - if:
+                                            condition:
+                                              and:
+                                                - switch.is_off: master_mute_switch
+                                                - not:
+                                                    voice_assistant.is_running
+                                            then:
+                                              - script.execute:
+                                                  id: play_sound
+                                                  priority: true
+                                                  sound_file: !lambda return id(center_button_press_sound);
+                                              - delay: 300ms
+                                              - voice_assistant.start:
+      # Double Click
+      #  . Exposed as an event entity. To be used in automations inside Home Assistant
+      - timing:
+          - ON for at most 1s
+          - OFF for at most 0.25s
+          - ON for at most 1s
+          - OFF for at least 0.25s
+        then:
+          - if:
+              condition:
+                lambda: return !id(init_in_progress);
+              then:
+                - script.execute:
+                    id: play_sound
+                    priority: false
+                    sound_file: !lambda return id(center_button_double_press_sound);
+                - event.trigger:
+                    id: action_button_press_event
+                    event_type: "double_press"
+      # Triple Click
+      #  . Exposed as an event entity. To be used in automations inside Home Assistant
+      - timing:
+          - ON for at most 1s
+          - OFF for at most 0.25s
+          - ON for at most 1s
+          - OFF for at most 0.25s
+          - ON for at most 1s
+          - OFF for at least 0.25s
+        then:
+          - if:
+              condition:
+                lambda: return !id(init_in_progress);
+              then:
+                - script.execute:
+                    id: play_sound
+                    priority: false
+                    sound_file: !lambda return id(center_button_triple_press_sound);
+                - event.trigger:
+                    id: action_button_press_event
+                    event_type: "triple_press"
+      # Long Press
+      #  . Exposed as an event entity. To be used in automations inside Home Assistant
+      - timing:
+          - ON for at least 1s
+        then:
+          - if:
+              condition:
+                lambda: return !id(init_in_progress);
+              then:
+                - script.execute:
+                    id: play_sound
+                    priority: false
+                    sound_file: !lambda return id(center_button_long_press_sound);
+                - light.turn_off: voice_assistant_leds
+                - event.trigger:
+                    id: action_button_press_event
+                    event_type: "long_press"
+
+      # Factory Reset Warning
+      #  . Audible and Visible warning.
+      - timing:
+          - ON for at least 10s
+        then:
+          - if:
+              condition:
+                lambda: return !id(action_button_touched);
+              then:
+                - light.turn_on:
+                    brightness: 100%
+                    id: voice_assistant_leds
+                    effect: "Factory Reset Coming Up"
+                - script.execute:
+                    id: play_sound
+                    priority: true
+                    sound_file: !lambda return id(factory_reset_initiated_sound);
+                - wait_until:
+                    binary_sensor.is_off: btn_action
+                - light.turn_off: voice_assistant_leds
+                - script.execute:
+                    id: play_sound
+                    priority: true
+                    sound_file: !lambda return id(factory_reset_cancelled_sound);
+
+      # Factory Reset
+      - timing:
+          - ON for at least 22s
+        then:
+          - if:
+              condition:
+                lambda: return !id(action_button_touched);
+              then:
+                - if:
+                    condition:
+                      - lambda: return id(xflash).flash_accessible();
+                    then:
+                      - lambda: id(factory_reset_requested) = true;
+                      - memory_flasher.erase:
+                    else:
+                      - button.press: factory_reset_button
