@@ -25,6 +25,8 @@ esp32:
   variant: esp32s3
   flash_size: 16MB
   framework:
+    components:
+      - espressif/esp-nn==1.1.2
     type: esp-idf
     version: recommended
     sdkconfig_options:
@@ -94,4 +96,3 @@ psram:
   mode: octal
   speed: 80MHz
   ignore_not_found: false  # The VPE has PSRAM, so this is safe. Allows configuring WiFi driver to use more resources (done automatically by the speaker media player)
-
