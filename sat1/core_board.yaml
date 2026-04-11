@@ -9,6 +9,8 @@ esp32:
   flash_size: 16MB
   framework:
     type: esp-idf
+    components:
+      - espressif/esp-nn==1.1.2
 
     sdkconfig_options:
       CONFIG_ESP32_S3_BOX_BOARD: "y"
