@@ -1,0 +1,59 @@
+globals:
+  # Global index for our LEDs. So that switching between different animation does not lead to unwanted effects.
+  - id: global_led_animation_index
+    type: int
+    restore_value: no
+    initial_value: '0'
+  # Global initialization variable. Initialized to true and set to false once everything is connected. Only used to have a smooth "plugging" experience
+  - id: init_in_progress
+    type: bool
+    restore_value: no
+    initial_value: 'true'
+  # Global variable storing the state of ImprovBLE. Used to draw different LED animations
+  - id: improv_ble_in_progress
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  # Global variable tracking the phase of the voice assistant (defined above). Initialized to not_ready
+  - id: voice_assistant_phase
+    type: int
+    restore_value: no
+    initial_value: ${voice_assist_not_ready_phase_id}
+  # Global variable tracking if the dial was recently touched.
+  - id: dial_touched
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  # Global variable tracking if the LED color was recently changed.
+  - id: color_changed
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  # Global variable tracking if the group media player volume was recent changed.
+  - id: group_volume_changed
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  # Global variable tracking if the jack has been plugged touched.
+  - id: jack_plugged_recently
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  # Global variable tracking if the jack has been unplugged touched.
+  - id: jack_unplugged_recently
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  # Global variable storing the first active timer
+  - id: first_active_timer
+    type: voice_assistant::Timer
+    restore_value: false
+  # Global variable storing if a timer is active
+  - id: is_timer_active
+    type: bool
+    restore_value: false
+  # Global variable storing if a factory reset was requested. If it is set to true, the device will factory reset once the center button is released
+  - id: factory_reset_requested
+    type: bool
+    restore_value: no
+    initial_value: 'false'

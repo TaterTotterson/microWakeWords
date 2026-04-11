@@ -1,0 +1,374 @@
+switch:
+  # This is the master mute switch. It is exposed to Home Assistant. The user can only turn it on and off if the hardware switch is off. (The hardware switch overrides the software one)
+  - platform: template
+    id: master_mute_switch
+    restore_mode: RESTORE_DEFAULT_OFF
+    icon: "mdi:microphone-off"
+    name: Mute
+    entity_category: config
+    lambda: |-
+      // Muted either if the hardware mute switch is on or the microphone's software mute switch is enabled
+      if (id(hardware_mute_switch).state || id(i2s_mics).get_mute_state()) {
+        return true;
+      } else {
+        return false;
+      }
+    turn_on_action:
+      - if:
+          condition:
+            binary_sensor.is_off: hardware_mute_switch
+          then:
+            - microphone.mute:
+    turn_off_action:
+      - if:
+          condition:
+            binary_sensor.is_off: hardware_mute_switch
+          then:
+            - microphone.unmute:
+    on_turn_on:
+      - script.execute: control_leds
+    on_turn_off:
+      - script.execute: control_leds
+  # Wake Word Sound Switch.
+  - platform: template
+    id: wake_sound
+    name: Wake sound
+    icon: "mdi:bullhorn"
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+  # Internal switch to track when a timer is ringing on the device.
+  - platform: template
+    id: timer_ringing
+    optimistic: true
+    internal: true
+    restore_mode: ALWAYS_OFF
+    on_turn_off:
+      # Disable stop wake word
+      - micro_wake_word.disable_model: stop
+      - script.execute: disable_repeat
+      # Stop any current announcement (ie: stop the timer ring mid playback)
+      - if:
+          condition:
+            media_player.is_announcing:
+              id: external_media_player
+          then:
+            media_player.stop:
+              announcement: true
+              id: external_media_player
+      # Set back ducking ratio to zero
+      - mixer_speaker.apply_ducking:
+          id: media_mixing_input
+          decibel_reduction: 0
+          duration: 1.0s
+      # Refresh the LED ring
+      - script.execute: control_leds
+    on_turn_on:
+      # Duck audio
+      - mixer_speaker.apply_ducking:
+          id: media_mixing_input
+          decibel_reduction: 20
+          duration: 0.0s
+      # Enable stop wake word
+      - micro_wake_word.enable_model: stop
+      # Ring timer
+      - script.execute: ring_timer
+      # Refresh LED
+      - script.execute: control_leds
+      # If 15 minutes have passed and the timer is still ringing, stop it.
+      - delay: 15min
+      - switch.turn_off: timer_ringing
+  - platform: gpio
+    pin: GPIO47
+    id: internal_speaker_amp
+    name: "Internal speaker amp"
+    entity_category: config
+    restore_mode: ALWAYS_OFF
+    internal: true
+
+binary_sensor:
+  # Center Button. Used for many things (See on_multi_click)
+  - platform: gpio
+    id: center_button
+    pin:
+      number: GPIO0
+      inverted: true
+    on_press:
+      - script.execute: control_leds
+    on_release:
+      - script.execute: control_leds
+      # If a factory reset is requested, factory reset on release
+      - if:
+          condition:
+            lambda: return id(factory_reset_requested);
+          then:
+            - button.press: factory_reset_button
+    on_multi_click:
+      # Simple Click:
+      #   - Abort "things" in order
+      #     - Timer
+      #     - Announcements
+      #     - Voice Assistant Pipeline run
+      #     - Music
+      #   - Starts the voice assistant if it is not yet running and if the device is not muted.
+      - timing:
+          - ON for at most 1s
+          - OFF for at least 0.25s
+        then:
+          - if:
+              condition:
+                lambda: return !id(init_in_progress) && !id(color_changed) && !id(group_volume_changed);
+              then:
+                - if:
+                    condition:
+                      switch.is_on: timer_ringing
+                    then:
+                      - switch.turn_off: timer_ringing
+                    else:
+                      - if:
+                          condition:
+                            voice_assistant.is_running:
+                          then:
+                            - voice_assistant.stop:
+                          else:
+                            - if:
+                                condition:
+                                  media_player.is_announcing:
+                                    id: external_media_player
+                                then:
+                                  media_player.stop:
+                                    announcement: true
+                                    id: external_media_player
+                                else:
+                                  - if:
+                                      condition:
+                                        media_player.is_playing:
+                                          id: external_media_player
+                                      then:
+                                        - media_player.pause:
+                                            id: external_media_player
+                                      else:
+                                        - if:
+                                            condition:
+                                              and:
+                                                - switch.is_off: master_mute_switch
+                                                - not: voice_assistant.is_running
+                                            then:
+                                              - script.execute:
+                                                  id: play_sound
+                                                  priority: true
+                                                  sound_file: "center_button_press_sound"
+                                              - delay: 300ms
+                                              - voice_assistant.start:
+      # Double Click
+      #  . Exposed as an event entity. To be used in automations inside Home Assistant
+      - timing:
+          - ON for at most 1s
+          - OFF for at most 0.25s
+          - ON for at most 1s
+          - OFF for at least 0.25s
+        then:
+          - if:
+              condition:
+                lambda: return !id(init_in_progress) && !id(color_changed) && !id(group_volume_changed);
+              then:
+                - script.execute:
+                    id: play_sound
+                    priority: false
+                    sound_file: "center_button_double_press_sound"
+                - event.trigger:
+                    id: button_press_event
+                    event_type: "double_press"
+      # Triple Click
+      #  . Exposed as an event entity. To be used in automations inside Home Assistant
+      - timing:
+          - ON for at most 1s
+          - OFF for at most 0.25s
+          - ON for at most 1s
+          - OFF for at most 0.25s
+          - ON for at most 1s
+          - OFF for at least 0.25s
+        then:
+          - if:
+              condition:
+                lambda: return !id(init_in_progress) && !id(color_changed) && !id(group_volume_changed);
+              then:
+                - script.execute:
+                    id: play_sound
+                    priority: false
+                    sound_file: "center_button_triple_press_sound"
+                - event.trigger:
+                    id: button_press_event
+                    event_type: "triple_press"
+      # Long Press
+      #  . Exposed as an event entity. To be used in automations inside Home Assistant
+      - timing:
+          - ON for at least 1s
+        then:
+          - if:
+              condition:
+                lambda: return !id(init_in_progress) && !id(color_changed) && !id(group_volume_changed);
+              then:
+                - script.execute:
+                    id: play_sound
+                    priority: false
+                    sound_file: "center_button_long_press_sound"
+                - light.turn_off: voice_assistant_leds
+                - event.trigger:
+                    id: button_press_event
+                    event_type: "long_press"
+      # Very important do not remove. Trust me :D
+      - timing:
+          # H ....
+          - ON for at most 0.2s
+          - OFF for 0s to 2s
+          - ON for at most 0.2s
+          - OFF for 0s to 2s
+          - ON for at most 0.2s
+          - OFF for 0s to 2s
+          - ON for at most 0.2s
+          - OFF for 0.5s to 2s
+          # A ._
+          - ON for at most 0.2s
+          - OFF for 0s to 2s
+          - ON for 0.2s to 2s
+        then:
+          - if:
+              condition:
+                lambda: return !id(init_in_progress);
+              then:
+                - light.turn_on:
+                    brightness: 100%
+                    id: voice_assistant_leds
+                    effect: "Tick"
+                - script.execute:
+                    id: play_sound
+                    priority: true
+                    sound_file: "easter_egg_tick_sound"
+                - delay: 4s
+                - light.turn_off: voice_assistant_leds
+                - script.execute:
+                    id: play_sound
+                    priority: true
+                    sound_file: "easter_egg_tada_sound"
+                - light.turn_on:
+                    brightness: 100%
+                    id: voice_assistant_leds
+                    effect: "Rainbow"
+                - event.trigger:
+                    id: button_press_event
+                    event_type: "easter_egg_press"
+      # Factory Reset Warning
+      #  . Audible and Visible warning.
+      - timing:
+          - ON for at least 10s
+        then:
+          - if:
+              condition:
+                lambda: return !id(dial_touched);
+              then:
+                - light.turn_on:
+                    brightness: 100%
+                    id: voice_assistant_leds
+                    effect: "Factory Reset Coming Up"
+                - script.execute:
+                    id: play_sound
+                    priority: true
+                    sound_file: "factory_reset_initiated_sound"
+                - wait_until:
+                    binary_sensor.is_off: center_button
+                - if:
+                    condition:
+                      lambda: return !id(factory_reset_requested);
+                    then:
+                      - light.turn_off: voice_assistant_leds
+                      - script.execute:
+                          id: play_sound
+                          priority: true
+                          sound_file: "factory_reset_cancelled_sound"
+      # Factory Reset Confirmed.
+      #  . Audible warning to prompt user to release the button
+      #  . Set factory_reset_requested to true
+      - timing:
+          - ON for at least 22s
+        then:
+          - if:
+              condition:
+                lambda: return !id(dial_touched);
+              then:
+                - script.execute:
+                    id: play_sound
+                    priority: true
+                    sound_file: "factory_reset_confirmed_sound"
+                - light.turn_on:
+                    brightness: 100%
+                    red: 100%
+                    green: 0%
+                    blue: 0%
+                    id: voice_assistant_leds
+                    effect: "none"
+                - lambda: id(factory_reset_requested) = true;
+
+  # Hardware mute switch (Side of the device)
+  - platform: gpio
+    id: hardware_mute_switch
+    internal: true
+    pin: GPIO3
+    on_press:
+      # Play mute on sound only if software mute isn't enabled
+      - if:
+          condition:
+            - switch.is_off: master_mute_switch
+          then:
+            - script.execute:
+                id: play_sound
+                priority: false
+                sound_file: "mute_switch_on_sound"
+    on_release:
+      - script.execute:
+          id: play_sound
+          priority: false
+          sound_file: "mute_switch_off_sound"
+      - microphone.unmute:
+  # Audio Jack Plugged sensor
+  - platform: gpio
+    id: jack_plugged
+    # Debouncing it a bit because it can be activated back and forth as you plug the audio jack
+    filters:
+      - delayed_on: 200ms
+      - delayed_off: 200ms
+    pin:
+      number: GPIO17
+    # When the jack is plugged in:
+    #  - LED animation
+    #  - Enable Sendspin static delay adjustment to apply the persisted delay when using the external audio output
+    #  - Sound played
+    on_press:
+      - lambda: id(jack_plugged_recently) = true;
+      - sendspin.media_source.enable_static_delay_adjustment:
+      - script.execute: control_leds
+      - delay: 200ms
+      - script.execute:
+          id: play_sound
+          priority: false
+          sound_file: "jack_connected_sound"
+      - delay: 800ms
+      - lambda: id(jack_plugged_recently) = false;
+      - script.execute: control_leds
+    # When the jack is unplugged:
+    #  - LED animation
+    #  - Disable Sendspin static delay adjustment when using the internal speaker
+    #  - Sound played
+    on_release:
+      - lambda: id(jack_unplugged_recently) = true;
+      - script.execute: control_leds
+      - sendspin.media_source.disable_static_delay_adjustment:
+      - delay: 200ms
+      - script.execute:
+          id: play_sound
+          priority: false
+          sound_file: "jack_disconnected_sound"
+      - delay: 800ms
+      - lambda: id(jack_unplugged_recently) = false;
+      - script.execute: control_leds
+

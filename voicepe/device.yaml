@@ -1,0 +1,97 @@
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_name}
+  name_add_mac_suffix: true
+  min_version: 2026.3.0
+  on_boot:
+    priority: 375
+    then:
+      # Run the script to refresh the LED status
+      - script.execute: control_leds
+      - delay: 1s
+      - switch.turn_on: internal_speaker_amp
+      # If after 10 minutes, the device is still initializing (It did not yet connect to Home Assistant), turn off the init_in_progress variable and run the script to refresh the LED status
+      - delay: 10min
+      - if:
+          condition:
+            lambda: return id(init_in_progress);
+          then:
+            - lambda: id(init_in_progress) = false;
+            - script.execute: control_leds
+
+esp32:
+  board: esp32-s3-devkitc-1
+  cpu_frequency: 240MHz
+  variant: esp32s3
+  flash_size: 16MB
+  framework:
+    type: esp-idf
+    version: recommended
+    sdkconfig_options:
+      CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
+      CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
+      CONFIG_ESP32S3_INSTRUCTION_CACHE_32KB: "y"
+
+      # Moves instructions and read only data from flash into PSRAM on boot.
+      # Both enabled allows instructions to execute while a flash operation is in progress without needing to be placed in IRAM.
+      # Considerably speeds up mWW at the cost of using more PSRAM.
+      CONFIG_SPIRAM_RODATA: "y"
+      CONFIG_SPIRAM_FETCH_INSTRUCTIONS: "y"
+
+      CONFIG_BT_ALLOCATION_FROM_SPIRAM_FIRST: "y"
+      CONFIG_BT_BLE_DYNAMIC_ENV_MEMORY: "y"
+
+      CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC: "y"
+      CONFIG_MBEDTLS_SSL_PROTO_TLS1_3: "y"  # TLS1.3 support isn't enabled by default in IDF 5.1.5
+
+wifi:
+  ssid: ${wifi_ssid}
+  password: ${wifi_password}
+  use_address: ${ha_voice_ip}
+  id: wifi_id
+  fast_connect: ${hidden_ssid}
+  on_connect:
+    - lambda: id(improv_ble_in_progress) = false;
+    - script.execute: control_leds
+    # Enable/disable Sendspin static adjustment delay if the jack is plugged in or not
+    - if:
+        condition:
+          - binary_sensor.is_on: jack_plugged
+        then:
+          - sendspin.media_source.enable_static_delay_adjustment:
+        else:
+          - sendspin.media_source.disable_static_delay_adjustment:
+  on_disconnect:
+    - script.execute: control_leds
+
+network:
+  enable_ipv6: true
+
+logger:
+  level: DEBUG
+  logs:
+    sensor: WARN  # avoids logging debug sensor updates
+
+api:
+  id: api_id
+  on_client_connected:
+    - script.execute: control_leds
+  on_client_disconnected:
+    - script.execute: control_leds
+  encryption:   # Uses key set by Home Assistant
+
+ota:
+  - platform: esphome
+    id: ota_esphome
+
+i2c:
+  - id: internal_i2c
+    sda: GPIO5
+    scl: GPIO6
+    frequency: 400kHz
+
+psram:
+  mode: octal
+  speed: 80MHz
+  ignore_not_found: false  # The VPE has PSRAM, so this is safe. Allows configuring WiFi driver to use more resources (done automatically by the speaker media player)
+
