@@ -1,0 +1,65 @@
+sensor:
+  # The dial. Used to control volume and Hue of the LED ring.
+  - platform: rotary_encoder
+    id: dial
+    pin_a: GPIO16
+    pin_b: GPIO18
+    resolution: 2
+    on_clockwise:
+      - lambda: id(dial_touched) = true;
+      - if:
+          condition:
+            binary_sensor.is_off: center_button
+          then:
+            - script.execute:
+                id: control_volume
+                increase_volume: true
+          else:
+            - if:
+                condition:
+                  media_player.is_playing:
+                    id: sendspin_group_media_player
+                then:
+                  - script.execute:
+                      id: control_group_volume
+                      increase_volume: true
+                else:
+                  - script.execute:
+                      id: control_hue
+                      increase_hue: true
+    on_anticlockwise:
+      - lambda: id(dial_touched) = true;
+      - if:
+          condition:
+            binary_sensor.is_off: center_button
+          then:
+            - script.execute:
+                id: control_volume
+                increase_volume: false
+          else:
+            - if:
+                condition:
+                  media_player.is_playing:
+                    id: sendspin_group_media_player
+                then:
+                  - script.execute:
+                      id: control_group_volume
+                      increase_volume: false
+                else:
+                  - script.execute:
+                      id: control_hue
+                      increase_hue: false
+
+event:
+  # Event entity exposed to the user to automate on complex center button presses.
+  # The simple press is not exposed as it is used to control the device itself.
+  - platform: template
+    id: button_press_event
+    name: "Button press"
+    icon: mdi:button-pointer
+    device_class: button
+    event_types:
+      - double_press
+      - triple_press
+      - long_press
+      - easter_egg_press
