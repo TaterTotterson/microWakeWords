@@ -216,11 +216,6 @@ esphome:
               - lambda: id(init_in_progress) = false;
               - script.execute: control_leds
 
-esp32:
-  framework:
-    components:
-      - espressif/esp-nn==1.1.2
-
 ota:
   - platform: esphome
     id: ota_esphome
