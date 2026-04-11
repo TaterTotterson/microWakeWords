@@ -53,15 +53,19 @@ substitutions:
   error_cloud_expired_sound_file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/error_cloud_expired.mp3
 
 packages:
-  device: !include voicepe/device.yaml
-  globals_base: !include voicepe/globals.yaml
-  controls: !include voicepe/controls.yaml
-  lights: !include voicepe/lights.yaml
-  sensors_events: !include voicepe/sensors_events.yaml
-  scripts: !include voicepe/scripts.yaml
-  audio: !include voicepe/audio.yaml
-  voice: !include voicepe/voice.yaml
-  buttons_base: !include voicepe/buttons.yaml
+  TaterTotterson.VoicePE:
+    url: https://github.com/TaterTotterson/microWakeWords
+    ref: main
+    files:
+      - voicepe/device.yaml
+      - voicepe/globals.yaml
+      - voicepe/controls.yaml
+      - voicepe/lights.yaml
+      - voicepe/sensors_events.yaml
+      - voicepe/scripts.yaml
+      - voicepe/audio.yaml
+      - voicepe/voice.yaml
+      - voicepe/buttons.yaml
 
 globals:
   # Remote (device-local) timer total duration in seconds.
