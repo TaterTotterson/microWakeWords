@@ -4,6 +4,9 @@ substitutions:
   # -----------------------------
   friendly_name: "Tater_Sat1"
   node_name: tatersat1
+  company_name: Tater
+  project_name: Tater_Sat1
+  component_name: Core
 
   # -----------------------------
   # WIFI / NETWORK
