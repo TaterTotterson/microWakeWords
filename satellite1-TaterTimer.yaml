@@ -3,10 +3,7 @@ substitutions:
   # DEVICE IDENTITY
   # -----------------------------
   friendly_name: "Tater_Sat1"
-  node_name: satellite1
-  company_name: Tater
-  project_name: Tater_Sat1
-  component_name: Core
+  node_name: tatersat1
 
   # -----------------------------
   # WIFI / NETWORK
