@@ -19,6 +19,11 @@ globals:
     type: int
     restore_value: no
     initial_value: ${voice_assist_not_ready_phase_id}
+  # Global variable tracking whether Tater is forcing the tool-call visual.
+  - id: tater_tool_visual_active
+    type: bool
+    restore_value: no
+    initial_value: 'false'
   # Global variable tracking if the dial was recently touched.
   - id: dial_touched
     type: bool
