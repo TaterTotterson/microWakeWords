@@ -249,3 +249,37 @@ select:
         } else if (x == "Very sensitive") {
           id(${wake_word_name}).set_probability_cutoff(${wake_cutoff_very});
         }
+
+  - platform: template
+    id: tater_voice_visual_mode
+    name: "Tater Voice Visual Mode"
+    entity_category: config
+    optimistic: true
+    restore_value: false
+    disabled_by_default: true
+    initial_option: Auto
+    options:
+      - Auto
+      - Thinking
+      - Tool
+    on_value:
+      - if:
+          condition:
+            lambda: return x == "Tool";
+          then:
+            - light.turn_on:
+                brightness: !lambda return max( id(led_ring).current_values.get_brightness() , 0.2f );
+                id: voice_assistant_leds
+                effect: "Tool Call"
+          else:
+            - if:
+                condition:
+                  lambda: return x == "Thinking";
+                then:
+                  - light.turn_on:
+                      brightness: !lambda return max( id(led_ring).current_values.get_brightness() , 0.2f );
+                      id: voice_assistant_leds
+                      effect: "Thinking"
+                else:
+                  - script.execute: control_leds
+

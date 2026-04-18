@@ -107,6 +107,46 @@ light:
               brightness_decreasing = !brightness_decreasing;
             }
       - addressable_lambda:
+          name: "Tool Call"
+          update_interval: 60ms
+          lambda: |-
+            static uint8_t step = 0;
+            static bool moving_forward = true;
+            const uint8_t size = 12;
+            const uint8_t midpoint = size / 2;
+            if (initial_run) {
+              step = 0;
+              moving_forward = true;
+            }
+            auto light_color = id(led_ring).current_values;
+            Color color(light_color.get_red() * 255, light_color.get_green() * 255,
+                  light_color.get_blue() * 255);
+            for (uint8_t i = 0; i < size; i++) {
+              it[i] = Color::BLACK;
+            }
+            auto paint = [&](int head, int trail_one, int trail_two) {
+              it[(head + size) % size] = color;
+              it[(trail_one + size) % size] = color * 192;
+              it[(trail_two + size) % size] = color * 96;
+            };
+            int left_head = step % size;
+            int right_head = (size - step) % size;
+            paint(left_head, left_head - 1, left_head - 2);
+            paint(right_head, right_head + 1, right_head + 2);
+            if (moving_forward) {
+              if (step < midpoint) {
+                step++;
+              } else {
+                moving_forward = false;
+                step--;
+              }
+            } else if (step > 0) {
+              step--;
+            } else {
+              moving_forward = true;
+              step++;
+            }
+      - addressable_lambda:
           name: "Replying"
           update_interval: 50ms
           lambda: |-
