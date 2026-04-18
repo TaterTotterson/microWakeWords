@@ -1,0 +1,51 @@
+name: Generate Wake Word Manifest
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'microWakeWords/**/*.json'
+      - 'microWakeWords/**/*.tflite'
+      - 'microWakeWordsV2/**/*.json'
+      - 'microWakeWordsV2/**/*.tflite'
+      - 'microWakeWordsV3/**/*.json'
+      - 'microWakeWordsV3/**/*.tflite'
+      - 'scripts/generate_wake_word_manifest.py'
+      - '.github/workflows/generate-wake-word-manifest.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wake-word-manifest
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Generate manifest
+        run: python3 scripts/generate_wake_word_manifest.py
+
+      - name: Commit updated manifest
+        run: |
+          if git diff --quiet -- wake_word_manifest.json; then
+            echo 'No manifest changes to commit.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add wake_word_manifest.json
+          git commit -m 'Update wake word manifest'
+          git push
