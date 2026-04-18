@@ -14,11 +14,6 @@ globals:
     type: bool
     restore_value: no
     initial_value: 'false'
-  # Global variable tracking whether Tater is forcing the tool-call visual.
-  - id: tater_tool_visual_active
-    type: bool
-    restore_value: no
-    initial_value: 'false'
 
 light:
   # Hardware LED ring. Not used because remapping needed
@@ -140,46 +135,6 @@ light:
             }
             if (brightness_step == 0 || brightness_step == brightness_step_number) {
               brightness_decreasing = !brightness_decreasing;
-            }
-      - addressable_lambda:
-          name: "Tool Call"
-          update_interval: 60ms
-          lambda: |-
-            static uint8_t step = 0;
-            static bool moving_forward = true;
-            const uint8_t size = 24;
-            const uint8_t midpoint = size / 2;
-            if (initial_run) {
-              step = 0;
-              moving_forward = true;
-            }
-            auto light_color = id(led_ring).current_values;
-            Color color(light_color.get_red() * 255, light_color.get_green() * 255,
-                  light_color.get_blue() * 255);
-            for (int i = 0; i < size; i++) {
-              it[i] = Color::BLACK;
-            }
-            auto paint = [&](int head, int trail_one, int trail_two) {
-              it[(head + size) % size] = color;
-              it[(trail_one + size) % size] = color * 192;
-              it[(trail_two + size) % size] = color * 96;
-            };
-            int left_head = step % size;
-            int right_head = (size - step) % size;
-            paint(left_head, left_head - 1, left_head - 2);
-            paint(right_head, right_head + 1, right_head + 2);
-            if (moving_forward) {
-              if (step < midpoint) {
-                step++;
-              } else {
-                moving_forward = false;
-                step--;
-              }
-            } else if (step > 0) {
-              step--;
-            } else {
-              moving_forward = true;
-              step++;
             }
       - addressable_lambda:
           name: "Replying"
@@ -579,8 +534,6 @@ script:
             id(control_leds_warning).execute();
           } else if (id(timer_ringing).state) {
             id(control_leds_timer_ringing).execute();
-          } else if (id(tater_tool_visual_active)) {
-            id(control_leds_voice_assistant_tool_phase).execute();
           } else if (id(voice_assistant_phase) == ${voice_assist_waiting_for_command_phase_id}) {
             id(control_leds_voice_assistant_waiting_for_command_phase).execute();
           } else if (id(voice_assistant_phase) == ${voice_assist_listening_for_command_phase_id}) {
@@ -689,14 +642,6 @@ script:
           id: voice_assistant_leds
           effect: "Thinking"
 
-  # Script executed when Hydra is announcing a tool call.
-  # Two LEDs bounce toward each other, collide, then reverse.
-  - id: control_leds_voice_assistant_tool_phase
-    then:
-      - light.turn_on:
-          brightness: !lambda return max( id(led_ring).current_values.get_brightness() , 0.2f );
-          id: voice_assistant_leds
-          effect: "Tool Call"
 
   # Script executed when the voice assistant is thinking to a command
   # Fast anticlockwise spin of the LED ring.
