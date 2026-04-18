@@ -31,6 +31,10 @@ script:
             id(control_leds_timer_ringing).execute();
           } else if (id(remote_timer_running)) {
             id(control_leds_remote_timer_ticking).execute();
+          } else if (id(tater_voice_visual_mode).state == "Tool") {
+            id(control_leds_voice_assistant_tool_phase).execute();
+          } else if (id(tater_voice_visual_mode).state == "Thinking") {
+            id(control_leds_voice_assistant_thinking_phase).execute();
           } else if (id(voice_assistant_phase) == ${voice_assist_waiting_for_command_phase_id}) {
             id(control_leds_voice_assistant_waiting_for_command_phase).execute();
           } else if (id(voice_assistant_phase) == ${voice_assist_listening_for_command_phase_id}) {
@@ -150,6 +154,15 @@ script:
           brightness: !lambda return max( id(led_ring).current_values.get_brightness() , 0.2f );
           id: voice_assistant_leds
           effect: "Thinking"
+
+  # Script executed when Hydra is announcing a tool call.
+  # Two LEDs bounce toward each other, collide, then reverse.
+  - id: control_leds_voice_assistant_tool_phase
+    then:
+      - light.turn_on:
+          brightness: !lambda return max( id(led_ring).current_values.get_brightness() , 0.2f );
+          id: voice_assistant_leds
+          effect: "Tool Call"
 
   # Script executed when the voice assistant is thinking to a command
   # Fast anticlockwise spin of the LED ring.
