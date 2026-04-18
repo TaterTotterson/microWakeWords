@@ -251,20 +251,3 @@ select:
         }
 
 
-switch:
-  - platform: template
-    id: tater_tool_visual_mode
-    name: "Tater Tool Visual Mode"
-    entity_category: config
-    optimistic: true
-    disabled_by_default: true
-    turn_on_action:
-      - lambda: id(tater_tool_visual_active) = true;
-      - light.turn_on:
-          brightness: !lambda return max( id(led_ring).current_values.get_brightness() , 0.2f );
-          id: voice_assistant_leds
-          effect: "Tool Call"
-    turn_off_action:
-      - lambda: id(tater_tool_visual_active) = false;
-      - script.execute: control_leds
-
