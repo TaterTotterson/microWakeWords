@@ -262,7 +262,7 @@ select:
       - Auto
       - Thinking
       - Tool
-    on_value:
+    set_action:
       - if:
           condition:
             lambda: return x == "Tool";
