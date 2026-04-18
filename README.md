@@ -106,3 +106,18 @@ You can point this to any compatible `.mp3` or `.flac` file hosted online.
 • No other parts of the YAML need to be edited  
 • Test your wake word in **TTS first** to ensure it’s pronounced correctly  
   (you may need to spell it creatively for best results)
+
+
+---
+
+## 🤖 Use These Wake Words in Tater
+
+If you are using **Tater**, you can now do all of this directly from the **ESPHome → Firmware** tab instead of editing the YAML by hand.
+
+### Quick steps
+1. Open **ESPHome** in Tater and go to the **Firmware** tab  
+2. Pick your firmware template and connected device  
+3. In the **Micro Wake Word** section, choose any wake word from the built-in list or paste your own custom model URL  
+4. Review the other substitutions and click **Build + Flash**
+
+Tater reads its wake-word picker from this repository, so when a new wake word is added here, it will show up in Tater automatically.
