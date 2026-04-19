@@ -43,18 +43,6 @@ substitutions:
   wake_cutoff_very: "222"       # ~0.87
 
   # -----------------------------
-  # VOICE ASSISTANT PHASE IDS
-  # -----------------------------
-  voice_assist_idle_phase_id: '1'
-  voice_assist_waiting_for_command_phase_id: '2'
-  voice_assist_listening_for_command_phase_id: '3'
-  voice_assist_thinking_phase_id: '4'
-  voice_assist_tool_call_phase_id: '6'
-  voice_assist_replying_phase_id: '5'
-  voice_assist_not_ready_phase_id: '10'
-  voice_assist_error_phase_id: '11'
-
-  # -----------------------------
   # AUDIO FILE URLS
   # -----------------------------
   center_button_press_sound_file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/center_button_press.flac

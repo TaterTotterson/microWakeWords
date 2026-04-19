@@ -1,28 +1,9 @@
-substitutions:
-  # Phases of the Voice Assistant
-  # The voice assistant is ready to be triggered by a wake word
-  voice_assist_idle_phase_id: '1'
-  # The voice assistant is waiting for a voice command (after being triggered by the wake word)
-  voice_assist_waiting_for_command_phase_id: '2'
-  # The voice assistant is listening for a voice command
-  voice_assist_listening_for_command_phase_id: '3'
-  # The voice assistant is currently processing the command
-  voice_assist_thinking_phase_id: '4'
-  # The voice assistant is announcing a tool call before the final response
-  voice_assist_tool_call_phase_id: '6'
-  # The voice assistant is replying to the command
-  voice_assist_replying_phase_id: '5'
-  # The voice assistant is not ready
-  voice_assist_not_ready_phase_id: '10'
-  # The voice assistant encountered an error
-  voice_assist_error_phase_id: '11'
-
 globals:
   # Global variable tracking the phase of the voice assistant (defined above). Initialized to not_ready
   - id: voice_assistant_phase
     type: int
     restore_value: no
-    # initial_value: ${voice_assist_not_ready_phase_id}
+    # initial_value: 10
 
 external_components:
   - source:
@@ -114,11 +95,11 @@ voice_assistant:
   on_client_connected:
     - lambda: id(init_in_progress) = false;
     - micro_wake_word.start:
-    - lambda: id(voice_assistant_phase) = ${voice_assist_idle_phase_id};
+    - lambda: id(voice_assistant_phase) = 1;
     - script.execute: control_leds
   on_client_disconnected:
     - voice_assistant.stop:
-    - lambda: id(voice_assistant_phase) = ${voice_assist_not_ready_phase_id};
+    - lambda: id(voice_assistant_phase) = 10;
     - script.execute: control_leds
   on_error:
     - if:
@@ -127,7 +108,7 @@ voice_assistant:
             - lambda: return !id(init_in_progress);
             - lambda: return code != "duplicate_wake_up_detected";
         then:
-          - lambda: id(voice_assistant_phase) = ${voice_assist_error_phase_id};
+          - lambda: id(voice_assistant_phase) = 11;
           - script.execute: control_leds
     # Stop ducking audio.
     - mixer_speaker.apply_ducking:
@@ -142,16 +123,16 @@ voice_assistant:
         decibel_reduction: 20   # Number of dB quieter; higher implies more quiet, 0 implies full volume
         duration: 0.0s          # The duration of the transition (default is 0)
   on_listening:
-    - lambda: id(voice_assistant_phase) = ${voice_assist_waiting_for_command_phase_id};
+    - lambda: id(voice_assistant_phase) = 2;
     - script.execute: control_leds
   on_stt_vad_start:
-    - lambda: id(voice_assistant_phase) = ${voice_assist_listening_for_command_phase_id};
+    - lambda: id(voice_assistant_phase) = 3;
     - script.execute: control_leds
   on_stt_vad_end:
-    - lambda: id(voice_assistant_phase) = ${voice_assist_thinking_phase_id};
+    - lambda: id(voice_assistant_phase) = 4;
     - script.execute: control_leds
   on_tool_call_start:
-    - lambda: id(voice_assistant_phase) = ${voice_assist_tool_call_phase_id};
+    - lambda: id(voice_assistant_phase) = 6;
     - script.execute: control_leds
   on_intent_progress:
     - if:
@@ -159,7 +140,7 @@ voice_assistant:
           # A nonempty x variable means a streaming TTS url was sent to the media player
           lambda: 'return !x.empty();'
         then:
-          - lambda: id(voice_assistant_phase) = ${voice_assist_replying_phase_id};
+          - lambda: id(voice_assistant_phase) = 5;
           - script.execute: control_leds
           # Start a script that would potentially enable the stop word if the response is longer than a second
           - script.execute: activate_stop_word_once
@@ -167,9 +148,9 @@ voice_assistant:
     - if:
         condition:
           # The intent_progress trigger didn't start the TTS Reponse
-          lambda: 'return id(voice_assistant_phase) != ${voice_assist_replying_phase_id};'
+          lambda: 'return id(voice_assistant_phase) != 5;'
         then:
-          - lambda: id(voice_assistant_phase) = ${voice_assist_replying_phase_id};
+          - lambda: id(voice_assistant_phase) = 5;
           - script.execute: control_leds
           # Start a script that would potentially enable the stop word if the response is longer than a second
           - script.execute: activate_stop_word_once
@@ -194,11 +175,11 @@ voice_assistant:
     # If the end happened because of an error, let the error phase on for a second
     - if:
         condition:
-          lambda: return id(voice_assistant_phase) == ${voice_assist_error_phase_id};
+          lambda: return id(voice_assistant_phase) == 11;
         then:
           - delay: 1s
     # Reset the voice assistant phase id and reset the LED animations.
-    - lambda: id(voice_assistant_phase) = ${voice_assist_idle_phase_id};
+    - lambda: id(voice_assistant_phase) = 1;
     - script.execute: control_leds
 
   on_timer_finished:
