@@ -1,3 +1,13 @@
+<p align="center">
+  <img 
+    src="https://github.com/user-attachments/assets/f8b0f1fa-d69b-4df2-9046-9aadac75b7ce" 
+    width="300"
+  />
+</p>
+<h3 align="center">
+  <a href="https://taterassistant.com">taterassistant.com</a>
+</h3>
+
 ## 🗣️ Request a New Wake Word
 
 You can request a new microWakeWord model by opening a GitHub issue.
