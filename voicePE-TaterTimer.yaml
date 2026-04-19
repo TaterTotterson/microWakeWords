@@ -16,24 +16,6 @@ substitutions:
   wake_cutoff_slight: "250"     # ~0.98
   wake_cutoff_moderate: "245"   # ~0.96
   wake_cutoff_very: "222"       # ~0.87
-
-  # Phases of the Voice Assistant
-  # The voice assistant is ready to be triggered by a wake word
-  voice_assist_idle_phase_id: '1'
-  # The voice assistant is waiting for a voice command (after being triggered by the wake word)
-  voice_assist_waiting_for_command_phase_id: '2'
-  # The voice assistant is listening for a voice command
-  voice_assist_listening_for_command_phase_id: '3'
-  # The voice assistant is currently processing the command
-  voice_assist_thinking_phase_id: '4'
-  # The voice assistant is announcing a tool call before the final response
-  voice_assist_tool_call_phase_id: '6'
-  # The voice assistant is replying to the command
-  voice_assist_replying_phase_id: '5'
-  # The voice assistant is not ready
-  voice_assist_not_ready_phase_id: '10'
-  # The voice assistant encountered an error
-  voice_assist_error_phase_id: '11'
   # Change this to true in case you ahve a hidden SSID at home.
   hidden_ssid: "false"
   # Substitutions for audio files
