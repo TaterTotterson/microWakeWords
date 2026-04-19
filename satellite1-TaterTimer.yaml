@@ -215,20 +215,21 @@ logger:
     sensor: WARN  # avoids logging frequent sensor updates
 
 dashboard_import:
-  package_import_url: github://futureproofhomes/satellite1-esphome/config/satellite1.dashboard.yaml@staging
+  package_import_url: github://futureproofhomes/satellite1-esphome/config/satellite1.dashboard.yaml@develop
   import_full_config: true
 
 external_components:
   - source:
       type: git
       url: https://github.com/FutureProofHomes/Satellite1-ESPHome
-      ref: staging
+      ref: develop
     components:
       - audio
       - fusb302b
       - i2s_audio
       - memory_flasher
       - mixer
+      - micro_wake_word
       - pcm5122
       - resampler
       - satellite1
