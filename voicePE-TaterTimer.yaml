@@ -26,6 +26,8 @@ substitutions:
   voice_assist_listening_for_command_phase_id: '3'
   # The voice assistant is currently processing the command
   voice_assist_thinking_phase_id: '4'
+  # The voice assistant is announcing a tool call before the final response
+  voice_assist_tool_call_phase_id: '6'
   # The voice assistant is replying to the command
   voice_assist_replying_phase_id: '5'
   # The voice assistant is not ready

@@ -11,6 +11,13 @@ voice_kit:
 external_components:
   - source:
       type: git
+      url: https://github.com/TaterTotterson/microWakeWords
+      ref: main
+    components:
+      - voice_assistant
+    refresh: 0s
+  - source:
+      type: git
       url: https://github.com/esphome/home-assistant-voice-pe
       ref: dev
     components:
@@ -174,6 +181,9 @@ voice_assistant:
   on_stt_vad_end:
     - lambda: id(voice_assistant_phase) = ${voice_assist_thinking_phase_id};
     - script.execute: control_leds
+  on_tool_call_start:
+    - lambda: id(voice_assistant_phase) = ${voice_assist_tool_call_phase_id};
+    - script.execute: control_leds
   on_intent_progress:
     - if:
         condition:
@@ -223,5 +233,4 @@ voice_assistant:
     - script.execute: control_leds
   on_timer_tick:
     - script.execute: control_leds
-
 
