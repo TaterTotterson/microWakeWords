@@ -10,10 +10,10 @@
     {
       "key": "microWakeWordsV2",
       "label": "microWakeWordsV2",
-      "count": 171
+      "count": 172
     }
   ],
-  "count": 400,
+  "count": 401,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -5012,6 +5012,24 @@
       "model_path": "microWakeWordsV2/hey_edwin.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV2/hey_edwin.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV2/hey_edwin.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV2:hey_eifelheld",
+      "source": "microWakeWordsV2",
+      "source_label": "microWakeWordsV2",
+      "slug": "hey_eifelheld",
+      "name": "hey_eifelheld",
+      "label": "Hey Eifelheld",
+      "path": "microWakeWordsV2/hey_eifelheld.json",
+      "model_path": "microWakeWordsV2/hey_eifelheld.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV2/hey_eifelheld.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV2/hey_eifelheld.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
