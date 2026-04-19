@@ -10,10 +10,10 @@
     {
       "key": "microWakeWordsV2",
       "label": "microWakeWordsV2",
-      "count": 170
+      "count": 171
     }
   ],
-  "count": 399,
+  "count": 400,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -5264,6 +5264,24 @@
       "model_path": "microWakeWordsV2/hey_house.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV2/hey_house.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV2/hey_house.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV2:hey_hun_see",
+      "source": "microWakeWordsV2",
+      "source_label": "microWakeWordsV2",
+      "slug": "hey_hun_see",
+      "name": "hey_hun_see",
+      "label": "Hey Hun See",
+      "path": "microWakeWordsV2/hey_hun_see.json",
+      "model_path": "microWakeWordsV2/hey_hun_see.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV2/hey_hun_see.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV2/hey_hun_see.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
