@@ -8,6 +8,8 @@ substitutions:
   voice_assist_listening_for_command_phase_id: '3'
   # The voice assistant is currently processing the command
   voice_assist_thinking_phase_id: '4'
+  # The voice assistant is announcing a tool call before the final response
+  voice_assist_tool_call_phase_id: '6'
   # The voice assistant is replying to the command
   voice_assist_replying_phase_id: '5'
   # The voice assistant is not ready
@@ -21,6 +23,15 @@ globals:
     type: int
     restore_value: no
     # initial_value: ${voice_assist_not_ready_phase_id}
+
+external_components:
+  - source:
+      type: git
+      url: https://github.com/TaterTotterson/microWakeWords
+      ref: main
+    components:
+      - voice_assistant
+    refresh: 0s
 
 microphone:
   - platform: satellite1
@@ -139,6 +150,9 @@ voice_assistant:
   on_stt_vad_end:
     - lambda: id(voice_assistant_phase) = ${voice_assist_thinking_phase_id};
     - script.execute: control_leds
+  on_tool_call_start:
+    - lambda: id(voice_assistant_phase) = ${voice_assist_tool_call_phase_id};
+    - script.execute: control_leds
   on_intent_progress:
     - if:
         condition:
@@ -249,5 +263,4 @@ select:
         } else if (x == "Very sensitive") {
           id(${wake_word_name}).set_probability_cutoff(${wake_cutoff_very});
         }
-
 

@@ -137,6 +137,50 @@ light:
               brightness_decreasing = !brightness_decreasing;
             }
       - addressable_lambda:
+          name: "Tool Call"
+          update_interval: 80ms
+          lambda: |-
+            static bool moving_forward = true;
+            if (initial_run) {
+              id(global_led_animation_index) = 0;
+              moving_forward = true;
+            }
+            auto light_color = id(led_ring).current_values;
+            Color color(light_color.get_red() * 255, light_color.get_green() * 255,
+                  light_color.get_blue() * 255);
+            uint8_t lead_a = id(global_led_animation_index) % 12;
+            uint8_t lead_b = (23 - lead_a) % 24;
+            uint8_t trail_a = moving_forward ? (24 + lead_a - 1) % 24 : (lead_a + 1) % 24;
+            uint8_t trail_b = moving_forward ? (lead_b + 1) % 24 : (24 + lead_b - 1) % 24;
+            uint8_t tail_a = moving_forward ? (24 + lead_a - 2) % 24 : (lead_a + 2) % 24;
+            uint8_t tail_b = moving_forward ? (lead_b + 2) % 24 : (24 + lead_b - 2) % 24;
+            for (int i = 0; i < 24; i++) {
+              if (i == lead_a || i == lead_b) {
+                it[i] = color;
+              } else if (i == trail_a || i == trail_b) {
+                it[i] = color * 192;
+              } else if (i == tail_a || i == tail_b) {
+                it[i] = color * 128;
+              } else {
+                it[i] = Color::BLACK;
+              }
+            }
+            if (moving_forward) {
+              if (id(global_led_animation_index) >= 11) {
+                id(global_led_animation_index) = 10;
+                moving_forward = false;
+              } else {
+                id(global_led_animation_index) += 1;
+              }
+            } else {
+              if (id(global_led_animation_index) <= 0) {
+                id(global_led_animation_index) = 1;
+                moving_forward = true;
+              } else {
+                id(global_led_animation_index) -= 1;
+              }
+            }
+      - addressable_lambda:
           name: "Replying"
           update_interval: 50ms
           lambda: |-
@@ -540,6 +584,8 @@ script:
             id(control_leds_voice_assistant_listening_for_command_phase).execute();
           } else if (id(voice_assistant_phase) == ${voice_assist_thinking_phase_id}) {
             id(control_leds_voice_assistant_thinking_phase).execute();
+          } else if (id(voice_assistant_phase) == ${voice_assist_tool_call_phase_id}) {
+            id(control_leds_voice_assistant_tool_call_phase).execute();
           } else if (id(voice_assistant_phase) == ${voice_assist_replying_phase_id}) {
             id(control_leds_voice_assistant_replying_phase).execute();
           } else if (id(voice_assistant_phase) == ${voice_assist_error_phase_id}) {
@@ -641,6 +687,15 @@ script:
           brightness: !lambda return max( id(led_ring).current_values.get_brightness() , 0.2f );
           id: voice_assistant_leds
           effect: "Thinking"
+
+  # Script executed when the voice assistant is announcing a tool call
+  # Two mirrored heads bounce between opposite collision points.
+  - id: control_leds_voice_assistant_tool_call_phase
+    then:
+      - light.turn_on:
+          brightness: !lambda return max( id(led_ring).current_values.get_brightness() , 0.2f );
+          id: voice_assistant_leds
+          effect: "Tool Call"
 
 
   # Script executed when the voice assistant is thinking to a command

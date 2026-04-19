@@ -37,6 +37,8 @@ script:
             id(control_leds_voice_assistant_listening_for_command_phase).execute();
           } else if (id(voice_assistant_phase) == ${voice_assist_thinking_phase_id}) {
             id(control_leds_voice_assistant_thinking_phase).execute();
+          } else if (id(voice_assistant_phase) == ${voice_assist_tool_call_phase_id}) {
+            id(control_leds_voice_assistant_tool_call_phase).execute();
           } else if (id(voice_assistant_phase) == ${voice_assist_replying_phase_id}) {
             id(control_leds_voice_assistant_replying_phase).execute();
           } else if (id(voice_assistant_phase) == ${voice_assist_error_phase_id}) {
@@ -151,6 +153,14 @@ script:
           id: voice_assistant_leds
           effect: "Thinking"
 
+  # Script executed when the voice assistant is announcing a tool call
+  # Two mirrored heads bounce between opposite collision points.
+  - id: control_leds_voice_assistant_tool_call_phase
+    then:
+      - light.turn_on:
+          brightness: !lambda return max( id(led_ring).current_values.get_brightness() , 0.2f );
+          id: voice_assistant_leds
+          effect: "Tool Call"
 
   # Script executed when the voice assistant is thinking to a command
   # Fast anticlockwise spin of the LED ring.
@@ -471,4 +481,3 @@ script:
                   switch.is_off: timer_ringing
                 then:
                   - micro_wake_word.disable_model: stop
-
