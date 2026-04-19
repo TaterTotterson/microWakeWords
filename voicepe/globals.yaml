@@ -18,7 +18,7 @@ globals:
   - id: voice_assistant_phase
     type: int
     restore_value: no
-    initial_value: 10
+    initial_value: '10'
   # Global variable tracking if the dial was recently touched.
   - id: dial_touched
     type: bool
