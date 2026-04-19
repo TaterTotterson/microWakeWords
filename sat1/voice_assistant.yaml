@@ -244,4 +244,3 @@ select:
         } else if (x == "Very sensitive") {
           id(${wake_word_name}).set_probability_cutoff(${wake_cutoff_very});
         }
-
