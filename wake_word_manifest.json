@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 7
+      "count": 8
     }
   ],
-  "count": 409,
+  "count": 410,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -7267,6 +7267,24 @@
       "model_path": "microWakeWordsV3/claws.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/claws.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/claws.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:hey_derek",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "hey_derek",
+      "name": "hey_derek",
+      "label": "Hey Derek",
+      "path": "microWakeWordsV3/hey_derek.json",
+      "model_path": "microWakeWordsV3/hey_derek.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_derek.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_derek.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
