@@ -99,6 +99,33 @@ micro_wake_word:
                             - voice_assistant.start:
                                 wake_word: !lambda return wake_word;
 
+switch:
+  - platform: template
+    id: capture_wake_audio
+    name: Capture Wake Audio
+    icon: "mdi:waveform"
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - lambda: id(mww).set_capture_upload_enabled(true);
+    turn_off_action:
+      - lambda: id(mww).set_capture_upload_enabled(false);
+
+text:
+  - platform: template
+    id: trainer_app_url
+    name: Trainer App URL
+    icon: "mdi:lan-connect"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: "http://trainer.local:8789"
+    mode: TEXT
+    max_length: 255
+    set_action:
+      - lambda: id(mww).set_capture_upload_url(x);
+
 select:
   - platform: template
     name: "Wake word sensitivity"
@@ -138,6 +165,9 @@ voice_assistant:
   volume_multiplier: 1
   on_client_connected:
     - lambda: id(init_in_progress) = false;
+    - lambda: |-
+        id(mww).set_capture_upload_enabled(id(capture_wake_audio).state);
+        id(mww).set_capture_upload_url(id(trainer_app_url).state);
     - micro_wake_word.start:
     - lambda: id(voice_assistant_phase) = 1;
     - script.execute: control_leds
