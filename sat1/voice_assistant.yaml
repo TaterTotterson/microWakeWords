@@ -12,6 +12,7 @@ external_components:
       ref: main
     components:
       - voice_assistant
+      - micro_wake_word
     refresh: 0s
 
 microphone:
