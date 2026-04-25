@@ -42,6 +42,20 @@ static const uint32_t CAPTURE_UPLOAD_TIMEOUT_MS = 8000;
 static const uint32_t CLOSE_MISS_UPLOAD_COOLDOWN_MS = 10000;
 static const size_t CAPTURE_UPLOAD_BUFFER_SIZE = 2048;
 
+static const char *detection_event_type_to_header(DetectionEventType event_type) {
+  switch (event_type) {
+    case DetectionEventType::WAKE_DETECTED:
+      return "wake_detected";
+    case DetectionEventType::CLOSE_MISS:
+      return "close_miss";
+    case DetectionEventType::BLOCKED_BY_VAD:
+      return "blocked_by_vad";
+    case DetectionEventType::NONE:
+    default:
+      return "";
+  }
+}
+
 enum EventGroupBits : uint32_t {
   COMMAND_STOP = (1 << 0),  // Signals the inference task should stop
 
@@ -368,7 +382,7 @@ void MicroWakeWord::loop() {
           ESP_LOGD(TAG, "Detected '%s' with sliding average probability is %.2f and max probability is %.2f",
                    detection_event.wake_word->c_str(), (detection_event.average_probability / uint8_to_float_divisor),
                    (detection_event.max_probability / uint8_to_float_divisor));
-          this->queue_detection_capture_(detection_event, "wake_detected");
+          this->queue_detection_capture_(detection_event, DetectionEventType::WAKE_DETECTED);
           this->wake_word_detected_trigger_.trigger(*detection_event.wake_word);
           if (this->stop_after_detection_) {
             this->stop();
@@ -482,7 +496,7 @@ void MicroWakeWord::process_probabilities_() {
         } else {
           wake_word_state.blocked_by_vad = true;
           if (this->should_capture_close_miss_(wake_word_state)) {
-            wake_word_state.event_type = "blocked_by_vad";
+            wake_word_state.event_type = DetectionEventType::BLOCKED_BY_VAD;
             xQueueSend(this->detection_queue_, &wake_word_state, portMAX_DELAY);
             App.wake_loop_threadsafe();
           } else {
@@ -492,7 +506,7 @@ void MicroWakeWord::process_probabilities_() {
 #endif
       } else if (this->should_capture_close_miss_(wake_word_state)) {
         wake_word_state.partially_detection = true;
-        wake_word_state.event_type = "close_miss";
+        wake_word_state.event_type = DetectionEventType::CLOSE_MISS;
         xQueueSend(this->detection_queue_, &wake_word_state, portMAX_DELAY);
         App.wake_loop_threadsafe();
       }
@@ -589,14 +603,15 @@ bool MicroWakeWord::snapshot_capture_audio_(std::vector<uint8_t> &audio_bytes) {
   return true;
 }
 
-void MicroWakeWord::queue_detection_capture_(const DetectionEvent &detection_event, const std::string &event_type) {
-  if (event_type.empty()) {
+void MicroWakeWord::queue_detection_capture_(const DetectionEvent &detection_event, DetectionEventType event_type) {
+  const char *event_type_header = detection_event_type_to_header(event_type);
+  if (event_type_header[0] == '\0') {
     return;
   }
-  if ((event_type == "wake_detected") && !this->capture_upload_enabled_.load()) {
+  if ((event_type == DetectionEventType::WAKE_DETECTED) && !this->capture_upload_enabled_.load()) {
     return;
   }
-  if ((event_type != "wake_detected") && !this->capture_close_misses_enabled_.load()) {
+  if ((event_type != DetectionEventType::WAKE_DETECTED) && !this->capture_close_misses_enabled_.load()) {
     return;
   }
 
@@ -607,7 +622,8 @@ void MicroWakeWord::queue_detection_capture_(const DetectionEvent &detection_eve
   }
 
   if (this->capture_upload_in_progress_.exchange(true)) {
-    ESP_LOGW(TAG, "Captured wake audio upload already in progress; skipping '%s'.", detection_event.wake_word->c_str());
+    ESP_LOGW(TAG, "Captured wake audio upload already in progress; skipping '%s'.",
+             detection_event.wake_word == nullptr ? "unknown" : detection_event.wake_word->c_str());
     return;
   }
 
@@ -624,12 +640,12 @@ void MicroWakeWord::queue_detection_capture_(const DetectionEvent &detection_eve
   request->parent = this;
   request->upload_url = upload_url;
   request->source_device = App.get_name().c_str();
-  request->wake_word = *detection_event.wake_word;
+  request->wake_word = detection_event.wake_word == nullptr ? "" : *detection_event.wake_word;
   request->pcm_data = std::move(pcm_data);
   request->max_probability = detection_event.max_probability;
   request->average_probability = detection_event.average_probability;
   request->blocked_by_vad = detection_event.blocked_by_vad;
-  request->event_type = event_type;
+  request->event_type = event_type_header;
 
   BaseType_t task_created = xTaskCreate(MicroWakeWord::capture_upload_task, "mww_capture_upload",
                                         CAPTURE_UPLOAD_TASK_STACK_SIZE, request, CAPTURE_UPLOAD_TASK_PRIORITY, nullptr);

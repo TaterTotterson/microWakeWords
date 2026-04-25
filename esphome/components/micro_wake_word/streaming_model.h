@@ -10,11 +10,20 @@
 #include <tensorflow/lite/micro/micro_interpreter.h>
 #include <tensorflow/lite/micro/micro_mutable_op_resolver.h>
 
+#include <type_traits>
+
 namespace esphome {
 namespace micro_wake_word {
 
 static const uint8_t MIN_SLICES_BEFORE_DETECTION = 100;
 static const uint32_t STREAMING_MODEL_VARIABLE_ARENA_SIZE = 1024;
+
+enum class DetectionEventType : uint8_t {
+  NONE = 0,
+  WAKE_DETECTED,
+  CLOSE_MISS,
+  BLOCKED_BY_VAD,
+};
 
 struct DetectionEvent {
   std::string *wake_word{nullptr};
@@ -23,8 +32,11 @@ struct DetectionEvent {
   uint8_t max_probability{0};
   uint8_t average_probability{0};
   bool blocked_by_vad{false};
-  std::string event_type;
+  DetectionEventType event_type{DetectionEventType::NONE};
 };
+
+static_assert(std::is_trivially_copyable<DetectionEvent>::value,
+              "DetectionEvent is copied through a FreeRTOS queue and must stay trivially copyable.");
 
 class StreamingModel {
  public:
