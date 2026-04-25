@@ -40,6 +40,7 @@ static const uint32_t CAPTURE_UPLOAD_TASK_STACK_SIZE = 8192;
 static const UBaseType_t CAPTURE_UPLOAD_TASK_PRIORITY = 2;
 static const uint32_t CAPTURE_UPLOAD_TIMEOUT_MS = 8000;
 static const uint32_t CLOSE_MISS_UPLOAD_COOLDOWN_MS = 10000;
+static const uint32_t CLOSE_MISS_CONFIRMATION_DELAY_MS = 900;
 static const size_t CAPTURE_UPLOAD_BUFFER_SIZE = 2048;
 
 static const char *detection_event_type_to_header(DetectionEventType event_type) {
@@ -489,6 +490,7 @@ void MicroWakeWord::process_probabilities_() {
           xQueueSend(this->detection_queue_, &wake_word_state, portMAX_DELAY);
 
           // Wake main loop immediately to process wake word detection
+          this->clear_pending_close_miss_(wake_word_state.wake_word);
           App.wake_loop_threadsafe();
 
           model->reset_probabilities();
@@ -496,7 +498,9 @@ void MicroWakeWord::process_probabilities_() {
         } else {
           wake_word_state.blocked_by_vad = true;
           if (this->should_capture_close_miss_(wake_word_state)) {
+            this->clear_pending_close_miss_(wake_word_state.wake_word);
             wake_word_state.event_type = DetectionEventType::BLOCKED_BY_VAD;
+            this->note_close_miss_upload_();
             xQueueSend(this->detection_queue_, &wake_word_state, portMAX_DELAY);
             App.wake_loop_threadsafe();
           } else {
@@ -505,13 +509,12 @@ void MicroWakeWord::process_probabilities_() {
         }
 #endif
       } else if (this->should_capture_close_miss_(wake_word_state)) {
-        wake_word_state.partially_detection = true;
-        wake_word_state.event_type = DetectionEventType::CLOSE_MISS;
-        xQueueSend(this->detection_queue_, &wake_word_state, portMAX_DELAY);
-        App.wake_loop_threadsafe();
+        this->queue_pending_close_miss_(wake_word_state);
       }
     }
   }
+
+  this->flush_pending_close_miss_();
 }
 
 void MicroWakeWord::unload_models_() {
@@ -556,8 +559,53 @@ bool MicroWakeWord::should_capture_close_miss_(const DetectionEvent &detection_e
     return false;
   }
 
-  this->last_close_miss_upload_ms_ = now;
   return true;
+}
+
+void MicroWakeWord::note_close_miss_upload_() {
+  this->last_close_miss_upload_ms_ = millis();
+}
+
+void MicroWakeWord::queue_pending_close_miss_(const DetectionEvent &detection_event) {
+  DetectionEvent pending_event = detection_event;
+  pending_event.partially_detection = true;
+  pending_event.event_type = DetectionEventType::CLOSE_MISS;
+
+  this->pending_close_miss_event_ = pending_event;
+  this->pending_close_miss_ = true;
+  this->pending_close_miss_due_ms_ = millis() + CLOSE_MISS_CONFIRMATION_DELAY_MS;
+}
+
+void MicroWakeWord::clear_pending_close_miss_(const std::string *wake_word) {
+  if (!this->pending_close_miss_) {
+    return;
+  }
+  if ((wake_word != nullptr) && (this->pending_close_miss_event_.wake_word != wake_word)) {
+    return;
+  }
+
+  this->pending_close_miss_ = false;
+  this->pending_close_miss_due_ms_ = 0;
+  this->pending_close_miss_event_ = DetectionEvent();
+}
+
+void MicroWakeWord::flush_pending_close_miss_() {
+  if (!this->pending_close_miss_) {
+    return;
+  }
+  if (static_cast<int32_t>(millis() - this->pending_close_miss_due_ms_) < 0) {
+    return;
+  }
+  if (!this->should_capture_close_miss_(this->pending_close_miss_event_)) {
+    this->clear_pending_close_miss_();
+    return;
+  }
+
+  DetectionEvent event = this->pending_close_miss_event_;
+  this->clear_pending_close_miss_();
+  this->note_close_miss_upload_();
+  xQueueSend(this->detection_queue_, &event, portMAX_DELAY);
+  App.wake_loop_threadsafe();
 }
 
 std::string MicroWakeWord::build_capture_upload_url_() const {
