@@ -134,6 +134,9 @@ class MicroWakeWord : public Component
   std::atomic<bool> capture_upload_in_progress_{false};
   uint32_t last_close_miss_upload_ms_{0};
   std::string capture_upload_url_;
+  bool pending_close_miss_{false};
+  DetectionEvent pending_close_miss_event_;
+  uint32_t pending_close_miss_due_ms_{0};
 
   // Audio frontend handles generating spectrogram features
   struct FrontendConfig frontend_config_;
@@ -177,6 +180,10 @@ class MicroWakeWord : public Component
 
   bool capture_feature_enabled_() const;
   bool should_capture_close_miss_(const DetectionEvent &detection_event);
+  void note_close_miss_upload_();
+  void queue_pending_close_miss_(const DetectionEvent &detection_event);
+  void clear_pending_close_miss_(const std::string *wake_word = nullptr);
+  void flush_pending_close_miss_();
   std::string build_capture_upload_url_() const;
   bool snapshot_capture_audio_(std::vector<uint8_t> &audio_bytes);
   void queue_detection_capture_(const DetectionEvent &detection_event, DetectionEventType event_type);
