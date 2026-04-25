@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 13
+      "count": 14
     }
   ],
-  "count": 415,
+  "count": 416,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -7429,6 +7429,24 @@
       "model_path": "microWakeWordsV3/ok_computer.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/ok_computer.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/ok_computer.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:ok_curt",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "ok_curt",
+      "name": "ok_curt",
+      "label": "Ok Curt",
+      "path": "microWakeWordsV3/ok_curt.json",
+      "model_path": "microWakeWordsV3/ok_curt.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/ok_curt.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/ok_curt.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
