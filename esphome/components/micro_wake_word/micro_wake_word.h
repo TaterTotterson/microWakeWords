@@ -50,6 +50,7 @@ class MicroWakeWord : public Component
     uint8_t max_probability;
     uint8_t average_probability;
     bool blocked_by_vad;
+    std::string event_type;
   };
 
   void setup() override;
@@ -75,6 +76,19 @@ class MicroWakeWord : public Component
   void set_stop_after_detection(bool stop_after_detection) { this->stop_after_detection_ = stop_after_detection; }
   void set_capture_upload_enabled(bool enabled) { this->capture_upload_enabled_.store(enabled); }
   bool get_capture_upload_enabled() const { return this->capture_upload_enabled_.load(); }
+  void set_capture_close_misses_enabled(bool enabled) { this->capture_close_misses_enabled_.store(enabled); }
+  bool get_capture_close_misses_enabled() const { return this->capture_close_misses_enabled_.load(); }
+  void set_capture_close_miss_probability_cutoff(float cutoff) {
+    if (cutoff < 0.0f) {
+      cutoff = 0.0f;
+    } else if (cutoff > 1.0f) {
+      cutoff = 1.0f;
+    }
+    this->capture_close_miss_probability_cutoff_.store(static_cast<uint8_t>(cutoff * 255.0f));
+  }
+  float get_capture_close_miss_probability_cutoff() const {
+    return this->capture_close_miss_probability_cutoff_.load() / 255.0f;
+  }
   void set_capture_upload_url(const std::string &capture_upload_url) { this->capture_upload_url_ = capture_upload_url; }
   const std::string &get_capture_upload_url() const { return this->capture_upload_url_; }
 
@@ -115,7 +129,10 @@ class MicroWakeWord : public Component
   uint8_t features_step_size_;
   std::shared_ptr<RingBuffer> capture_ring_buffer_;
   std::atomic<bool> capture_upload_enabled_{false};
+  std::atomic<bool> capture_close_misses_enabled_{false};
+  std::atomic<uint8_t> capture_close_miss_probability_cutoff_{200};
   std::atomic<bool> capture_upload_in_progress_{false};
+  uint32_t last_close_miss_upload_ms_{0};
   std::string capture_upload_url_;
 
   // Audio frontend handles generating spectrogram features
@@ -159,9 +176,10 @@ class MicroWakeWord : public Component
   bool update_model_probabilities_(const int8_t audio_features[PREPROCESSOR_FEATURE_SIZE]);
 
   bool capture_feature_enabled_() const;
+  bool should_capture_close_miss_(const DetectionEvent &detection_event);
   std::string build_capture_upload_url_() const;
   bool snapshot_capture_audio_(std::vector<uint8_t> &audio_bytes);
-  void queue_detection_capture_(const DetectionEvent &detection_event);
+  void queue_detection_capture_(const DetectionEvent &detection_event, const std::string &event_type);
   bool upload_capture_(const CaptureUploadRequest &request);
   static void capture_upload_task(void *params);
 };

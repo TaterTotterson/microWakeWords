@@ -17,13 +17,13 @@ static const uint8_t MIN_SLICES_BEFORE_DETECTION = 100;
 static const uint32_t STREAMING_MODEL_VARIABLE_ARENA_SIZE = 1024;
 
 struct DetectionEvent {
-  std::string *wake_word;
-  bool detected;
-  bool partially_detection;  // Set if the most recent probability exceed the threshold, but the sliding window average
-                             // hasn't yet
-  uint8_t max_probability;
-  uint8_t average_probability;
-  bool blocked_by_vad = false;
+  std::string *wake_word{nullptr};
+  bool detected{false};
+  bool partially_detection{false};  // Set if the close-miss capture threshold is crossed without a wake trigger.
+  uint8_t max_probability{0};
+  uint8_t average_probability{0};
+  bool blocked_by_vad{false};
+  std::string event_type;
 };
 
 class StreamingModel {

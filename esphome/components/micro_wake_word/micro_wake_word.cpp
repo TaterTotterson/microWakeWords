@@ -39,6 +39,7 @@ static const UBaseType_t INFERENCE_TASK_PRIORITY = 3;
 static const uint32_t CAPTURE_UPLOAD_TASK_STACK_SIZE = 8192;
 static const UBaseType_t CAPTURE_UPLOAD_TASK_PRIORITY = 2;
 static const uint32_t CAPTURE_UPLOAD_TIMEOUT_MS = 8000;
+static const uint32_t CLOSE_MISS_UPLOAD_COOLDOWN_MS = 10000;
 static const size_t CAPTURE_UPLOAD_BUFFER_SIZE = 2048;
 
 enum EventGroupBits : uint32_t {
@@ -82,6 +83,8 @@ void MicroWakeWord::dump_config() {
     model->log_model_config();
   }
   ESP_LOGCONFIG(TAG, "  captured wake audio uploads: %s", YESNO(this->capture_upload_enabled_.load()));
+  ESP_LOGCONFIG(TAG, "  captured close-miss uploads: %s", YESNO(this->capture_close_misses_enabled_.load()));
+  ESP_LOGCONFIG(TAG, "  close-miss threshold: %.2f", this->get_capture_close_miss_probability_cutoff());
   const std::string capture_upload_url = this->build_capture_upload_url_();
   ESP_LOGCONFIG(TAG, "  trainer capture endpoint: %s",
                 capture_upload_url.empty() ? "not configured" : capture_upload_url.c_str());
@@ -351,15 +354,21 @@ void MicroWakeWord::loop() {
     case State::DETECTING_WAKE_WORD: {
       DetectionEvent detection_event;
       while (xQueueReceive(this->detection_queue_, &detection_event, 0)) {
+        constexpr float uint8_to_float_divisor =
+            255.0f;  // Converting a quantized uint8 probability to floating point
         if (detection_event.blocked_by_vad) {
           ESP_LOGD(TAG, "Wake word model predicts '%s', but VAD model doesn't.", detection_event.wake_word->c_str());
+          this->queue_detection_capture_(detection_event, detection_event.event_type);
+        } else if (detection_event.partially_detection) {
+          ESP_LOGD(TAG, "Close miss for '%s' with sliding average probability %.2f and max probability %.2f",
+                   detection_event.wake_word->c_str(), (detection_event.average_probability / uint8_to_float_divisor),
+                   (detection_event.max_probability / uint8_to_float_divisor));
+          this->queue_detection_capture_(detection_event, detection_event.event_type);
         } else {
-          constexpr float uint8_to_float_divisor =
-              255.0f;  // Converting a quantized uint8 probability to floating point
           ESP_LOGD(TAG, "Detected '%s' with sliding average probability is %.2f and max probability is %.2f",
                    detection_event.wake_word->c_str(), (detection_event.average_probability / uint8_to_float_divisor),
                    (detection_event.max_probability / uint8_to_float_divisor));
-          this->queue_detection_capture_(detection_event);
+          this->queue_detection_capture_(detection_event, "wake_detected");
           this->wake_word_detected_trigger_.trigger(*detection_event.wake_word);
           if (this->stop_after_detection_) {
             this->stop();
@@ -472,9 +481,20 @@ void MicroWakeWord::process_probabilities_() {
 #ifdef USE_MICRO_WAKE_WORD_VAD
         } else {
           wake_word_state.blocked_by_vad = true;
-          xQueueSend(this->detection_queue_, &wake_word_state, portMAX_DELAY);
+          if (this->should_capture_close_miss_(wake_word_state)) {
+            wake_word_state.event_type = "blocked_by_vad";
+            xQueueSend(this->detection_queue_, &wake_word_state, portMAX_DELAY);
+            App.wake_loop_threadsafe();
+          } else {
+            xQueueSend(this->detection_queue_, &wake_word_state, portMAX_DELAY);
+          }
         }
 #endif
+      } else if (this->should_capture_close_miss_(wake_word_state)) {
+        wake_word_state.partially_detection = true;
+        wake_word_state.event_type = "close_miss";
+        xQueueSend(this->detection_queue_, &wake_word_state, portMAX_DELAY);
+        App.wake_loop_threadsafe();
       }
     }
   }
@@ -503,7 +523,28 @@ bool MicroWakeWord::update_model_probabilities_(const int8_t audio_features[PREP
   return success;
 }
 
-bool MicroWakeWord::capture_feature_enabled_() const { return this->capture_upload_enabled_.load(); }
+bool MicroWakeWord::capture_feature_enabled_() const {
+  return this->capture_upload_enabled_.load() || this->capture_close_misses_enabled_.load();
+}
+
+bool MicroWakeWord::should_capture_close_miss_(const DetectionEvent &detection_event) {
+  if (!this->capture_close_misses_enabled_.load()) {
+    return false;
+  }
+
+  if (detection_event.average_probability < this->capture_close_miss_probability_cutoff_.load()) {
+    return false;
+  }
+
+  const uint32_t now = millis();
+  if ((this->last_close_miss_upload_ms_ != 0) &&
+      ((now - this->last_close_miss_upload_ms_) < CLOSE_MISS_UPLOAD_COOLDOWN_MS)) {
+    return false;
+  }
+
+  this->last_close_miss_upload_ms_ = now;
+  return true;
+}
 
 std::string MicroWakeWord::build_capture_upload_url_() const {
   static const char *const RAW_CAPTURE_PATH = "/api/upload_captured_audio_raw";
@@ -548,8 +589,14 @@ bool MicroWakeWord::snapshot_capture_audio_(std::vector<uint8_t> &audio_bytes) {
   return true;
 }
 
-void MicroWakeWord::queue_detection_capture_(const DetectionEvent &detection_event) {
-  if (!this->capture_upload_enabled_.load()) {
+void MicroWakeWord::queue_detection_capture_(const DetectionEvent &detection_event, const std::string &event_type) {
+  if (event_type.empty()) {
+    return;
+  }
+  if ((event_type == "wake_detected") && !this->capture_upload_enabled_.load()) {
+    return;
+  }
+  if ((event_type != "wake_detected") && !this->capture_close_misses_enabled_.load()) {
     return;
   }
 
@@ -582,6 +629,7 @@ void MicroWakeWord::queue_detection_capture_(const DetectionEvent &detection_eve
   request->max_probability = detection_event.max_probability;
   request->average_probability = detection_event.average_probability;
   request->blocked_by_vad = detection_event.blocked_by_vad;
+  request->event_type = event_type;
 
   BaseType_t task_created = xTaskCreate(MicroWakeWord::capture_upload_task, "mww_capture_upload",
                                         CAPTURE_UPLOAD_TASK_STACK_SIZE, request, CAPTURE_UPLOAD_TASK_PRIORITY, nullptr);
@@ -646,7 +694,7 @@ bool MicroWakeWord::upload_capture_(const CaptureUploadRequest &request) {
   esp_http_client_set_header(client, "X-Original-Name", original_name.c_str());
   esp_http_client_set_header(client, "X-Source-Device", request.source_device.c_str());
   esp_http_client_set_header(client, "X-Wake-Word", request.wake_word.c_str());
-  esp_http_client_set_header(client, "X-Event-Type", "wake_detected");
+  esp_http_client_set_header(client, "X-Event-Type", request.event_type.c_str());
   esp_http_client_set_header(client, "X-Blocked-By-Vad", blocked_by_vad.c_str());
   esp_http_client_set_header(client, "X-Max-Probability", max_probability.c_str());
   esp_http_client_set_header(client, "X-Average-Probability", average_probability.c_str());
