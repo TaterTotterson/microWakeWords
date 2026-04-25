@@ -113,7 +113,7 @@ class MicroWakeWord : public Component
   bool stop_after_detection_;
 
   uint8_t features_step_size_;
-  std::weak_ptr<RingBuffer> capture_ring_buffer_;
+  std::shared_ptr<RingBuffer> capture_ring_buffer_;
   std::atomic<bool> capture_upload_enabled_{false};
   std::atomic<bool> capture_upload_in_progress_{false};
   std::string capture_upload_url_;
