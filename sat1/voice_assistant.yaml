@@ -94,6 +94,18 @@ switch:
     turn_off_action:
       - lambda: id(mww).set_capture_upload_enabled(false);
 
+  - platform: template
+    id: capture_close_misses
+    name: Capture Close Misses
+    icon: "mdi:target"
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - lambda: id(mww).set_capture_close_misses_enabled(true);
+    turn_off_action:
+      - lambda: id(mww).set_capture_close_misses_enabled(false);
+
 text:
   - platform: template
     id: trainer_app_url
@@ -107,6 +119,21 @@ text:
     max_length: 255
     set_action:
       - lambda: id(mww).set_capture_upload_url(x);
+
+number:
+  - platform: template
+    id: close_miss_threshold
+    name: Close Miss Threshold
+    icon: "mdi:target-variant"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: 0.78
+    min_value: 0.50
+    max_value: 0.95
+    step: 0.01
+    set_action:
+      - lambda: id(mww).set_capture_close_miss_probability_cutoff(x);
 
 voice_assistant:
   id: va
@@ -124,6 +151,8 @@ voice_assistant:
     - lambda: id(init_in_progress) = false;
     - lambda: |-
         id(mww).set_capture_upload_enabled(id(capture_wake_audio).state);
+        id(mww).set_capture_close_misses_enabled(id(capture_close_misses).state);
+        id(mww).set_capture_close_miss_probability_cutoff(id(close_miss_threshold).state);
         id(mww).set_capture_upload_url(id(trainer_app_url).state);
     - micro_wake_word.start:
     - lambda: id(voice_assistant_phase) = 1;
