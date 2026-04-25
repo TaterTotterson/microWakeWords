@@ -136,7 +136,7 @@ void MicroWakeWord::setup() {
       temp_ring_buffer->write((void *) data.data(), data.size());
     }
 
-    std::shared_ptr<RingBuffer> temp_capture_ring_buffer = this->capture_ring_buffer_.lock();
+    std::shared_ptr<RingBuffer> temp_capture_ring_buffer = this->capture_ring_buffer_;
     // Keep the rolling capture buffer warm whenever detection is running so the first
     // wake after enabling uploads or reconnecting still has pre-roll audio available.
     if (temp_capture_ring_buffer != nullptr) {
@@ -232,6 +232,7 @@ void MicroWakeWord::inference_task(void *params) {
 
   this_mww->unload_models_();
   this_mww->microphone_source_->stop();
+  this_mww->capture_ring_buffer_.reset();
   FrontendFreeStateContents(&this_mww->frontend_state_);
 
   xEventGroupSetBits(this_mww->event_group_, EventGroupBits::TASK_STOPPED);
@@ -523,7 +524,7 @@ std::string MicroWakeWord::build_capture_upload_url_() const {
 }
 
 bool MicroWakeWord::snapshot_capture_audio_(std::vector<uint8_t> &audio_bytes) {
-  std::shared_ptr<RingBuffer> temp_capture_ring_buffer = this->capture_ring_buffer_.lock();
+  std::shared_ptr<RingBuffer> temp_capture_ring_buffer = this->capture_ring_buffer_;
   if (temp_capture_ring_buffer == nullptr) {
     return false;
   }
