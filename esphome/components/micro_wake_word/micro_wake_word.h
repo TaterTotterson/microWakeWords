@@ -179,7 +179,7 @@ class MicroWakeWord : public Component
   bool should_capture_close_miss_(const DetectionEvent &detection_event);
   std::string build_capture_upload_url_() const;
   bool snapshot_capture_audio_(std::vector<uint8_t> &audio_bytes);
-  void queue_detection_capture_(const DetectionEvent &detection_event, const std::string &event_type);
+  void queue_detection_capture_(const DetectionEvent &detection_event, DetectionEventType event_type);
   bool upload_capture_(const CaptureUploadRequest &request);
   static void capture_upload_task(void *params);
 };
