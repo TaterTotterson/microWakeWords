@@ -137,7 +137,9 @@ void MicroWakeWord::setup() {
     }
 
     std::shared_ptr<RingBuffer> temp_capture_ring_buffer = this->capture_ring_buffer_.lock();
-    if ((temp_capture_ring_buffer != nullptr) && this->capture_feature_enabled_()) {
+    // Keep the rolling capture buffer warm whenever detection is running so the first
+    // wake after enabling uploads or reconnecting still has pre-roll audio available.
+    if (temp_capture_ring_buffer != nullptr) {
       temp_capture_ring_buffer->write((void *) data.data(), data.size());
     }
   });
@@ -564,7 +566,9 @@ void MicroWakeWord::queue_detection_capture_(const DetectionEvent &detection_eve
   std::vector<uint8_t> pcm_data;
   if (!this->snapshot_capture_audio_(pcm_data)) {
     this->capture_upload_in_progress_.store(false);
-    ESP_LOGW(TAG, "Captured wake audio upload skipped because no buffered audio was available.");
+    ESP_LOGW(TAG,
+             "Captured wake audio upload skipped because the wake-audio ring buffer was empty. "
+             "This usually means detection started before enough audio was buffered.");
     return;
   }
 
