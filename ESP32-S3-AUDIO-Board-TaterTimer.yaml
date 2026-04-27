@@ -1,0 +1,39 @@
+substitutions:
+  # DEVICE IDENTITY
+  device_name: tateraudio
+  friendly_name: Tater Audio Board
+
+  # WIFI / NETWORK
+  wifi_ssid: !secret wifi_ssid
+  wifi_password: !secret wifi_password
+  ha_voice_ip: "127.0.0.1"
+  hidden_ssid: "false"
+
+  # WAKE WORD CONFIG
+  wake_word_name: hey_tater
+  wake_word_model_url: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/microWakeWords/hey_tater.json
+  wake_model_stop_url: https://github.com/kahrendt/microWakeWord/releases/download/stop/stop.json
+
+  # WAKE WORD SENSITIVITY (probability cutoff)
+  wake_cutoff_slight: "250"
+  wake_cutoff_moderate: "245"
+  wake_cutoff_very: "222"
+
+  # AUDIO BOARD TUNING
+  mic_gain: "24db"
+
+  # AUDIO FILE URLS
+  mute_switch_on_sound_file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/mute_switch_on.flac
+  mute_switch_off_sound_file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/mute_switch_off.flac
+  timer_finished_sound_file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/timer_finished.flac
+  wake_word_triggered_sound_file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/wake_word_triggered.flac
+
+packages:
+  TaterTotterson.AudioBoard:
+    url: https://github.com/TaterTotterson/microWakeWords
+    ref: main
+    files:
+      - audio_board/device.yaml
+      - audio_board/audio.yaml
+      - audio_board/controls.yaml
+      - audio_board/voice.yaml
