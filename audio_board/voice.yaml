@@ -1,0 +1,212 @@
+external_components:
+  - source:
+      type: git
+      url: https://github.com/TaterTotterson/microWakeWords
+      ref: main
+    components:
+      - voice_assistant
+      - micro_wake_word
+    refresh: 0s
+  - source:
+      type: git
+      url: https://github.com/esphome/esphome
+      ref: ff8ce89556748509d7ee8724e12d9d43d3c8c1e8
+    refresh: 0s
+    components:
+      - http_request
+
+micro_wake_word:
+  id: mww
+  models:
+    - model: ${wake_word_model_url}
+      id: ${wake_word_name}
+    - model: ${wake_model_stop_url}
+      id: stop
+      internal: true
+  vad:
+  microphone:
+    microphone: board_mics
+    channels: 1
+    gain_factor: 4
+  stop_after_detection: false
+  on_wake_word_detected:
+    - if:
+        condition:
+          switch.is_off: master_mute_switch
+        then:
+          - if:
+              condition:
+                switch.is_on: timer_ringing
+              then:
+                - switch.turn_off: timer_ringing
+              else:
+                - if:
+                    condition:
+                      voice_assistant.is_running:
+                    then:
+                      voice_assistant.stop:
+                    else:
+                      - if:
+                          condition:
+                            media_player.is_announcing: external_media_player
+                          then:
+                            - media_player.stop:
+                                id: external_media_player
+                                announcement: true
+                      - if:
+                          condition:
+                            switch.is_on: wake_sound
+                          then:
+                            - script.execute:
+                                id: play_sound
+                                priority: true
+                                sound_file: "wake_word_triggered_sound"
+                            - delay: 300ms
+                      - voice_assistant.start:
+                          wake_word: !lambda return wake_word;
+
+switch:
+  - platform: template
+    id: capture_wake_audio
+    name: Capture Wake Audio
+    icon: "mdi:waveform"
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - lambda: id(mww).set_capture_upload_enabled(true);
+    turn_off_action:
+      - lambda: id(mww).set_capture_upload_enabled(false);
+
+  - platform: template
+    id: capture_close_misses
+    name: Capture Close Misses
+    icon: "mdi:target"
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - lambda: id(mww).set_capture_close_misses_enabled(true);
+    turn_off_action:
+      - lambda: id(mww).set_capture_close_misses_enabled(false);
+
+text:
+  - platform: template
+    id: trainer_app_url
+    name: Trainer App URL
+    icon: "mdi:lan-connect"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: "http://trainer.local:8789"
+    mode: TEXT
+    max_length: 255
+    set_action:
+      - lambda: id(mww).set_capture_upload_url(x);
+
+number:
+  - platform: template
+    id: close_miss_threshold
+    name: Close Miss Threshold
+    icon: "mdi:target-variant"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: 0.78
+    min_value: 0.50
+    max_value: 0.95
+    step: 0.01
+    set_action:
+      - lambda: id(mww).set_capture_close_miss_probability_cutoff(x);
+
+select:
+  - platform: template
+    name: "Wake word sensitivity"
+    id: wake_word_sensitivity
+    optimistic: true
+    initial_option: Slightly sensitive
+    restore_value: true
+    entity_category: config
+    options:
+      - Slightly sensitive
+      - Moderately sensitive
+      - Very sensitive
+    on_value:
+      lambda: |-
+        if (x == "Slightly sensitive") {
+          id(${wake_word_name}).set_probability_cutoff(${wake_cutoff_slight});
+        } else if (x == "Moderately sensitive") {
+          id(${wake_word_name}).set_probability_cutoff(${wake_cutoff_moderate});
+        } else if (x == "Very sensitive") {
+          id(${wake_word_name}).set_probability_cutoff(${wake_cutoff_very});
+        }
+
+voice_assistant:
+  id: va
+  microphone:
+    microphone: board_mics
+    channels: 0
+  media_player: external_media_player
+  micro_wake_word: mww
+  use_wake_word: false
+  noise_suppression_level: 0
+  auto_gain: 0 dbfs
+  volume_multiplier: 1
+  on_client_connected:
+    - lambda: id(init_in_progress) = false;
+    - lambda: |-
+        id(mww).set_capture_upload_enabled(id(capture_wake_audio).state);
+        id(mww).set_capture_close_misses_enabled(id(capture_close_misses).state);
+        id(mww).set_capture_close_miss_probability_cutoff(id(close_miss_threshold).state);
+        id(mww).set_capture_upload_url(id(trainer_app_url).state);
+    - micro_wake_word.start:
+    - lambda: id(voice_assistant_phase) = 1;
+    - script.execute: control_leds
+  on_client_disconnected:
+    - voice_assistant.stop:
+    - lambda: id(voice_assistant_phase) = 10;
+    - script.execute: control_leds
+  on_error:
+    - if:
+        condition:
+          and:
+            - lambda: return !id(init_in_progress);
+            - lambda: return code != "duplicate_wake_up_detected";
+            - lambda: return code != "stt-no-text-recognized";
+        then:
+          - lambda: id(voice_assistant_phase) = 11;
+          - script.execute: control_leds
+    - mixer_speaker.apply_ducking:
+        id: media_mixing_input
+        decibel_reduction: 0
+        duration: 1.0s
+  on_start:
+    - mixer_speaker.apply_ducking:
+        id: media_mixing_input
+        decibel_reduction: 20
+        duration: 0.0s
+    - lambda: id(voice_assistant_phase) = 2;
+    - script.execute: control_leds
+  on_listening:
+    - lambda: id(voice_assistant_phase) = 3;
+    - script.execute: control_leds
+  on_stt_end:
+    - lambda: id(voice_assistant_phase) = 4;
+    - script.execute: control_leds
+  on_tts_start:
+    - lambda: id(voice_assistant_phase) = 5;
+    - script.execute: control_leds
+  on_end:
+    - wait_until:
+        not:
+          voice_assistant.is_running:
+    - mixer_speaker.apply_ducking:
+        id: media_mixing_input
+        decibel_reduction: 0
+        duration: 1.0s
+    - if:
+        condition:
+          switch.is_off: timer_ringing
+        then:
+          - lambda: id(voice_assistant_phase) = 1;
+          - script.execute: control_leds

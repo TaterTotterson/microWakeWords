@@ -1,0 +1,97 @@
+switch:
+  - platform: template
+    id: master_mute_switch
+    name: Mute
+    icon: "mdi:microphone-off"
+    optimistic: false
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - script.execute:
+          id: play_sound
+          priority: false
+          sound_file: "mute_switch_on_sound"
+      - micro_wake_word.stop:
+      - voice_assistant.stop:
+      - script.execute: control_leds
+    turn_off_action:
+      - script.execute:
+          id: play_sound
+          priority: false
+          sound_file: "mute_switch_off_sound"
+      - micro_wake_word.start:
+      - script.execute: control_leds
+
+  - platform: template
+    id: wake_sound
+    name: Wake sound
+    icon: "mdi:bullhorn"
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+
+  - platform: template
+    id: timer_ringing
+    optimistic: true
+    internal: true
+    restore_mode: ALWAYS_OFF
+    on_turn_off:
+      - micro_wake_word.disable_model: stop
+      - if:
+          condition:
+            media_player.is_announcing: external_media_player
+          then:
+            media_player.stop:
+              id: external_media_player
+              announcement: true
+      - mixer_speaker.apply_ducking:
+          id: media_mixing_input
+          decibel_reduction: 0
+          duration: 1.0s
+      - script.execute: control_leds
+    on_turn_on:
+      - mixer_speaker.apply_ducking:
+          id: media_mixing_input
+          decibel_reduction: 20
+          duration: 0.0s
+      - micro_wake_word.enable_model: stop
+      - script.execute:
+          id: play_sound
+          priority: true
+          sound_file: "timer_finished_sound"
+      - script.execute: control_leds
+      - delay: 15min
+      - switch.turn_off: timer_ringing
+
+button:
+  - platform: restart
+    id: restart_button
+    name: Restart
+    entity_category: config
+    disabled_by_default: true
+    icon: "mdi:restart"
+
+script:
+  - id: control_leds
+    mode: restart
+    then: []
+
+  - id: play_sound
+    parameters:
+      priority: bool
+      sound_file: string
+    then:
+      - if:
+          condition:
+            lambda: return priority;
+          then:
+            - media_player.stop:
+                id: external_media_player
+                announcement: true
+      - lambda: |-
+          if ((id(external_media_player).state != media_player::MediaPlayerState::MEDIA_PLAYER_STATE_ANNOUNCING) || priority) {
+            id(external_media_player)
+              ->make_call()
+              .set_media_url("audio-file://" + sound_file)
+              .set_announcement(true)
+              .perform();
+          }
