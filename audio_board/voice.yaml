@@ -171,7 +171,7 @@ voice_assistant:
         id(mww).set_capture_close_misses_enabled(id(capture_close_misses).state);
         id(mww).set_capture_close_miss_probability_cutoff(id(close_miss_threshold).state);
         id(mww).set_capture_upload_url(id(trainer_app_url).state);
-    - script.execute: start_wake_word_detection
+    - micro_wake_word.start:
     - lambda: id(voice_assistant_phase) = 1;
     - script.execute: control_leds
   on_client_disconnected:
@@ -226,6 +226,6 @@ voice_assistant:
             - switch.is_off: master_mute_switch
             - switch.is_off: timer_ringing
         then:
-          - script.execute: start_wake_word_detection
+          - micro_wake_word.start:
           - lambda: id(voice_assistant_phase) = 1;
           - script.execute: control_leds
