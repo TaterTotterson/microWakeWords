@@ -81,7 +81,7 @@ i2c:
   - id: board_i2c
     sda: GPIO11
     scl: GPIO10
-    frequency: 400kHz
+    frequency: 100kHz
     scan: true
 
 tca9555:
