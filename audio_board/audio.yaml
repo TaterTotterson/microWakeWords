@@ -109,24 +109,19 @@ media_source:
     buffer_size: 500000
 
 media_player:
-  - platform: speaker_source
+  - platform: speaker
     id: external_media_player
     name: Media Player
     announcement_pipeline:
       format: FLAC
       num_channels: 1
-      sample_rate: 16000
+      sample_rate: 48000
       speaker: announcement_resampling_speaker
-      sources:
-        - audio_file_announcement_source
-        - http_announcement_source
     media_pipeline:
       format: FLAC
       num_channels: 2
-      sample_rate: 16000
+      sample_rate: 48000
       speaker: media_resampling_speaker
-      sources:
-        - http_media_source
     volume_increment: 0.05
     volume_min: 0.20
     volume_max: 1.0
