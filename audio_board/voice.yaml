@@ -9,13 +9,6 @@ external_components:
     refresh: 0s
   - source:
       type: git
-      url: https://github.com/sw3Dan/waveshare-s2-audio_esphome_voice
-      ref: main
-    components:
-      - es8311
-    refresh: 0s
-  - source:
-      type: git
       url: https://github.com/esphome/esphome
       ref: ff8ce89556748509d7ee8724e12d9d43d3c8c1e8
     refresh: 0s
@@ -65,11 +58,15 @@ micro_wake_word:
                             - media_player.stop:
                                 id: external_media_player
                                 announcement: true
-                      # The audio board shares I2S clocks between wake-word capture and playback.
-                      # Stop wake-word capture first and skip the local chime so the assistant can
-                      # take the microphone without the speaker fighting for the bus.
-                      - micro_wake_word.stop:
-                      - delay: 150ms
+                      - if:
+                          condition:
+                            switch.is_on: wake_sound
+                          then:
+                            - script.execute:
+                                id: play_sound
+                                priority: true
+                                sound_uri: "audio-file://wake_word_triggered_sound"
+                            - delay: 300ms
                       - voice_assistant.start:
                           wake_word: !lambda return wake_word;
 
@@ -171,9 +168,9 @@ voice_assistant:
         id(mww).set_capture_close_misses_enabled(id(capture_close_misses).state);
         id(mww).set_capture_close_miss_probability_cutoff(id(close_miss_threshold).state);
         id(mww).set_capture_upload_url(id(trainer_app_url).state);
+    - micro_wake_word.start:
     - lambda: id(voice_assistant_phase) = 1;
     - script.execute: control_leds
-    - script.execute: start_wake_word_detection
   on_client_disconnected:
     - logger.log:
         level: WARN
@@ -228,4 +225,3 @@ voice_assistant:
         then:
           - lambda: id(voice_assistant_phase) = 1;
           - script.execute: control_leds
-          - script.execute: start_wake_word_detection
