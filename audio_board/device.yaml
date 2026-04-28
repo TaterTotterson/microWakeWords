@@ -51,6 +51,7 @@ psram:
   ignore_not_found: false
 
 wifi:
+  id: wifi_id
   ssid: ${wifi_ssid}
   password: ${wifi_password}
   use_address: ${ha_voice_ip}
@@ -87,6 +88,11 @@ i2c:
     scl: GPIO10
     frequency: 400kHz
     scan: true
+
+tca9555:
+  id: board_ioexp
+  i2c_id: board_i2c
+  address: 0x20
 
 globals:
   - id: init_in_progress

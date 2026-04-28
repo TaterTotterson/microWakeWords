@@ -1,0 +1,181 @@
+globals:
+  - id: global_led_animation_index
+    type: int
+    restore_value: no
+    initial_value: "0"
+
+light:
+  - platform: esp32_rmt_led_strip
+    id: hw_led_ring
+    pin: GPIO38
+    num_leds: ${led_num}
+    rgb_order: RGB
+    chipset: WS2812
+    default_transition_length: 0ms
+
+  - platform: partition
+    id: led_ring
+    name: LED Ring
+    entity_category: config
+    icon: "mdi:dots-circle"
+    default_transition_length: 0ms
+    restore_mode: RESTORE_DEFAULT_OFF
+    initial_state:
+      color_mode: rgb
+      brightness: 66%
+      red: 9.4%
+      green: 73.3%
+      blue: 94.9%
+    segments:
+      - id: hw_led_ring
+        from: 0
+        to: 6
+
+  - platform: partition
+    id: voice_assistant_leds
+    internal: true
+    default_transition_length: 0ms
+    segments:
+      - id: hw_led_ring
+        from: 0
+        to: 6
+    effects:
+      - addressable_lambda:
+          name: "Waiting for Command"
+          update_interval: 100ms
+          lambda: |-
+            const int count = it.size();
+            auto light_color = id(led_ring).current_values;
+            Color color(light_color.get_red() * 255, light_color.get_green() * 255,
+                        light_color.get_blue() * 255);
+            const int lead = id(global_led_animation_index) % count;
+            for (int i = 0; i < count; i++) {
+              if (i == lead) {
+                it[i] = color;
+              } else if (i == (lead + count - 1) % count) {
+                it[i] = color * 160;
+              } else if (i == (lead + count - 2) % count) {
+                it[i] = color * 80;
+              } else {
+                it[i] = Color::BLACK;
+              }
+            }
+            id(global_led_animation_index) = (id(global_led_animation_index) + 1) % count;
+      - addressable_lambda:
+          name: "Listening For Command"
+          update_interval: 50ms
+          lambda: |-
+            const int count = it.size();
+            auto light_color = id(led_ring).current_values;
+            Color color(light_color.get_red() * 255, light_color.get_green() * 255,
+                        light_color.get_blue() * 255);
+            const int lead = id(global_led_animation_index) % count;
+            for (int i = 0; i < count; i++) {
+              if (i == lead) {
+                it[i] = color;
+              } else if (i == (lead + count - 1) % count) {
+                it[i] = color * 180;
+              } else if (i == (lead + count - 2) % count) {
+                it[i] = color * 100;
+              } else {
+                it[i] = Color::BLACK;
+              }
+            }
+            id(global_led_animation_index) = (id(global_led_animation_index) + 1) % count;
+      - addressable_lambda:
+          name: "Thinking"
+          update_interval: 35ms
+          lambda: |-
+            static uint8_t brightness_step = 0;
+            static bool decreasing = false;
+            const uint8_t steps = 20;
+            if (initial_run) {
+              brightness_step = 0;
+              decreasing = false;
+            }
+            auto light_color = id(led_ring).current_values;
+            Color color(light_color.get_red() * 255, light_color.get_green() * 255,
+                        light_color.get_blue() * 255);
+            uint8_t level = 60 + (uint8_t) ((195 * brightness_step) / steps);
+            for (int i = 0; i < it.size(); i++) {
+              it[i] = color * level;
+            }
+            if (decreasing) {
+              if (brightness_step == 0) {
+                decreasing = false;
+              } else {
+                brightness_step--;
+              }
+            } else {
+              if (brightness_step >= steps) {
+                decreasing = true;
+              } else {
+                brightness_step++;
+              }
+            }
+      - addressable_lambda:
+          name: "Replying"
+          update_interval: 55ms
+          lambda: |-
+            const int count = it.size();
+            auto light_color = id(led_ring).current_values;
+            Color color(light_color.get_red() * 255, light_color.get_green() * 255,
+                        light_color.get_blue() * 255);
+            id(global_led_animation_index) = (count + id(global_led_animation_index) - 1) % count;
+            const int lead = id(global_led_animation_index) % count;
+            for (int i = 0; i < count; i++) {
+              if (i == lead) {
+                it[i] = color;
+              } else if (i == (lead + 1) % count) {
+                it[i] = color * 170;
+              } else if (i == (lead + 2) % count) {
+                it[i] = color * 90;
+              } else {
+                it[i] = Color::BLACK;
+              }
+            }
+      - addressable_lambda:
+          name: "Muted or Silent"
+          update_interval: 100ms
+          lambda: |-
+            auto light_color = id(led_ring).current_values;
+            Color base(light_color.get_red() * 255, light_color.get_green() * 255,
+                       light_color.get_blue() * 255);
+            Color muted(255, 0, 0);
+            for (int i = 0; i < it.size(); i++) {
+              it[i] = light_color.get_state() ? base : Color::BLACK;
+            }
+            if (id(master_mute_switch).state) {
+              it[0] = muted;
+              it[3] = muted;
+            }
+            if (id(external_media_player).volume == 0.0f || id(external_media_player).is_muted()) {
+              it[5] = muted;
+            }
+      - addressable_lambda:
+          name: "Volume Display"
+          update_interval: 50ms
+          lambda: |-
+            const int count = it.size();
+            auto light_color = id(led_ring).current_values;
+            Color color(light_color.get_red() * 255, light_color.get_green() * 255,
+                        light_color.get_blue() * 255);
+            Color muted(255, 0, 0);
+            const float volume_ratio = count * id(external_media_player).volume;
+            for (int i = 0; i < count; i++) {
+              if (i <= volume_ratio) {
+                float level = 255.0f * (volume_ratio - i);
+                if (level > 255.0f) {
+                  level = 255.0f;
+                }
+                it[i] = color * (uint8_t) level;
+              } else {
+                it[i] = Color::BLACK;
+              }
+            }
+            if (id(external_media_player).volume == 0.0f) {
+              it[0] = muted;
+            }
+      - addressable_twinkle:
+          name: "Twinkle"
+          twinkle_probability: 50%
