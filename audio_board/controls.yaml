@@ -20,7 +20,7 @@ switch:
       - script.execute:
           id: play_sound
           priority: false
-          sound_file: !lambda return id(mute_switch_on_sound);
+          sound_uri: "audio-file://mute_switch_on_sound"
       - micro_wake_word.stop:
       - voice_assistant.stop:
       - script.execute: control_leds
@@ -28,7 +28,7 @@ switch:
       - script.execute:
           id: play_sound
           priority: false
-          sound_file: !lambda return id(mute_switch_off_sound);
+          sound_uri: "audio-file://mute_switch_off_sound"
       - micro_wake_word.start:
       - script.execute: control_leds
 
@@ -68,7 +68,7 @@ switch:
       - script.execute:
           id: play_sound
           priority: true
-          sound_file: !lambda return id(timer_finished_sound);
+          sound_uri: "audio-file://timer_finished_sound"
       - script.execute: control_leds
       - delay: 15min
       - switch.turn_off: timer_ringing
@@ -178,7 +178,7 @@ script:
   - id: play_sound
     parameters:
       priority: bool
-      sound_file: "audio::AudioFile*"
+      sound_uri: string
     then:
       - if:
           condition:
@@ -187,7 +187,14 @@ script:
             - media_player.stop:
                 id: external_media_player
                 announcement: true
-      - lambda: |-
-          if ((id(external_media_player).state != media_player::MediaPlayerState::MEDIA_PLAYER_STATE_ANNOUNCING) || priority) {
-            id(external_media_player)->play_file(sound_file, true, false);
-          }
+      - if:
+          condition:
+            or:
+              - lambda: return priority;
+              - not:
+                  media_player.is_announcing: external_media_player
+          then:
+            - media_player.play_media:
+                id: external_media_player
+                media_url: !lambda return sound_uri;
+                announcement: true
