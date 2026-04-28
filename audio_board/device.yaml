@@ -11,7 +11,7 @@ esphome:
           condition:
             switch.is_off: master_mute_switch
           then:
-            - micro_wake_word.start:
+            - script.execute: start_wake_word_detection
       - delay: 10min
       - if:
           condition:
