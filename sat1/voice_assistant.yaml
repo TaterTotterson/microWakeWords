@@ -41,6 +41,11 @@ micro_wake_word:
     gain_factor: 6
   stop_after_detection: false
   on_wake_word_detected:
+    - logger.log:
+        level: INFO
+        tag: tater.voice
+        format: "Wake word detected: %s"
+        args: [ 'wake_word.c_str()' ]
     # If the wake word is detected when the device is muted (Possible with the software mute switch): Do nothing
     - if:
         condition:
@@ -148,6 +153,10 @@ voice_assistant:
   auto_gain: 0 dbfs
   volume_multiplier: 1
   on_client_connected:
+    - logger.log:
+        level: INFO
+        tag: tater.voice
+        format: "Voice assistant client connected; starting wake word detection."
     - lambda: id(init_in_progress) = false;
     - lambda: |-
         id(mww).set_capture_upload_enabled(id(capture_wake_audio).state);
@@ -158,6 +167,10 @@ voice_assistant:
     - lambda: id(voice_assistant_phase) = 1;
     - script.execute: control_leds
   on_client_disconnected:
+    - logger.log:
+        level: WARN
+        tag: tater.voice
+        format: "Voice assistant client disconnected; stopping wake word detection."
     - voice_assistant.stop:
     - lambda: id(voice_assistant_phase) = 10;
     - script.execute: control_leds
