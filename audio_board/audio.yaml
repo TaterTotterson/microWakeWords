@@ -1,15 +1,26 @@
 i2s_audio:
-  - id: i2s_shared
+  - id: i2s_output
     i2s_mclk_pin: GPIO12
-    i2s_bclk_pin: GPIO13
-    i2s_lrclk_pin: GPIO14
+    i2s_bclk_pin:
+      number: GPIO13
+      allow_other_uses: true
+    i2s_lrclk_pin:
+      number: GPIO14
+      allow_other_uses: true
+  - id: i2s_input
+    i2s_bclk_pin:
+      number: GPIO13
+      allow_other_uses: true
+    i2s_lrclk_pin:
+      number: GPIO14
+      allow_other_uses: true
 
 audio_adc:
   - platform: es7210
     id: es7210_adc
     i2c_id: board_i2c
     sample_rate: 16000
-    bits_per_sample: 32bit
+    bits_per_sample: 16bit
     mic_gain: ${mic_gain}
 
 audio_dac:
@@ -17,8 +28,10 @@ audio_dac:
     id: es8311_dac
     i2c_id: board_i2c
     sample_rate: 16000
-    bits_per_sample: 32bit
-    use_mclk: false
+    bits_per_sample: 16bit
+    use_mclk: true
+    force_master: true
+    mclk_multiple: 256
 
 microphone:
   - platform: i2s_audio
@@ -27,23 +40,27 @@ microphone:
     adc_type: external
     pdm: false
     sample_rate: 16000
-    bits_per_sample: 32bit
-    i2s_mode: primary
-    i2s_audio_id: i2s_shared
-    channel: stereo
+    bits_per_sample: 16bit
+    i2s_mode: secondary
+    i2s_audio_id: i2s_input
+    use_apll: true
+    mclk_multiple: 256
+    channel: left
 
 speaker:
   - platform: i2s_audio
     id: i2s_audio_speaker
     sample_rate: 16000
-    i2s_mode: primary
+    i2s_mode: secondary
     i2s_dout_pin: GPIO16
-    bits_per_sample: 32bit
-    i2s_audio_id: i2s_shared
+    bits_per_sample: 16bit
+    i2s_audio_id: i2s_output
     dac_type: external
     channel: stereo
     timeout: never
     buffer_duration: 100ms
+    use_apll: true
+    mclk_multiple: 256
     audio_dac: es8311_dac
 
   - platform: mixer
@@ -92,19 +109,24 @@ media_source:
     buffer_size: 500000
 
 media_player:
-  - platform: speaker
+  - platform: speaker_source
     id: external_media_player
     name: Media Player
     announcement_pipeline:
       format: FLAC
       num_channels: 1
-      sample_rate: 48000
+      sample_rate: 16000
       speaker: announcement_resampling_speaker
+      sources:
+        - audio_file_announcement_source
+        - http_announcement_source
     media_pipeline:
       format: FLAC
       num_channels: 2
-      sample_rate: 48000
+      sample_rate: 16000
       speaker: media_resampling_speaker
+      sources:
+        - http_media_source
     volume_increment: 0.05
     volume_min: 0.20
     volume_max: 1.0
@@ -113,7 +135,7 @@ media_player:
     on_unmute:
       - script.execute: control_leds
     on_volume:
-      - script.execute: control_leds_volume_changed
+      - script.execute: control_leds
     on_announcement:
       - mixer_speaker.apply_ducking:
           id: media_mixing_input
