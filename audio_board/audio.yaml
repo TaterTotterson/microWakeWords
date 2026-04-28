@@ -18,7 +18,7 @@ audio_dac:
     i2c_id: board_i2c
     sample_rate: 16000
     bits_per_sample: 32bit
-    use_mclk: true
+    use_mclk: false
 
 microphone:
   - platform: i2s_audio
