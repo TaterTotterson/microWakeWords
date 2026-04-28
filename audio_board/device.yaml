@@ -68,15 +68,6 @@ logger:
 api:
   id: api_id
   on_client_connected:
-    - logger.log:
-        level: INFO
-        tag: tater.voice
-        format: "API client connected; ensuring wake word detection is running."
-    - if:
-        condition:
-          switch.is_off: master_mute_switch
-        then:
-          - micro_wake_word.start:
     - script.execute: control_leds
   on_client_disconnected:
     - script.execute: control_leds
