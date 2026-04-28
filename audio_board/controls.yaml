@@ -29,7 +29,7 @@ switch:
           id: play_sound
           priority: false
           sound_file: "mute_switch_off_sound"
-      - script.execute: start_wake_word_detection
+      - micro_wake_word.start:
       - script.execute: control_leds
 
   - platform: template
@@ -82,20 +82,6 @@ button:
     icon: "mdi:restart"
 
 script:
-  - id: start_wake_word_detection
-    mode: restart
-    then:
-      - delay: 500ms
-      - if:
-          condition:
-            and:
-              - switch.is_off: master_mute_switch
-              - switch.is_off: timer_ringing
-              - not:
-                  voice_assistant.is_running:
-          then:
-            - micro_wake_word.start:
-
   - id: control_leds
     mode: restart
     then:
