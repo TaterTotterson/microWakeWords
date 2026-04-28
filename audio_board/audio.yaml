@@ -135,7 +135,7 @@ media_player:
     on_unmute:
       - script.execute: control_leds
     on_volume:
-      - script.execute: control_leds
+      - script.execute: control_leds_volume_changed
     on_announcement:
       - mixer_speaker.apply_ducking:
           id: media_mixing_input

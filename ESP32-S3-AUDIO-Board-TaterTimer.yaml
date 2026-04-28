@@ -8,6 +8,7 @@ substitutions:
   wifi_password: !secret wifi_password
   ha_voice_ip: "127.0.0.1"
   hidden_ssid: "false"
+  led_num: "7"
 
   # WAKE WORD CONFIG
   wake_word_name: hey_tater
@@ -34,6 +35,7 @@ packages:
     ref: main
     files:
       - audio_board/device.yaml
+      - audio_board/lights.yaml
       - audio_board/audio.yaml
       - audio_board/controls.yaml
       - audio_board/voice.yaml
