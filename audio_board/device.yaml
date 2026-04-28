@@ -7,6 +7,11 @@ esphome:
     priority: 375
     then:
       - script.execute: control_leds
+      - if:
+          condition:
+            switch.is_off: master_mute_switch
+          then:
+            - micro_wake_word.start:
       - delay: 10min
       - if:
           condition:
