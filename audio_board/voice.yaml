@@ -65,15 +65,11 @@ micro_wake_word:
                             - media_player.stop:
                                 id: external_media_player
                                 announcement: true
-                      - if:
-                          condition:
-                            switch.is_on: wake_sound
-                          then:
-                            - script.execute:
-                                id: play_sound
-                                priority: true
-                                sound_file: "wake_word_triggered_sound"
-                            - delay: 300ms
+                      # The audio board shares I2S clocks between wake-word capture and playback.
+                      # Stop wake-word capture first and skip the local chime so the assistant can
+                      # take the microphone without the speaker fighting for the bus.
+                      - micro_wake_word.stop:
+                      - delay: 150ms
                       - voice_assistant.start:
                           wake_word: !lambda return wake_word;
 
@@ -226,7 +222,10 @@ voice_assistant:
         duration: 1.0s
     - if:
         condition:
-          switch.is_off: timer_ringing
+          and:
+            - switch.is_off: master_mute_switch
+            - switch.is_off: timer_ringing
         then:
+          - micro_wake_word.start:
           - lambda: id(voice_assistant_phase) = 1;
           - script.execute: control_leds
