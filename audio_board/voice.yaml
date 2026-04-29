@@ -70,7 +70,10 @@ micro_wake_word:
                                 id: play_sound
                                 priority: true
                                 sound_uri: "audio-file://wake_word_triggered_sound"
-                            - delay: 700ms
+                            - wait_until:
+                                not:
+                                  media_player.is_announcing: external_media_player
+                            - delay: 500ms
                       - voice_assistant.start:
                           wake_word: !lambda return wake_word;
 
