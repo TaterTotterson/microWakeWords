@@ -72,7 +72,15 @@ micro_wake_word:
                                 sound_uri: "audio-file://wake_word_triggered_sound"
                             # The speaker pipeline releases after the media player reports idle.
                             # A fixed settle delay is more reliable here than is_announcing.
+                            - logger.log:
+                                level: INFO
+                                tag: tater.voice
+                                format: "Waiting 2s for wake chime I2S handoff before STT."
                             - delay: 2s
+                            - logger.log:
+                                level: INFO
+                                tag: tater.voice
+                                format: "Wake chime handoff complete; starting STT."
                       - voice_assistant.start:
                           wake_word: !lambda return wake_word;
 
