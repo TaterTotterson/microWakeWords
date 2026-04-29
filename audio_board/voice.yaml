@@ -77,6 +77,11 @@ micro_wake_word:
                                 tag: tater.voice
                                 format: "Waiting 2s for wake chime I2S handoff before STT."
                             - delay: 2s
+                            - speaker.stop:
+                                id: announcement_resampling_speaker
+                            - speaker.stop:
+                                id: i2s_audio_speaker
+                            - delay: 500ms
                             - logger.log:
                                 level: INFO
                                 tag: tater.voice
