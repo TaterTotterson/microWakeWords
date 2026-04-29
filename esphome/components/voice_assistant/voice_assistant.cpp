@@ -205,6 +205,13 @@ void VoiceAssistant::loop() {
       break;
     }
     case State::START_MICROPHONE: {
+#ifdef USE_MEDIA_PLAYER
+#ifdef USE_SPEAKER
+      if (this->media_player_ != nullptr && !this->media_player_output_released_()) {
+        break;
+      }
+#endif
+#endif
       ESP_LOGD(TAG, "Starting Microphone");
       if (!this->allocate_buffers_()) {
         this->status_set_error(LOG_STR("Failed to allocate buffers"));
@@ -418,7 +425,7 @@ bool VoiceAssistant::media_player_output_released_() {
 
   if (this->media_player_speaker_->has_buffered_data()) {
     if (!this->media_player_output_wait_logged_) {
-      ESP_LOGD(TAG, "Waiting for media player output speaker to drain before follow-up listen");
+      ESP_LOGD(TAG, "Waiting for media player output speaker to drain before microphone start");
       this->media_player_output_wait_logged_ = true;
     }
     return false;
@@ -426,7 +433,7 @@ bool VoiceAssistant::media_player_output_released_() {
 
   if (this->media_player_speaker_->is_running()) {
     if (!this->media_player_output_stop_requested_) {
-      ESP_LOGD(TAG, "Stopping media player output speaker before follow-up listen");
+      ESP_LOGD(TAG, "Stopping media player output speaker before microphone start");
       this->media_player_speaker_->stop();
       this->media_player_output_stop_requested_ = true;
     }
@@ -434,7 +441,7 @@ bool VoiceAssistant::media_player_output_released_() {
   }
 
   if (this->media_player_output_wait_logged_ || this->media_player_output_stop_requested_) {
-    ESP_LOGD(TAG, "Media player output speaker released; starting follow-up listen");
+    ESP_LOGD(TAG, "Media player output speaker released; starting microphone");
   }
   this->media_player_output_wait_logged_ = false;
   this->media_player_output_stop_requested_ = false;
