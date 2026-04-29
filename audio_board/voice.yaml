@@ -58,6 +58,10 @@ micro_wake_word:
                             - media_player.stop:
                                 id: external_media_player
                                 announcement: true
+                      # The audio board shares one I2S bus for microphone and speaker.
+                      # Release wake detection before playing the chime, then hand the mic to STT.
+                      - micro_wake_word.stop:
+                      - delay: 300ms
                       - if:
                           condition:
                             switch.is_on: wake_sound
@@ -66,7 +70,7 @@ micro_wake_word:
                                 id: play_sound
                                 priority: true
                                 sound_uri: "audio-file://wake_word_triggered_sound"
-                            - delay: 300ms
+                            - delay: 700ms
                       - voice_assistant.start:
                           wake_word: !lambda return wake_word;
 
@@ -225,3 +229,4 @@ voice_assistant:
         then:
           - lambda: id(voice_assistant_phase) = 1;
           - script.execute: control_leds
+          - micro_wake_word.start:
