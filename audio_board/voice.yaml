@@ -70,22 +70,31 @@ micro_wake_word:
                                 id: play_sound
                                 priority: true
                                 sound_uri: "audio-file://wake_word_triggered_sound"
-                            # The speaker pipeline releases after the media player reports idle.
-                            # A fixed settle delay is more reliable here than is_announcing.
                             - logger.log:
                                 level: INFO
                                 tag: tater.voice
-                                format: "Waiting 2s for wake chime I2S handoff before STT."
-                            - delay: 2s
+                                format: "Waiting for wake chime speaker release before STT."
+                            - wait_until:
+                                condition:
+                                  media_player.is_announcing: external_media_player
+                                timeout: 3s
+                            - wait_until:
+                                condition:
+                                  not:
+                                    media_player.is_announcing: external_media_player
+                                timeout: 4s
                             - speaker.stop:
                                 id: announcement_resampling_speaker
                             - speaker.stop:
                                 id: i2s_audio_speaker
-                            - delay: 500ms
+                            - wait_until:
+                                condition:
+                                  speaker.is_stopped: i2s_audio_speaker
+                                timeout: 2s
                             - logger.log:
                                 level: INFO
                                 tag: tater.voice
-                                format: "Wake chime handoff complete; starting STT."
+                                format: "Wake chime speaker released; starting STT."
                       - voice_assistant.start:
                           wake_word: !lambda return wake_word;
 
