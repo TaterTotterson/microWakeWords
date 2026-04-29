@@ -70,10 +70,12 @@ micro_wake_word:
                                 id: play_sound
                                 priority: true
                                 sound_uri: "audio-file://wake_word_triggered_sound"
+                            # Let the async announcement state flip before waiting on it.
+                            - delay: 150ms
                             - wait_until:
                                 not:
                                   media_player.is_announcing: external_media_player
-                            - delay: 500ms
+                            - delay: 900ms
                       - voice_assistant.start:
                           wake_word: !lambda return wake_word;
 
