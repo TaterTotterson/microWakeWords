@@ -171,6 +171,7 @@ voice_assistant:
     microphone: board_mics
     channels: 0
   media_player: external_media_player
+  media_player_speaker: i2s_audio_speaker
   micro_wake_word: mww
   use_wake_word: false
   noise_suppression_level: 0

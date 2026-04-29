@@ -135,6 +135,9 @@ class VoiceAssistant : public Component {
     this->media_player_ = media_player;
     this->local_output_ = true;
   }
+#ifdef USE_SPEAKER
+  void set_media_player_speaker(speaker::Speaker *speaker) { this->media_player_speaker_ = speaker; }
+#endif
 #endif
 
   uint32_t get_legacy_version() const {
@@ -290,11 +293,19 @@ class VoiceAssistant : public Component {
   bool stream_ended_{false};
 #endif
 #ifdef USE_MEDIA_PLAYER
+#ifdef USE_SPEAKER
+  bool media_player_output_released_();
+#endif
   media_player::MediaPlayer *media_player_{nullptr};
   std::string tts_response_url_{""};
   bool started_streaming_tts_{false};
 
   MediaPlayerResponseState media_player_response_state_{MediaPlayerResponseState::IDLE};
+#ifdef USE_SPEAKER
+  speaker::Speaker *media_player_speaker_{nullptr};
+  bool media_player_output_stop_requested_{false};
+  bool media_player_output_wait_logged_{false};
+#endif
 #endif
 
   bool local_output_{false};

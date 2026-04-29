@@ -44,6 +44,7 @@ CONF_VOLUME_MULTIPLIER = "volume_multiplier"
 
 CONF_MICRO_WAKE_WORD = "micro_wake_word"
 CONF_WAKE_WORD = "wake_word"
+CONF_MEDIA_PLAYER_SPEAKER = "media_player_speaker"
 
 CONF_CONVERSATION_TIMEOUT = "conversation_timeout"
 
@@ -102,6 +103,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Exclusive(CONF_MEDIA_PLAYER, "output"): cv.use_id(
                 media_player.MediaPlayer
             ),
+            cv.Optional(CONF_MEDIA_PLAYER_SPEAKER): cv.use_id(speaker.Speaker),
             cv.Exclusive(CONF_SPEAKER, "output"): cv.use_id(speaker.Speaker),
             cv.Optional(CONF_USE_WAKE_WORD, default=False): cv.boolean,
             cv.Optional(CONF_MICRO_WAKE_WORD): cv.use_id(micro_wake_word.MicroWakeWord),
@@ -208,6 +210,10 @@ async def to_code(config):
     if CONF_MEDIA_PLAYER in config:
         mp = await cg.get_variable(config[CONF_MEDIA_PLAYER])
         cg.add(var.set_media_player(mp))
+
+    if CONF_MEDIA_PLAYER_SPEAKER in config:
+        spkr = await cg.get_variable(config[CONF_MEDIA_PLAYER_SPEAKER])
+        cg.add(var.set_media_player_speaker(spkr))
 
     if CONF_SPEAKER in config:
         spkr = await cg.get_variable(config[CONF_SPEAKER])

@@ -347,6 +347,10 @@ void VoiceAssistant::loop() {
 
         if (this->media_player_response_state_ == MediaPlayerResponseState::FINISHED) {
           this->media_player_response_state_ = MediaPlayerResponseState::IDLE;
+#ifdef USE_SPEAKER
+          this->media_player_output_stop_requested_ = false;
+          this->media_player_output_wait_logged_ = false;
+#endif
           this->cancel_timeout("playing");
           ESP_LOGD(TAG, "Announcement finished playing");
           this->set_state_(State::RESPONSE_FINISHED, State::RESPONSE_FINISHED);
@@ -386,6 +390,13 @@ void VoiceAssistant::loop() {
         this->tts_stream_end_trigger_.trigger();
       }
 #endif
+#ifdef USE_MEDIA_PLAYER
+#ifdef USE_SPEAKER
+      if (this->media_player_ != nullptr && this->continue_conversation_ && !this->media_player_output_released_()) {
+        break;
+      }
+#endif
+#endif
       if (this->continue_conversation_) {
         this->set_state_(State::START_MICROPHONE, State::START_PIPELINE);
       } else {
@@ -397,6 +408,40 @@ void VoiceAssistant::loop() {
       break;
   }
 }
+
+#ifdef USE_MEDIA_PLAYER
+#ifdef USE_SPEAKER
+bool VoiceAssistant::media_player_output_released_() {
+  if (this->media_player_speaker_ == nullptr) {
+    return true;
+  }
+
+  if (this->media_player_speaker_->has_buffered_data()) {
+    if (!this->media_player_output_wait_logged_) {
+      ESP_LOGD(TAG, "Waiting for media player output speaker to drain before follow-up listen");
+      this->media_player_output_wait_logged_ = true;
+    }
+    return false;
+  }
+
+  if (this->media_player_speaker_->is_running()) {
+    if (!this->media_player_output_stop_requested_) {
+      ESP_LOGD(TAG, "Stopping media player output speaker before follow-up listen");
+      this->media_player_speaker_->stop();
+      this->media_player_output_stop_requested_ = true;
+    }
+    return false;
+  }
+
+  if (this->media_player_output_wait_logged_ || this->media_player_output_stop_requested_) {
+    ESP_LOGD(TAG, "Media player output speaker released; starting follow-up listen");
+  }
+  this->media_player_output_wait_logged_ = false;
+  this->media_player_output_stop_requested_ = false;
+  return true;
+}
+#endif
+#endif
 
 #ifdef USE_SPEAKER
 void VoiceAssistant::write_speaker_() {
