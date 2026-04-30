@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 46
+      "count": 47
     }
   ],
-  "count": 448,
+  "count": 449,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -7681,6 +7681,24 @@
       "model_path": "microWakeWordsV3/hey_patrick.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_patrick.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_patrick.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:hey_rozbot",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "hey_rozbot",
+      "name": "hey_rozbot",
+      "label": "Hey Rozbot",
+      "path": "microWakeWordsV3/hey_rozbot.json",
+      "model_path": "microWakeWordsV3/hey_rozbot.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_rozbot.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_rozbot.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
