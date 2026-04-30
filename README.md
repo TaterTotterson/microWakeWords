@@ -117,20 +117,6 @@ You can point this to any compatible `.mp3` or `.flac` file hosted online.
 • Test your wake word in **TTS first** to ensure it’s pronounced correctly  
   (you may need to spell it creatively for best results)
 
-
----
-
-## Firmware Feature Matrix
-
-These are the ready-to-flash firmware templates currently maintained in this repo.
-
-| Firmware | YAML file | Wake sound | Reopen mic / continued conversation | Trainer capture controls | Notes |
-| --- | --- | --- | --- | --- | --- |
-| Voice PE | `voicePE-TaterTimer.yaml` | Yes | Yes | Yes | Best fit for Home Assistant Voice PE hardware. |
-| Satellite1 | `satellite1-TaterTimer.yaml` | Yes | Yes | Yes | Includes Satellite1/XMOS support and stop-word behavior. |
-
-Trainer capture controls include **Capture Wake Audio**, **Capture Close Misses**, **Trainer App URL**, and **Close Miss Threshold**.
-
 ---
 
 ## 🤖 Use These Wake Words in Tater
