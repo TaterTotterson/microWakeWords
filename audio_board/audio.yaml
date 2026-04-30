@@ -1,24 +1,8 @@
 i2s_audio:
-  - id: i2s_input
-    i2s_mclk_pin:
-      number: GPIO12
-      allow_other_uses: true
-    i2s_bclk_pin:
-      number: GPIO13
-      allow_other_uses: true
-    i2s_lrclk_pin:
-      number: GPIO14
-      allow_other_uses: true
-  - id: i2s_output
-    i2s_mclk_pin:
-      number: GPIO12
-      allow_other_uses: true
-    i2s_bclk_pin:
-      number: GPIO13
-      allow_other_uses: true
-    i2s_lrclk_pin:
-      number: GPIO14
-      allow_other_uses: true
+  - id: i2s_shared
+    i2s_mclk_pin: GPIO12
+    i2s_bclk_pin: GPIO13
+    i2s_lrclk_pin: GPIO14
 
 audio_adc:
   - platform: es7210
@@ -35,8 +19,6 @@ audio_dac:
     sample_rate: 16000
     bits_per_sample: 32bit
     use_mclk: true
-    force_master: true
-    mclk_multiple: 256
 
 microphone:
   - platform: i2s_audio
@@ -46,18 +28,18 @@ microphone:
     pdm: false
     sample_rate: 16000
     bits_per_sample: 32bit
-    i2s_mode: secondary
-    i2s_audio_id: i2s_input
+    i2s_mode: primary
+    i2s_audio_id: i2s_shared
     channel: stereo
 
 speaker:
   - platform: i2s_audio
     id: i2s_audio_speaker
     sample_rate: 16000
-    i2s_mode: secondary
+    i2s_mode: primary
     i2s_dout_pin: GPIO16
     bits_per_sample: 32bit
-    i2s_audio_id: i2s_output
+    i2s_audio_id: i2s_shared
     dac_type: external
     channel: stereo
     timeout: never
@@ -96,8 +78,6 @@ audio_file:
     file: ${mute_switch_off_sound_file}
   - id: timer_finished_sound
     file: ${timer_finished_sound_file}
-  - id: wake_word_triggered_sound
-    file: ${wake_word_triggered_sound_file}
 
 media_source:
   - platform: audio_file

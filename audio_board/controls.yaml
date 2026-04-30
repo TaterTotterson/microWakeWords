@@ -33,14 +33,6 @@ switch:
       - script.execute: control_leds
 
   - platform: template
-    id: wake_sound
-    name: Wake sound
-    icon: "mdi:bullhorn"
-    entity_category: config
-    optimistic: true
-    restore_mode: RESTORE_DEFAULT_ON
-
-  - platform: template
     id: timer_ringing
     optimistic: true
     internal: true
@@ -133,7 +125,10 @@ script:
               set_leds("Thinking", base_r, base_g, base_b, brightness);
               return;
             case 5:
-              set_leds("Replying", base_r, base_g, base_b, brightness);
+              set_leds("Twinkle", base_r, base_g, base_b, brightness);
+              return;
+            case 6:
+              set_leds("Tool Call", base_r, base_g, base_b, brightness);
               return;
             case 10:
               set_leds("Twinkle", 1.0f, 0.0f, 0.0f, 0.66f);

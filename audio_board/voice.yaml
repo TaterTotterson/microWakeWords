@@ -6,7 +6,6 @@ external_components:
     components:
       - voice_assistant
       - micro_wake_word
-      - es8311
     refresh: 0s
   - source:
       type: git
@@ -59,8 +58,8 @@ micro_wake_word:
                             - media_player.stop:
                                 id: external_media_player
                                 announcement: true
-                      # The audio board shares one I2S bus for microphone and speaker.
-                      # Release wake detection before playing the chime, then hand the mic to STT.
+                      # The audio board shares one I2S bus, so go straight from wake
+                      # detection to STT and leave speaker playback for the response.
                       - lambda: id(voice_assistant_phase) = 2;
                       - script.execute: control_leds
                       - micro_wake_word.stop:
@@ -70,39 +69,6 @@ micro_wake_word:
                               micro_wake_word.is_running:
                                 id: mww
                           timeout: 1s
-                      - if:
-                          condition:
-                            switch.is_on: wake_sound
-                          then:
-                            - script.execute:
-                                id: play_sound
-                                priority: true
-                                sound_uri: "audio-file://wake_word_triggered_sound"
-                            - logger.log:
-                                level: INFO
-                                tag: tater.voice
-                                format: "Waiting for wake chime speaker release before STT."
-                            - wait_until:
-                                condition:
-                                  media_player.is_announcing: external_media_player
-                                timeout: 3s
-                            - wait_until:
-                                condition:
-                                  not:
-                                    media_player.is_announcing: external_media_player
-                                timeout: 4s
-                            - speaker.stop:
-                                id: announcement_resampling_speaker
-                            - speaker.stop:
-                                id: i2s_audio_speaker
-                            - wait_until:
-                                condition:
-                                  speaker.is_stopped: i2s_audio_speaker
-                                timeout: 2s
-                            - logger.log:
-                                level: INFO
-                                tag: tater.voice
-                                format: "Wake chime speaker released; starting STT."
                       - lambda: id(voice_assistant_phase) = 3;
                       - script.execute: control_leds
                       - voice_assistant.start:
@@ -190,7 +156,6 @@ voice_assistant:
     microphone: board_mics
     channels: 0
   media_player: external_media_player
-  media_player_speaker: i2s_audio_speaker
   micro_wake_word: mww
   use_wake_word: false
   noise_suppression_level: 0
@@ -244,6 +209,9 @@ voice_assistant:
     - script.execute: control_leds
   on_stt_end:
     - lambda: id(voice_assistant_phase) = 4;
+    - script.execute: control_leds
+  on_tool_call_start:
+    - lambda: id(voice_assistant_phase) = 6;
     - script.execute: control_leds
   on_tts_start:
     - lambda: id(voice_assistant_phase) = 5;
