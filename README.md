@@ -128,7 +128,6 @@ These are the ready-to-flash firmware templates currently maintained in this rep
 | --- | --- | --- | --- | --- | --- |
 | Voice PE | `voicePE-TaterTimer.yaml` | Yes | Yes | Yes | Best fit for Home Assistant Voice PE hardware. |
 | Satellite1 | `satellite1-TaterTimer.yaml` | Yes | Yes | Yes | Includes Satellite1/XMOS support and stop-word behavior. |
-| ESP32-S3 Audio Board | `ESP32-S3-AUDIO-Board-TaterTimer.yaml` | No | No | Yes | Wake sound and reopen mic are disabled for stability because this board shares the I2S mic/speaker path. |
 
 Trainer capture controls include **Capture Wake Audio**, **Capture Close Misses**, **Trainer App URL**, and **Close Miss Threshold**.
 
