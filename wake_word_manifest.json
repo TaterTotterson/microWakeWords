@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 45
+      "count": 46
     }
   ],
-  "count": 447,
+  "count": 448,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -7591,6 +7591,24 @@
       "model_path": "microWakeWordsV3/hey_koda.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_koda.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_koda.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:hey_krti",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "hey_krti",
+      "name": "hey_krti",
+      "label": "Hey Krti",
+      "path": "microWakeWordsV3/hey_krti.json",
+      "model_path": "microWakeWordsV3/hey_krti.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_krti.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_krti.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
