@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 38
+      "count": 39
     }
   ],
-  "count": 440,
+  "count": 441,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -7789,6 +7789,24 @@
       "model_path": "microWakeWordsV3/nestor.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/nestor.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/nestor.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:oh_kay_peg_ee",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "oh_kay_peg_ee",
+      "name": "oh_kay_peg_ee",
+      "label": "Oh Kay Peg Ee",
+      "path": "microWakeWordsV3/oh_kay_peg_ee.json",
+      "model_path": "microWakeWordsV3/oh_kay_peg_ee.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/oh_kay_peg_ee.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/oh_kay_peg_ee.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
