@@ -157,6 +157,7 @@ voice_assistant:
     channels: 0
   media_player: external_media_player
   micro_wake_word: mww
+  conversation_continuation: false
   use_wake_word: false
   noise_suppression_level: 0
   auto_gain: 0 dbfs
