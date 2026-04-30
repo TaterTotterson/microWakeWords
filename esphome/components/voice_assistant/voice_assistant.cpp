@@ -704,7 +704,7 @@ void VoiceAssistant::on_event(const api::VoiceAssistantEventResponse &msg) {
         if (arg.name == "conversation_id") {
           this->conversation_id_ = arg.value;
         } else if (arg.name == "continue_conversation") {
-          this->continue_conversation_ = (arg.value == "1");
+          this->continue_conversation_ = this->conversation_continuation_ && (arg.value == "1");
         }
       }
       this->defer([this]() { this->intent_end_trigger_.trigger(); });
@@ -947,7 +947,7 @@ void VoiceAssistant::on_announce(const api::VoiceAssistantAnnounceRequest &msg) 
         .set_media_url(msg.media_id)
         .set_announcement(true)
         .perform();
-    this->continue_conversation_ = msg.start_conversation;
+    this->continue_conversation_ = this->conversation_continuation_ && msg.start_conversation;
 
     this->start_playback_timeout_();
 

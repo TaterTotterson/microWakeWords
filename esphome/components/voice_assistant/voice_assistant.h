@@ -163,7 +163,9 @@ class VoiceAssistant : public Component {
 #ifdef USE_MEDIA_PLAYER
     if (this->media_player_ != nullptr) {
       flags |= VoiceAssistantFeature::FEATURE_ANNOUNCE;
-      flags |= VoiceAssistantFeature::FEATURE_START_CONVERSATION;
+      if (this->conversation_continuation_) {
+        flags |= VoiceAssistantFeature::FEATURE_START_CONVERSATION;
+      }
     }
 #endif
 
@@ -192,6 +194,9 @@ class VoiceAssistant : public Component {
   void set_auto_gain(uint8_t auto_gain) { this->auto_gain_ = auto_gain; }
   void set_volume_multiplier(float volume_multiplier) { this->volume_multiplier_ = volume_multiplier; }
   void set_conversation_timeout(uint32_t conversation_timeout) { this->conversation_timeout_ = conversation_timeout; }
+  void set_conversation_continuation(bool conversation_continuation) {
+    this->conversation_continuation_ = conversation_continuation;
+  }
   void reset_conversation_id();
 
   Trigger<> *get_intent_end_trigger() { return &this->intent_end_trigger_; }
@@ -316,6 +321,7 @@ class VoiceAssistant : public Component {
   bool continuous_{false};
   bool silence_detection_;
 
+  bool conversation_continuation_{true};
   bool continue_conversation_{false};
 
   State state_{State::IDLE};
