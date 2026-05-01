@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 51
+      "count": 52
     }
   ],
-  "count": 453,
+  "count": 454,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -7987,6 +7987,24 @@
       "model_path": "microWakeWordsV3/nestor.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/nestor.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/nestor.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:nestor_franais",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "nestor_franais",
+      "name": "nestor_franais",
+      "label": "Nestor Franais",
+      "path": "microWakeWordsV3/nestor_franais.json",
+      "model_path": "microWakeWordsV3/nestor_franais.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/nestor_franais.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/nestor_franais.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
