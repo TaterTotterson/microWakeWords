@@ -5,10 +5,10 @@
     {
       "key": "wakeSounds",
       "label": "wakeSounds",
-      "count": 6
+      "count": 5
     }
   ],
-  "count": 6,
+  "count": 5,
   "entries": [
     {
       "id": "wakeSounds:bm_lewis-yes",
@@ -65,20 +65,6 @@
       "extension": "mp3",
       "media_type": "audio/mpeg",
       "size_bytes": 15778
-    },
-    {
-      "id": "wakeSounds:what_do_you_need-ryan_high",
-      "source": "wakeSounds",
-      "source_label": "wakeSounds",
-      "slug": "what_do_you_need-ryan_high",
-      "name": "what_do_you_need-ryan_high",
-      "label": "What Do You Need Ryan High",
-      "path": "wakeSounds/what_do_you_need-ryan_high.mp3",
-      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/what_do_you_need-ryan_high.mp3",
-      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/what_do_you_need-ryan_high.mp3",
-      "extension": "mp3",
-      "media_type": "audio/mpeg",
-      "size_bytes": 8974
     },
     {
       "id": "wakeSounds:yes-ryan_high",
