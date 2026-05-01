@@ -5,11 +5,25 @@
     {
       "key": "wakeSounds",
       "label": "wakeSounds",
-      "count": 5
+      "count": 6
     }
   ],
-  "count": 5,
+  "count": 6,
   "entries": [
+    {
+      "id": "wakeSounds:bm_lewis-yes",
+      "source": "wakeSounds",
+      "source_label": "wakeSounds",
+      "slug": "bm_lewis-yes",
+      "name": "bm_lewis-yes",
+      "label": "Bm Lewis Yes",
+      "path": "wakeSounds/bm_lewis-yes.wav",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/bm_lewis-yes.wav",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/bm_lewis-yes.wav",
+      "extension": "wav",
+      "media_type": "audio/wav",
+      "size_bytes": 66044
+    },
     {
       "id": "wakeSounds:star_treck_communications_start_transmission",
       "source": "wakeSounds",
