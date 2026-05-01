@@ -5,10 +5,10 @@
     {
       "key": "wakeSounds",
       "label": "wakeSounds",
-      "count": 5
+      "count": 4
     }
   ],
-  "count": 5,
+  "count": 4,
   "entries": [
     {
       "id": "wakeSounds:bm_lewis-yes",
@@ -51,20 +51,6 @@
       "extension": "mp3",
       "media_type": "audio/mpeg",
       "size_bytes": 15508
-    },
-    {
-      "id": "wakeSounds:what.do.you.need.george.kokoro",
-      "source": "wakeSounds",
-      "source_label": "wakeSounds",
-      "slug": "what.do.you.need.george.kokoro",
-      "name": "what.do.you.need.george.kokoro",
-      "label": "What Do You Need George Kokoro",
-      "path": "wakeSounds/what.do.you.need.george.kokoro.mp3",
-      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/what.do.you.need.george.kokoro.mp3",
-      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/what.do.you.need.george.kokoro.mp3",
-      "extension": "mp3",
-      "media_type": "audio/mpeg",
-      "size_bytes": 15778
     },
     {
       "id": "wakeSounds:yes-ryan_high",
