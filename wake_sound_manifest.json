@@ -1,0 +1,84 @@
+{
+  "repository": "TaterTotterson/microWakeWords",
+  "ref": "main",
+  "sources": [
+    {
+      "key": "wakeSounds",
+      "label": "wakeSounds",
+      "count": 5
+    }
+  ],
+  "count": 5,
+  "entries": [
+    {
+      "id": "wakeSounds:star_treck_communications_start_transmission",
+      "source": "wakeSounds",
+      "source_label": "wakeSounds",
+      "slug": "star_treck_communications_start_transmission",
+      "name": "star_treck_communications_start_transmission",
+      "label": "Star Treck Communications Start Transmission",
+      "path": "wakeSounds/star_treck_communications_start_transmission.mp3",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/star_treck_communications_start_transmission.mp3",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/star_treck_communications_start_transmission.mp3",
+      "extension": "mp3",
+      "media_type": "audio/mpeg",
+      "size_bytes": 11553
+    },
+    {
+      "id": "wakeSounds:star_treck_computer_work_beep",
+      "source": "wakeSounds",
+      "source_label": "wakeSounds",
+      "slug": "star_treck_computer_work_beep",
+      "name": "star_treck_computer_work_beep",
+      "label": "Star Treck Computer Work Beep",
+      "path": "wakeSounds/star_treck_computer_work_beep.mp3",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/star_treck_computer_work_beep.mp3",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/star_treck_computer_work_beep.mp3",
+      "extension": "mp3",
+      "media_type": "audio/mpeg",
+      "size_bytes": 15508
+    },
+    {
+      "id": "wakeSounds:what.do.you.need.george.kokoro",
+      "source": "wakeSounds",
+      "source_label": "wakeSounds",
+      "slug": "what.do.you.need.george.kokoro",
+      "name": "what.do.you.need.george.kokoro",
+      "label": "What Do You Need George Kokoro",
+      "path": "wakeSounds/what.do.you.need.george.kokoro.mp3",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/what.do.you.need.george.kokoro.mp3",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/what.do.you.need.george.kokoro.mp3",
+      "extension": "mp3",
+      "media_type": "audio/mpeg",
+      "size_bytes": 15778
+    },
+    {
+      "id": "wakeSounds:what_do_you_need-ryan_high",
+      "source": "wakeSounds",
+      "source_label": "wakeSounds",
+      "slug": "what_do_you_need-ryan_high",
+      "name": "what_do_you_need-ryan_high",
+      "label": "What Do You Need Ryan High",
+      "path": "wakeSounds/what_do_you_need-ryan_high.mp3",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/what_do_you_need-ryan_high.mp3",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/what_do_you_need-ryan_high.mp3",
+      "extension": "mp3",
+      "media_type": "audio/mpeg",
+      "size_bytes": 8974
+    },
+    {
+      "id": "wakeSounds:yes-ryan_high",
+      "source": "wakeSounds",
+      "source_label": "wakeSounds",
+      "slug": "yes-ryan_high",
+      "name": "yes-ryan_high",
+      "label": "Yes Ryan High",
+      "path": "wakeSounds/yes-ryan_high.flac",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/yes-ryan_high.flac",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/yes-ryan_high.flac",
+      "extension": "flac",
+      "media_type": "audio/flac",
+      "size_bytes": 24219
+    }
+  ]
+}
