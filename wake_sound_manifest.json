@@ -22,7 +22,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/14.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 29052
+      "size_bytes": 29056
     },
     {
       "id": "wakeSounds:ahem-1-47603",
@@ -50,7 +50,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/blip2.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 13766
+      "size_bytes": 13768
     },
     {
       "id": "wakeSounds:bm_lewis-yes",
@@ -64,7 +64,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/bm_lewis-yes.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 34337
+      "size_bytes": 34339
     },
     {
       "id": "wakeSounds:burp-mechanical-robot-robotic",
@@ -78,7 +78,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/burp-mechanical-robot-robotic.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 18579
+      "size_bytes": 18581
     },
     {
       "id": "wakeSounds:charge-up",
@@ -92,7 +92,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/charge-up.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 31976
+      "size_bytes": 31979
     },
     {
       "id": "wakeSounds:computer-chirp",
@@ -106,7 +106,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/computer-chirp.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 13936
+      "size_bytes": 13938
     },
     {
       "id": "wakeSounds:double-beep",
@@ -120,7 +120,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/double-beep.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 19910
+      "size_bytes": 19908
     },
     {
       "id": "wakeSounds:dslr-beep",
@@ -134,7 +134,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/dslr-beep.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 12724
+      "size_bytes": 12726
     },
     {
       "id": "wakeSounds:inspect-sound-ui-or-in-game-notification",
@@ -148,7 +148,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/inspect-sound-ui-or-in-game-notification.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 23242
+      "size_bytes": 23244
     },
     {
       "id": "wakeSounds:message-notification-4",
@@ -162,7 +162,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/message-notification-4.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 16796
+      "size_bytes": 16787
     },
     {
       "id": "wakeSounds:notification",
@@ -176,7 +176,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/notification.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 16142
+      "size_bytes": 16159
     },
     {
       "id": "wakeSounds:notification-ding",
@@ -190,7 +190,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/notification-ding.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 20823
+      "size_bytes": 20825
     },
     {
       "id": "wakeSounds:notification-sound-2",
@@ -204,7 +204,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/notification-sound-2.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 26387
+      "size_bytes": 26389
     },
     {
       "id": "wakeSounds:notification-sound-mp3",
@@ -218,7 +218,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/notification-sound-mp3.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 22109
+      "size_bytes": 22111
     },
     {
       "id": "wakeSounds:notification-sound-wav",
@@ -232,7 +232,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/notification-sound-wav.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 23400
+      "size_bytes": 23404
     },
     {
       "id": "wakeSounds:notification-squeak",
@@ -246,7 +246,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/notification-squeak.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 20678
+      "size_bytes": 20680
     },
     {
       "id": "wakeSounds:notification2",
@@ -260,7 +260,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/notification2.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 19828
+      "size_bytes": 19831
     },
     {
       "id": "wakeSounds:phone-chime",
@@ -274,7 +274,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/phone-chime.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 41469
+      "size_bytes": 41470
     },
     {
       "id": "wakeSounds:pop-up-sound",
@@ -288,7 +288,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/pop-up-sound.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 14346
+      "size_bytes": 14348
     },
     {
       "id": "wakeSounds:pop-upnotification",
@@ -302,7 +302,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/pop-upnotification.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 20177
+      "size_bytes": 20179
     },
     {
       "id": "wakeSounds:sci-fi-bubble",
@@ -316,7 +316,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/sci-fi-bubble.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 20330
+      "size_bytes": 20331
     },
     {
       "id": "wakeSounds:screen-lettering",
@@ -330,7 +330,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/screen-lettering.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 14327
+      "size_bytes": 14329
     },
     {
       "id": "wakeSounds:short-chirp-09",
@@ -344,7 +344,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/short-chirp-09.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 12734
+      "size_bytes": 12736
     },
     {
       "id": "wakeSounds:short-definite-fart",
@@ -358,7 +358,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/short-definite-fart.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 19154
+      "size_bytes": 19156
     },
     {
       "id": "wakeSounds:soft-notifications-bell-ding-dong",
@@ -372,7 +372,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/soft-notifications-bell-ding-dong.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 27158
+      "size_bytes": 27163
     },
     {
       "id": "wakeSounds:star_treck_communications_start_transmission",
@@ -386,7 +386,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/star_treck_communications_start_transmission.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 19470
+      "size_bytes": 19472
     },
     {
       "id": "wakeSounds:star_treck_computer_work_beep",
@@ -400,7 +400,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/star_treck_computer_work_beep.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 30318
+      "size_bytes": 30319
     },
     {
       "id": "wakeSounds:tater_notify_digital_blip",
@@ -414,7 +414,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/tater_notify_digital_blip.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 14691
+      "size_bytes": 14698
     },
     {
       "id": "wakeSounds:turning-off-microphone-percussion-1",
@@ -428,7 +428,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/turning-off-microphone-percussion-1.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 20644
+      "size_bytes": 20646
     },
     {
       "id": "wakeSounds:ui-sound-approval-high-pitched-bell-synth",
@@ -442,7 +442,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/ui-sound-approval-high-pitched-bell-synth.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 25226
+      "size_bytes": 25179
     },
     {
       "id": "wakeSounds:waterdrop",
@@ -456,7 +456,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/waterdrop.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 17277
+      "size_bytes": 17279
     },
     {
       "id": "wakeSounds:wob-sound",
@@ -470,7 +470,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/wob-sound.flac",
       "extension": "flac",
       "media_type": "audio/flac",
-      "size_bytes": 16227
+      "size_bytes": 16167
     },
     {
       "id": "wakeSounds:yes-ryan_high",
