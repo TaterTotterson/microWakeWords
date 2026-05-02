@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 55
+      "count": 56
     }
   ],
-  "count": 457,
+  "count": 458,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -7627,6 +7627,24 @@
       "model_path": "microWakeWordsV3/hey_dingus.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_dingus.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_dingus.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:hey_hex",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "hey_hex",
+      "name": "hey_hex",
+      "label": "Hey Hex",
+      "path": "microWakeWordsV3/hey_hex.json",
+      "model_path": "microWakeWordsV3/hey_hex.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_hex.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_hex.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
