@@ -19,16 +19,10 @@ SOURCE_SPECS = (
 
 AUDIO_EXTENSIONS = {
     '.flac',
-    '.mp3',
-    '.ogg',
-    '.wav',
 }
 
 MEDIA_TYPES = {
     '.flac': 'audio/flac',
-    '.mp3': 'audio/mpeg',
-    '.ogg': 'audio/ogg',
-    '.wav': 'audio/wav',
 }
 
 
@@ -63,6 +57,8 @@ def build_entries() -> list[dict[str, Any]]:
             continue
         for audio_path in sorted(source_dir.iterdir()):
             if not audio_path.is_file():
+                continue
+            if audio_path.name.startswith('.'):
                 continue
             suffix = audio_path.suffix.lower()
             if suffix not in AUDIO_EXTENSIONS:

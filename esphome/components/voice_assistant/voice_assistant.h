@@ -239,6 +239,8 @@ class VoiceAssistant : public Component {
   void set_state_(State state, State desired_state);
   void signal_stop_();
   void start_playback_timeout_();
+  void arm_stale_run_end_guard_();
+  bool should_ignore_stale_run_end_();
 
   std::unique_ptr<socket::Socket> socket_ = nullptr;
   struct sockaddr_storage dest_addr_;
@@ -317,6 +319,8 @@ class VoiceAssistant : public Component {
   bool silence_detection_;
 
   bool continue_conversation_{false};
+  bool ignore_stale_run_end_{false};
+  uint32_t ignore_stale_run_end_started_at_{0};
 
   State state_{State::IDLE};
   State desired_state_{State::IDLE};

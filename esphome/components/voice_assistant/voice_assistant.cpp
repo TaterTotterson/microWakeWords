@@ -26,6 +26,9 @@ static const size_t SEND_BUFFER_SAMPLES = 32 * SAMPLE_RATE_HZ / 1000;  // 32ms *
 static const size_t SEND_BUFFER_SIZE = SEND_BUFFER_SAMPLES * sizeof(int16_t);
 static const size_t RECEIVE_SIZE = 1024;
 static const size_t SPEAKER_BUFFER_SIZE = 16 * RECEIVE_SIZE;
+static const uint32_t PLAYBACK_IDLE_TIMEOUT_MS = 2000;
+static const uint32_t MEDIA_PLAYER_START_TIMEOUT_MS = 10000;
+static const uint32_t STALE_RUN_END_GUARD_MS = 1500;
 
 VoiceAssistant::VoiceAssistant() { global_voice_assistant = this; }
 
@@ -179,6 +182,33 @@ void VoiceAssistant::deallocate_buffers_() {
 void VoiceAssistant::reset_conversation_id() {
   this->conversation_id_ = "";
   ESP_LOGD(TAG, "reset conversation ID");
+}
+
+void VoiceAssistant::arm_stale_run_end_guard_() {
+  this->ignore_stale_run_end_ = true;
+  this->ignore_stale_run_end_started_at_ = millis();
+}
+
+bool VoiceAssistant::should_ignore_stale_run_end_() {
+  if (!this->ignore_stale_run_end_) {
+    return false;
+  }
+
+  if (millis() - this->ignore_stale_run_end_started_at_ > STALE_RUN_END_GUARD_MS) {
+    this->ignore_stale_run_end_ = false;
+    return false;
+  }
+
+  switch (this->state_) {
+    case State::START_MICROPHONE:
+    case State::STARTING_MICROPHONE:
+    case State::START_PIPELINE:
+    case State::STARTING_PIPELINE:
+      return true;
+    default:
+      this->ignore_stale_run_end_ = false;
+      return false;
+  }
 }
 
 void VoiceAssistant::loop() {
@@ -387,6 +417,7 @@ void VoiceAssistant::loop() {
       }
 #endif
       if (this->continue_conversation_) {
+        this->arm_stale_run_end_guard_();
         this->set_state_(State::START_MICROPHONE, State::START_PIPELINE);
       } else {
         this->set_state_(State::IDLE, State::IDLE);
@@ -550,6 +581,7 @@ void VoiceAssistant::request_start(bool continuous, bool silence_detection) {
     return;
   }
   if (this->state_ == State::IDLE) {
+    this->ignore_stale_run_end_ = false;
     this->continuous_ = continuous;
     this->silence_detection_ = silence_detection;
 
@@ -560,6 +592,7 @@ void VoiceAssistant::request_start(bool continuous, bool silence_detection) {
 void VoiceAssistant::request_stop() {
   this->continuous_ = false;
   this->continue_conversation_ = false;
+  this->ignore_stale_run_end_ = false;
 
   switch (this->state_) {
     case State::IDLE:
@@ -615,7 +648,14 @@ void VoiceAssistant::signal_stop_() {
 }
 
 void VoiceAssistant::start_playback_timeout_() {
-  this->set_timeout("playing", 2000, [this]() {
+  uint32_t timeout_ms = PLAYBACK_IDLE_TIMEOUT_MS;
+#ifdef USE_MEDIA_PLAYER
+  if ((this->media_player_ != nullptr) && (this->media_player_response_state_ == MediaPlayerResponseState::URL_SENT)) {
+    timeout_ms = MEDIA_PLAYER_START_TIMEOUT_MS;
+  }
+#endif
+
+  this->set_timeout("playing", timeout_ms, [this]() {
     this->cancel_timeout("speaker-timeout");
     this->set_state_(State::RESPONSE_FINISHED, State::RESPONSE_FINISHED);
 
@@ -651,6 +691,7 @@ void VoiceAssistant::on_event(const api::VoiceAssistantEventResponse &msg) {
     }
     case api::enums::VOICE_ASSISTANT_STT_START:
       ESP_LOGD(TAG, "STT started");
+      this->ignore_stale_run_end_ = false;
       this->defer([this]() { this->listening_trigger_.trigger(); });
       break;
     case api::enums::VOICE_ASSISTANT_STT_END: {
@@ -782,6 +823,11 @@ void VoiceAssistant::on_event(const api::VoiceAssistantEventResponse &msg) {
     }
     case api::enums::VOICE_ASSISTANT_RUN_END: {
       ESP_LOGD(TAG, "Assist Pipeline ended");
+      if (this->should_ignore_stale_run_end_()) {
+        ESP_LOGD(TAG, "Ignoring stale Assist Pipeline ended while reopening microphone");
+        break;
+      }
+      this->ignore_stale_run_end_ = false;
       if ((this->state_ == State::START_PIPELINE) || (this->state_ == State::STARTING_PIPELINE) ||
           (this->state_ == State::STREAMING_MICROPHONE)) {
         // Microphone is running, stop it
