@@ -164,6 +164,8 @@ voice_assistant:
         id(mww).set_capture_close_miss_probability_cutoff(id(close_miss_threshold).state);
         id(mww).set_capture_upload_url(id(trainer_app_url).state);
     - micro_wake_word.start:
+    - micro_wake_word.enable_model: ${wake_word_name}
+    - micro_wake_word.disable_model: stop
     - lambda: id(voice_assistant_phase) = 1;
     - script.execute: control_leds
   on_client_disconnected:
@@ -195,6 +197,7 @@ voice_assistant:
         id: media_mixing_input
         decibel_reduction: 20   # Number of dB quieter; higher implies more quiet, 0 implies full volume
         duration: 0.0s          # The duration of the transition (default is 0)
+    - micro_wake_word.disable_model: ${wake_word_name}
   on_listening:
     - lambda: id(voice_assistant_phase) = 2;
     - script.execute: control_leds
@@ -239,12 +242,13 @@ voice_assistant:
         duration: 1.0s
     # Stop the script that would potentially enable the stop word if the response is longer than a second
     - script.stop: activate_stop_word_if_tts_step_is_long
-    # Disable the stop word (If the tiemr is not ringing)
+    # Disable the stop word if the timer is not ringing, and re-enable the normal wake word.
     - if:
         condition:
           switch.is_off: timer_ringing
         then:
-    # - lambda: id(stop).disable();
+          - micro_wake_word.disable_model: stop
+    - micro_wake_word.enable_model: ${wake_word_name}
     # If the end happened because of an error, let the error phase on for a second
     - if:
         condition:
