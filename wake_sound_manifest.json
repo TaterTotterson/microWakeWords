@@ -5,10 +5,10 @@
     {
       "key": "wakeSounds",
       "label": "wakeSounds",
-      "count": 34
+      "count": 35
     }
   ],
-  "count": 34,
+  "count": 35,
   "entries": [
     {
       "id": "wakeSounds:14",
@@ -443,6 +443,20 @@
       "extension": "flac",
       "media_type": "audio/flac",
       "size_bytes": 25179
+    },
+    {
+      "id": "wakeSounds:wake_word_triggered",
+      "source": "wakeSounds",
+      "source_label": "wakeSounds",
+      "slug": "wake_word_triggered",
+      "name": "wake_word_triggered",
+      "label": "Wake Word Triggered",
+      "path": "wakeSounds/wake_word_triggered.flac",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/wake_word_triggered.flac",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/wake_word_triggered.flac",
+      "extension": "flac",
+      "media_type": "audio/flac",
+      "size_bytes": 16782
     },
     {
       "id": "wakeSounds:waterdrop",
