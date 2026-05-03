@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 60
+      "count": 61
     }
   ],
-  "count": 462,
+  "count": 463,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -7501,6 +7501,24 @@
       "model_path": "microWakeWordsV3/hello_hal.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hello_hal.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hello_hal.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:hey_alfred",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "hey_alfred",
+      "name": "hey_alfred",
+      "label": "Hey Alfred",
+      "path": "microWakeWordsV3/hey_alfred.json",
+      "model_path": "microWakeWordsV3/hey_alfred.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_alfred.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_alfred.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
