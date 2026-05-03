@@ -2,7 +2,7 @@ esphome:
   name: ${device_name}
   friendly_name: ${friendly_name}
   name_add_mac_suffix: true
-  min_version: 2026.3.0
+  min_version: 2026.4.0
   on_boot:
     priority: 375
     then:
@@ -25,8 +25,6 @@ esp32:
   variant: esp32s3
   flash_size: 16MB
   framework:
-    components:
-      - espressif/esp-nn==1.1.2
     type: esp-idf
     version: recommended
     sdkconfig_options:

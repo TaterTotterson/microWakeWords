@@ -9,8 +9,6 @@ esp32:
   flash_size: 16MB
   framework:
     type: esp-idf
-    components:
-      - espressif/esp-nn==1.1.2
 
     sdkconfig_options:
       CONFIG_ESP32_S3_BOX_BOARD: "y"
@@ -82,4 +80,3 @@ i2s_audio:
     i2s_mclk_pin: GPIO16
     access_mode: duplex
     i2s_mode: secondary
-    use_legacy: false
