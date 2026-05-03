@@ -94,7 +94,7 @@ micro_wake_word:
                                 then:
                                   - script.execute:
                                       id: play_sound
-                                      priority: true
+                                      priority: false
                                       sound_file: "wake_word_triggered_sound"
                                   - delay: 300ms
                             - voice_assistant.start:
