@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 62
+      "count": 63
     }
   ],
-  "count": 464,
+  "count": 465,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -7501,6 +7501,24 @@
       "model_path": "microWakeWordsV3/hello_hal.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hello_hal.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hello_hal.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:help_me_now",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "help_me_now",
+      "name": "help_me_now",
+      "label": "Help Me Now",
+      "path": "microWakeWordsV3/help_me_now.json",
+      "model_path": "microWakeWordsV3/help_me_now.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/help_me_now.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/help_me_now.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
