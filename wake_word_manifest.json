@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 67
+      "count": 68
     }
   ],
-  "count": 469,
+  "count": 470,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -7861,6 +7861,24 @@
       "model_path": "microWakeWordsV3/hey_monica.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_monica.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_monica.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:hey_ollie",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "hey_ollie",
+      "name": "hey_ollie",
+      "label": "Hey Ollie",
+      "path": "microWakeWordsV3/hey_ollie.json",
+      "model_path": "microWakeWordsV3/hey_ollie.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_ollie.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_ollie.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
