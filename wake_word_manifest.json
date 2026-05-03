@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 65
+      "count": 66
     }
   ],
-  "count": 467,
+  "count": 468,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -8383,6 +8383,24 @@
       "model_path": "microWakeWordsV3/sayaka.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/sayaka.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/sayaka.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:someone_help_me",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "someone_help_me",
+      "name": "someone_help_me",
+      "label": "Someone Help Me",
+      "path": "microWakeWordsV3/someone_help_me.json",
+      "model_path": "microWakeWordsV3/someone_help_me.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/someone_help_me.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/someone_help_me.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
