@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 68
+      "count": 69
     }
   ],
-  "count": 470,
+  "count": 471,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -8149,6 +8149,24 @@
       "model_path": "microWakeWordsV3/miku.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/miku.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/miku.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:mister_sadin",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "mister_sadin",
+      "name": "mister_sadin",
+      "label": "Mister Sadin",
+      "path": "microWakeWordsV3/mister_sadin.json",
+      "model_path": "microWakeWordsV3/mister_sadin.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/mister_sadin.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/mister_sadin.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
