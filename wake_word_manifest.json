@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 72
+      "count": 73
     }
   ],
-  "count": 474,
+  "count": 475,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -8149,6 +8149,24 @@
       "model_path": "microWakeWordsV3/james.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/james.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/james.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:jarviss",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "jarviss",
+      "name": "jarviss",
+      "label": "Jarviss",
+      "path": "microWakeWordsV3/jarviss.json",
+      "model_path": "microWakeWordsV3/jarviss.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/jarviss.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/jarviss.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
