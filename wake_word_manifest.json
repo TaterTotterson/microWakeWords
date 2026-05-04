@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 73
+      "count": 74
     }
   ],
-  "count": 475,
+  "count": 476,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -8437,6 +8437,24 @@
       "model_path": "microWakeWordsV3/okay_shelly.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/okay_shelly.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/okay_shelly.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:okej_robot",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "okej_robot",
+      "name": "okej_robot",
+      "label": "Okej Robot",
+      "path": "microWakeWordsV3/okej_robot.json",
+      "model_path": "microWakeWordsV3/okej_robot.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/okej_robot.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/okej_robot.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
