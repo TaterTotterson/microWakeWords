@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 81
+      "count": 82
     }
   ],
-  "count": 483,
+  "count": 484,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -7429,6 +7429,24 @@
       "model_path": "microWakeWordsV3/gohllum.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/gohllum.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/gohllum.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:hannah",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "hannah",
+      "name": "hannah",
+      "label": "Hannah",
+      "path": "microWakeWordsV3/hannah.json",
+      "model_path": "microWakeWordsV3/hannah.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hannah.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hannah.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
