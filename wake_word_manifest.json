@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 89
+      "count": 90
     }
   ],
-  "count": 491,
+  "count": 492,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -7339,6 +7339,24 @@
       "model_path": "microWakeWordsV3/casita.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/casita.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/casita.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:clancy",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "clancy",
+      "name": "clancy",
+      "label": "Clancy",
+      "path": "microWakeWordsV3/clancy.json",
+      "model_path": "microWakeWordsV3/clancy.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/clancy.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/clancy.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
