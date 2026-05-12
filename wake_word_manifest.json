@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 93
+      "count": 94
     }
   ],
-  "count": 495,
+  "count": 496,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -8365,6 +8365,24 @@
       "model_path": "microWakeWordsV3/hey_yo.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_yo.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_yo.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:hi_atlas",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "hi_atlas",
+      "name": "hi_atlas",
+      "label": "Hi Atlas",
+      "path": "microWakeWordsV3/hi_atlas.json",
+      "model_path": "microWakeWordsV3/hi_atlas.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hi_atlas.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hi_atlas.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
