@@ -25,7 +25,7 @@ substitutions:
   # -----------------------------
   # FIRMWARE VERSIONS
   # -----------------------------
-  esp32_fw_version: "1.0.0"
+  esp32_fw_version: "1.0.1"
   xmos_fw_version: "v1.0.3"
 
   # -----------------------------
@@ -215,26 +215,24 @@ logger:
     sensor: WARN  # avoids logging frequent sensor updates
 
 dashboard_import:
-  package_import_url: github://futureproofhomes/satellite1-esphome/config/satellite1.dashboard.yaml@develop
+  package_import_url: github://TaterTotterson/microWakeWords/satellite1-TaterTimer.yaml@main
   import_full_config: true
 
 external_components:
   - source:
       type: git
-      url: https://github.com/FutureProofHomes/Satellite1-ESPHome
-      ref: develop
+      url: https://github.com/TaterTotterson/microWakeWords
+      ref: main
+      path: sat1/components
     components:
-      - audio
       - fusb302b
       - i2s_audio
       - memory_flasher
-      - mixer
       - pcm5122
-      - resampler
       - satellite1
-      - snapcast
-      - speaker
+      - satellite1_radar
       - tas2780
+    refresh: 0s
 
 packages:
   TaterTotterson.Sat1:
