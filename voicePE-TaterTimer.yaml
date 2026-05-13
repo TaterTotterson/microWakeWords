@@ -1,5 +1,6 @@
 substitutions:
   # DEVICE IDENTITY
+  firmware_version: "1.0.0"
   device_name: tatervpe
   friendly_name: TaterVPE
 
