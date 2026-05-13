@@ -93,6 +93,7 @@ binary_sensor:
     pin:
       number: GPIO0
       inverted: true
+      ignore_strapping_warning: true
     on_press:
       - script.execute: control_leds
     on_release:
@@ -313,7 +314,9 @@ binary_sensor:
   - platform: gpio
     id: hardware_mute_switch
     internal: true
-    pin: GPIO3
+    pin:
+      number: GPIO3
+      ignore_strapping_warning: true
     on_press:
       # Play mute on sound only if software mute isn't enabled
       - if:
@@ -371,4 +374,3 @@ binary_sensor:
       - delay: 800ms
       - lambda: id(jack_unplugged_recently) = false;
       - script.execute: control_leds
-
