@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 97
+      "count": 98
     }
   ],
-  "count": 499,
+  "count": 500,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -8923,6 +8923,24 @@
       "model_path": "microWakeWordsV3/please_help_me.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/please_help_me.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/please_help_me.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:ramn_spanish",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "ramn_spanish",
+      "name": "ramn_spanish",
+      "label": "Ramn Spanish",
+      "path": "microWakeWordsV3/ramn_spanish.json",
+      "model_path": "microWakeWordsV3/ramn_spanish.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/ramn_spanish.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/ramn_spanish.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
