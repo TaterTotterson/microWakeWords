@@ -141,6 +141,20 @@ text:
 
 select:
   - platform: template
+    name: "Wake Engine"
+    id: wake_engine_select
+    icon: "mdi:ear-hearing"
+    entity_category: config
+    optimistic: true
+    initial_option: ${wake_engine}
+    restore_value: true
+    options:
+      - microwakeword
+      - openwakeword
+    on_value:
+      - script.execute: apply_wake_engine
+
+  - platform: template
     name: "Wake word sensitivity"
     id: wake_word_sensitivity
     optimistic: true
@@ -198,17 +212,7 @@ voice_assistant:
         id(mww).set_capture_close_misses_enabled(id(capture_close_misses).state);
         id(mww).set_capture_close_miss_probability_cutoff(id(close_miss_threshold).state);
         id(mww).set_capture_upload_url(id(trainer_app_url).state);
-    - if:
-        condition:
-          lambda: return std::string("${wake_engine}") == "openwakeword";
-        then:
-          - lambda: id(va).set_use_wake_word(true);
-          - voice_assistant.start_continuous:
-        else:
-          - lambda: id(va).set_use_wake_word(false);
-          - micro_wake_word.start:
-          - micro_wake_word.enable_model: ${wake_word_name}
-          - micro_wake_word.disable_model: stop
+    - script.execute: apply_wake_engine
     - lambda: id(voice_assistant_phase) = 1;
     - script.execute: control_leds
   on_client_disconnected:
@@ -288,19 +292,7 @@ voice_assistant:
         decibel_reduction: 0
         duration: 1.0s
     # Disable the stop word if the timer is not ringing, and re-enable the normal wake path.
-    - if:
-        condition:
-          lambda: return std::string("${wake_engine}") == "openwakeword";
-        then:
-          - lambda: id(va).set_use_wake_word(true);
-          - voice_assistant.start_continuous:
-        else:
-          - if:
-              condition:
-                switch.is_off: timer_ringing
-              then:
-                - micro_wake_word.disable_model: stop
-          - micro_wake_word.enable_model: ${wake_word_name}
+    - script.execute: apply_wake_engine
     # If the end happened because of an error, let the error phase on for a second
     - if:
         condition:

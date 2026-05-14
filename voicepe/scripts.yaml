@@ -1,4 +1,39 @@
 script:
+  - id: apply_wake_engine
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: return !id(init_in_progress);
+          then:
+            - if:
+                condition:
+                  lambda: return id(wake_engine_select).state == "openwakeword";
+                then:
+                  - micro_wake_word.stop:
+                  - lambda: id(va).set_use_wake_word(true);
+                  - if:
+                      condition:
+                        not:
+                          voice_assistant.is_running:
+                      then:
+                        - voice_assistant.start_continuous:
+                else:
+                  - if:
+                      condition:
+                        voice_assistant.is_running:
+                      then:
+                        - voice_assistant.stop:
+                  - delay: 150ms
+                  - lambda: id(va).set_use_wake_word(false);
+                  - if:
+                      condition:
+                        switch.is_off: timer_ringing
+                      then:
+                        - micro_wake_word.disable_model: stop
+                  - micro_wake_word.start:
+                  - micro_wake_word.enable_model: ${wake_word_name}
+
   # Master script controlling the LEDs, based on different conditions : initialization in progress, wifi and api connected and voice assistant phase.
   # For the sake of simplicity and re-usability, the script calls child scripts defined below.
   # This script will be called every time one of these conditions is changing.
