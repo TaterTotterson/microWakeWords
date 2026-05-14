@@ -177,6 +177,7 @@ voice_assistant:
     - lambda: id(voice_assistant_phase) = 10;
     - script.execute: control_leds
   on_error:
+    - lambda: id(push_to_intercom_active) = false;
     - if:
         condition:
           and:
@@ -235,6 +236,7 @@ voice_assistant:
     - wait_until:
         not:
           voice_assistant.is_running:
+    - lambda: id(push_to_intercom_active) = false;
     # Stop ducking audio.
     - mixer_speaker.apply_ducking:
         id: media_mixing_input

@@ -11,6 +11,12 @@ globals:
     restore_value: no
     initial_value: 'false'
 
+  # Global variable tracking Satellite1 push-to-intercom hold mode.
+  - id: push_to_intercom_active
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
   - id: factory_reset_requested
     type: bool
     restore_value: no
@@ -29,6 +35,7 @@ event:
       - double_press
       - triple_press
       - long_press
+      - push_to_intercom
 
 binary_sensor:
   - platform: gpio
@@ -107,6 +114,16 @@ binary_sensor:
     on_press:
       - script.execute: control_leds
     on_release:
+      - if:
+          condition:
+            lambda: return id(push_to_intercom_active);
+          then:
+            - lambda: id(push_to_intercom_active) = false;
+            - if:
+                condition:
+                  voice_assistant.is_running:
+                then:
+                  - voice_assistant.stop:
       - script.execute: control_leds
     on_multi_click:
       # Simple Click:
@@ -206,22 +223,48 @@ binary_sensor:
                     id: action_button_press_event
                     event_type: "triple_press"
       # Long Press
-      #  . Exposed as an event entity. To be used in automations inside Home Assistant
+      #  . Push-to-intercom broadcast: hold to open the mic, release to send to all connected Tater sats.
       - timing:
           - ON for at least 1s
         then:
           - if:
               condition:
-                lambda: return !id(init_in_progress);
+                and:
+                  - lambda: return !id(init_in_progress) && !id(factory_reset_requested);
+                  - switch.is_off: master_mute_switch
+                  - not:
+                      voice_assistant.is_running:
               then:
+                - if:
+                    condition:
+                      media_player.is_announcing:
+                    then:
+                      - media_player.stop:
+                          announcement: true
+                - lambda: |-
+                    id(push_to_intercom_active) = true;
+                    id(voice_assistant_phase) = 3;
+                - script.execute: control_leds
                 - script.execute:
                     id: play_sound
-                    priority: false
+                    priority: true
                     sound_file: !lambda return id(center_button_long_press_sound);
-                - light.turn_off: voice_assistant_leds
-                - event.trigger:
-                    id: action_button_press_event
-                    event_type: "long_press"
+                - delay: 300ms
+                - if:
+                    condition:
+                      and:
+                        - lambda: return id(push_to_intercom_active);
+                        - binary_sensor.is_on: btn_action
+                    then:
+                      - voice_assistant.start:
+                          wake_word: "Tater intercom broadcast"
+                          silence_detection: false
+                      - event.trigger:
+                          id: action_button_press_event
+                          event_type: "push_to_intercom"
+                    else:
+                      - lambda: id(push_to_intercom_active) = false;
+                      - script.execute: control_leds
 
       # Factory Reset Warning
       #  . Audible and Visible warning.
@@ -230,7 +273,7 @@ binary_sensor:
         then:
           - if:
               condition:
-                lambda: return !id(action_button_touched);
+                lambda: return !id(action_button_touched) && !id(push_to_intercom_active);
               then:
                 - light.turn_on:
                     brightness: 100%
@@ -254,7 +297,7 @@ binary_sensor:
         then:
           - if:
               condition:
-                lambda: return !id(action_button_touched);
+                lambda: return !id(action_button_touched) && !id(push_to_intercom_active);
               then:
                 - if:
                     condition:

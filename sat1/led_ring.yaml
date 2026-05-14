@@ -568,6 +568,8 @@ script:
             id(control_leds_no_ha_connection_state).execute();
           } else if (id(volume_buttons_touched)) {
             id(control_leds_volume_buttons_touched).execute();
+          } else if (id(push_to_intercom_active)) {
+            id(control_leds_push_to_intercom_phase).execute();
           } else if (id(btn_action).state) {
             id(control_leds_action_button_touched).execute();
           } else if (id(jack_plugged_recently)) {
@@ -676,6 +678,18 @@ script:
     then:
       - light.turn_on:
           brightness: !lambda return max( id(led_ring).current_values.get_brightness() , 0.2f );
+          id: voice_assistant_leds
+          effect: "Listening For Command"
+
+  # Script executed while the action button is held for push-to-intercom.
+  # Tater orange listening animation so it reads differently from a normal touch.
+  - id: control_leds_push_to_intercom_phase
+    then:
+      - light.turn_on:
+          brightness: !lambda return max( id(led_ring).current_values.get_brightness() , 0.45f );
+          red: 100%
+          green: 54%
+          blue: 0%
           id: voice_assistant_leds
           effect: "Listening For Command"
 
