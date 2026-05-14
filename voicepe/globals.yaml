@@ -34,6 +34,11 @@ globals:
     type: bool
     restore_value: no
     initial_value: 'false'
+  # Global variable tracking VoicePE push-to-intercom hold mode.
+  - id: push_to_intercom_active
+    type: bool
+    restore_value: no
+    initial_value: 'false'
   # Global variable tracking if the jack has been plugged touched.
   - id: jack_plugged_recently
     type: bool

@@ -25,7 +25,7 @@ substitutions:
   # -----------------------------
   # FIRMWARE VERSIONS
   # -----------------------------
-  esp32_fw_version: "1.0.1"
+  esp32_fw_version: "1.0.2"
   xmos_fw_version: "v1.0.3"
 
   # -----------------------------
