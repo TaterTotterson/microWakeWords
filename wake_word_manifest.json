@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 102
+      "count": 103
     }
   ],
-  "count": 504,
+  "count": 505,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -7357,6 +7357,24 @@
       "model_path": "microWakeWordsV3/casita.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/casita.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/casita.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:cassiope_french",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "cassiope_french",
+      "name": "cassiope_french",
+      "label": "Cassiope French",
+      "path": "microWakeWordsV3/cassiope_french.json",
+      "model_path": "microWakeWordsV3/cassiope_french.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/cassiope_french.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/cassiope_french.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
