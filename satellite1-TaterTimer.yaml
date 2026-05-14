@@ -25,12 +25,13 @@ substitutions:
   # -----------------------------
   # FIRMWARE VERSIONS
   # -----------------------------
-  esp32_fw_version: "1.0.2"
+  esp32_fw_version: "1.0.4"
   xmos_fw_version: "v1.0.3"
 
   # -----------------------------
   # WAKE WORD CONFIG
   # -----------------------------
+  wake_engine: microwakeword
   wake_word_name: hey_tater
   wake_word_model_url: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/microWakeWords/hey_tater.json
   wake_model_stop_url: https://github.com/kahrendt/microWakeWord/releases/download/stop/stop.json

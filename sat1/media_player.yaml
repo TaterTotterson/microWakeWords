@@ -87,22 +87,6 @@ binary_sensor:
       - lambda: id(jack_unplugged_recently) = false;
       - script.execute: control_leds
 
-switch:
-  # Wake Word Sound Switch.
-  - platform: template
-    id: snapcast_switch
-    name: Snapcast
-    icon: "mdi:cast-audio"
-    entity_category: config
-    optimistic: true
-    restore_mode: RESTORE_DEFAULT_ON
-    on_turn_on:
-      then:
-        - snapcast.enable:
-    on_turn_off:
-      then:
-        - snapcast.disable:
-
 fusb302b:
   id: pd_fusb302b
   irq_pin: GPIO1
@@ -163,9 +147,6 @@ speaker:
     sample_rate: 48000
     bits_per_sample: 16
 
-snapcast:
-  id: snapcast_client
-
 media_player:
   - platform: speaker
     id: external_media_player
@@ -174,7 +155,6 @@ media_player:
     volume_increment: 0.05
     volume_min: 0.1
     volume_max: 1.
-    snapcast: snapcast_client
     announcement_pipeline:
       speaker: announcement_resampling_speaker
       format: FLAC     # FLAC is the least processor intensive codec
