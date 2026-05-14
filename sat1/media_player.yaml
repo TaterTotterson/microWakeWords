@@ -10,11 +10,6 @@ audio_dac:
     speaker_dac: speaker_dac
     line_out_dac: line_out_dac
 
-    on_state_change:
-      - media_player.speaker.restore_volume:
-          volume: !lambda return id(dac_proxy).volume();
-          mute: !lambda return id(dac_proxy).is_muted();
-
 api:
   actions:
     - action: activate_speaker_dac
