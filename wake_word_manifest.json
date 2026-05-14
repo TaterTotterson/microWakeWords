@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 103
+      "count": 104
     }
   ],
-  "count": 505,
+  "count": 506,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -8995,6 +8995,24 @@
       "model_path": "microWakeWordsV3/please_help_me.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/please_help_me.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/please_help_me.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:pypa",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "pypa",
+      "name": "pypa",
+      "label": "Pypa",
+      "path": "microWakeWordsV3/pypa.json",
+      "model_path": "microWakeWordsV3/pypa.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/pypa.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/pypa.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
