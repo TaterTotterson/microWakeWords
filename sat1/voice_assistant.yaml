@@ -163,17 +163,7 @@ voice_assistant:
         id(mww).set_capture_close_misses_enabled(id(capture_close_misses).state);
         id(mww).set_capture_close_miss_probability_cutoff(id(close_miss_threshold).state);
         id(mww).set_capture_upload_url(id(trainer_app_url).state);
-    - if:
-        condition:
-          lambda: return std::string("${wake_engine}") == "openwakeword";
-        then:
-          - lambda: id(va).set_use_wake_word(true);
-          - voice_assistant.start_continuous:
-        else:
-          - lambda: id(va).set_use_wake_word(false);
-          - micro_wake_word.start:
-          - micro_wake_word.enable_model: ${wake_word_name}
-          - micro_wake_word.disable_model: stop
+    - script.execute: apply_wake_engine
     - lambda: id(voice_assistant_phase) = 1;
     - script.execute: control_leds
   on_client_disconnected:
@@ -253,19 +243,7 @@ voice_assistant:
     # Stop the script that would potentially enable the stop word if the response is longer than a second
     - script.stop: activate_stop_word_if_tts_step_is_long
     # Disable the stop word if the timer is not ringing, and re-enable the normal wake path.
-    - if:
-        condition:
-          lambda: return std::string("${wake_engine}") == "openwakeword";
-        then:
-          - lambda: id(va).set_use_wake_word(true);
-          - voice_assistant.start_continuous:
-        else:
-          - if:
-              condition:
-                switch.is_off: timer_ringing
-              then:
-                - micro_wake_word.disable_model: stop
-          - micro_wake_word.enable_model: ${wake_word_name}
+    - script.execute: apply_wake_engine
     # If the end happened because of an error, let the error phase on for a second
     - if:
         condition:
@@ -288,6 +266,41 @@ voice_assistant:
     - script.execute: control_leds
 
 script:
+  - id: apply_wake_engine
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: return !id(init_in_progress);
+          then:
+            - if:
+                condition:
+                  lambda: return id(wake_engine_select).state == "openwakeword";
+                then:
+                  - micro_wake_word.stop:
+                  - lambda: id(va).set_use_wake_word(true);
+                  - if:
+                      condition:
+                        not:
+                          voice_assistant.is_running:
+                      then:
+                        - voice_assistant.start_continuous:
+                else:
+                  - if:
+                      condition:
+                        voice_assistant.is_running:
+                      then:
+                        - voice_assistant.stop:
+                  - delay: 150ms
+                  - lambda: id(va).set_use_wake_word(false);
+                  - if:
+                      condition:
+                        switch.is_off: timer_ringing
+                      then:
+                        - micro_wake_word.disable_model: stop
+                  - micro_wake_word.start:
+                  - micro_wake_word.enable_model: ${wake_word_name}
+
   # Script used activate the stop word if the TTS step is long.
   # Why is this wrapped on a script?
   #   Becasue we want to stop the sequence if the TTS step is faster than that.
@@ -317,6 +330,20 @@ script:
                   - micro_wake_word.disable_model: stop
 
 select:
+  - platform: template
+    id: wake_engine_select
+    name: "Wake Engine"
+    icon: "mdi:ear-hearing"
+    optimistic: true
+    initial_option: ${wake_engine}
+    restore_value: true
+    entity_category: config
+    options:
+      - microwakeword
+      - openwakeword
+    on_value:
+      - script.execute: apply_wake_engine
+
   - platform: template
     id: mww_sensitivity_select
     name: "Wake word sensitivity"
