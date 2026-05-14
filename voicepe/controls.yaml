@@ -171,6 +171,7 @@ binary_sensor:
                                                   priority: true
                                                   sound_file: "center_button_press_sound"
                                               - delay: 300ms
+                                              - lambda: id(va).set_use_wake_word(false);
                                               - voice_assistant.start:
       # Double Click
       #  . Exposed as an event entity. To be used in automations inside Home Assistant
@@ -248,6 +249,7 @@ binary_sensor:
                         - lambda: return id(push_to_intercom_active);
                         - binary_sensor.is_on: center_button
                     then:
+                      - lambda: id(va).set_use_wake_word(false);
                       - voice_assistant.start:
                           wake_word: "Tater intercom broadcast"
                           silence_detection: false
