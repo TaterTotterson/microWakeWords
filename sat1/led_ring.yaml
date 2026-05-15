@@ -581,7 +581,7 @@ script:
           } else if (id(timer_ringing).state) {
             id(control_leds_timer_ringing).execute();
           } else if (id(voice_assistant_phase) == 2) {
-            id(control_leds_voice_assistant_waiting_for_command_phase).execute();
+            id(control_leds_voice_assistant_listening_for_command_phase).execute();
           } else if (id(voice_assistant_phase) == 3) {
             id(control_leds_voice_assistant_listening_for_command_phase).execute();
           } else if (id(voice_assistant_phase) == 4) {

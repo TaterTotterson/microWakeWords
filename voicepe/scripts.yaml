@@ -75,7 +75,7 @@ script:
           } else if (id(remote_timer_running)) {
             id(control_leds_remote_timer_ticking).execute();
           } else if (id(voice_assistant_phase) == 2) {
-            id(control_leds_voice_assistant_waiting_for_command_phase).execute();
+            id(control_leds_voice_assistant_listening_for_command_phase).execute();
           } else if (id(voice_assistant_phase) == 3) {
             id(control_leds_voice_assistant_listening_for_command_phase).execute();
           } else if (id(voice_assistant_phase) == 4) {

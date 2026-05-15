@@ -223,7 +223,7 @@ voice_assistant:
         then:
           - lambda: |-
               id(openwakeword_wake_detected) = true;
-              id(voice_assistant_phase) = 2;
+              id(voice_assistant_phase) = 3;
           - script.execute: control_leds
           - if:
               condition:
@@ -250,7 +250,7 @@ voice_assistant:
         condition:
           lambda: return id(wake_engine_select).state != "openwakeword" || id(openwakeword_wake_detected) || id(push_to_intercom_active);
         then:
-          - lambda: id(voice_assistant_phase) = 2;
+          - lambda: id(voice_assistant_phase) = 3;
         else:
           - lambda: id(voice_assistant_phase) = 1;
     - script.execute: control_leds
