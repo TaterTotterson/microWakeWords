@@ -93,9 +93,21 @@ binary_sensor:
     pin:
       number: GPIO0
       inverted: true
+      ignore_strapping_warning: true
     on_press:
       - script.execute: control_leds
     on_release:
+      - if:
+          condition:
+            lambda: return id(push_to_intercom_active);
+          then:
+            - lambda: |-
+                id(push_to_intercom_active) = false;
+            - if:
+                condition:
+                  voice_assistant.is_running:
+                then:
+                  - voice_assistant.stop:
       - script.execute: control_leds
       # If a factory reset is requested, factory reset on release
       - if:
@@ -159,6 +171,7 @@ binary_sensor:
                                                   priority: true
                                                   sound_file: "center_button_press_sound"
                                               - delay: 300ms
+                                              - lambda: id(va).set_use_wake_word(false);
                                               - voice_assistant.start:
       # Double Click
       #  . Exposed as an event entity. To be used in automations inside Home Assistant
@@ -201,22 +214,59 @@ binary_sensor:
                     id: button_press_event
                     event_type: "triple_press"
       # Long Press
-      #  . Exposed as an event entity. To be used in automations inside Home Assistant
+      #  . Push-to-intercom broadcast: hold to open the mic, release to send to all connected Tater sats.
       - timing:
           - ON for at least 1s
         then:
           - if:
               condition:
-                lambda: return !id(init_in_progress) && !id(color_changed) && !id(group_volume_changed);
+                and:
+                  - lambda: return !id(init_in_progress) && !id(color_changed) && !id(group_volume_changed) && !id(factory_reset_requested);
+                  - switch.is_off: master_mute_switch
               then:
+                - if:
+                    condition:
+                      media_player.is_announcing:
+                        id: external_media_player
+                    then:
+                      - media_player.stop:
+                          announcement: true
+                          id: external_media_player
+                - lambda: |-
+                    id(push_to_intercom_active) = true;
+                    id(voice_assistant_phase) = 3;
+                - script.execute: control_leds
+                - if:
+                    condition:
+                      voice_assistant.is_running:
+                    then:
+                      - lambda: id(push_to_intercom_handoff) = true;
+                      - voice_assistant.stop:
+                      - wait_until:
+                          not:
+                            voice_assistant.is_running
+                      - delay: 50ms
                 - script.execute:
                     id: play_sound
-                    priority: false
+                    priority: true
                     sound_file: "center_button_long_press_sound"
-                - light.turn_off: voice_assistant_leds
-                - event.trigger:
-                    id: button_press_event
-                    event_type: "long_press"
+                - delay: 300ms
+                - if:
+                    condition:
+                      and:
+                        - lambda: return id(push_to_intercom_active);
+                        - binary_sensor.is_on: center_button
+                    then:
+                      - lambda: id(va).set_use_wake_word(false);
+                      - voice_assistant.start:
+                          wake_word: "Tater intercom broadcast"
+                          silence_detection: false
+                      - event.trigger:
+                          id: button_press_event
+                          event_type: "push_to_intercom"
+                    else:
+                      - lambda: id(push_to_intercom_active) = false;
+                      - script.execute: control_leds
       # Very important do not remove. Trust me :D
       - timing:
           # H ....
@@ -265,7 +315,7 @@ binary_sensor:
         then:
           - if:
               condition:
-                lambda: return !id(dial_touched);
+                lambda: return !id(dial_touched) && !id(push_to_intercom_active);
               then:
                 - light.turn_on:
                     brightness: 100%
@@ -294,7 +344,7 @@ binary_sensor:
         then:
           - if:
               condition:
-                lambda: return !id(dial_touched);
+                lambda: return !id(dial_touched) && !id(push_to_intercom_active);
               then:
                 - script.execute:
                     id: play_sound
@@ -313,7 +363,9 @@ binary_sensor:
   - platform: gpio
     id: hardware_mute_switch
     internal: true
-    pin: GPIO3
+    pin:
+      number: GPIO3
+      ignore_strapping_warning: true
     on_press:
       # Play mute on sound only if software mute isn't enabled
       - if:
@@ -371,4 +423,3 @@ binary_sensor:
       - delay: 800ms
       - lambda: id(jack_unplugged_recently) = false;
       - script.execute: control_leds
-

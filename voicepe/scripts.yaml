@@ -1,4 +1,45 @@
 script:
+  - id: apply_wake_engine
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: return !id(init_in_progress) && !id(push_to_intercom_active);
+          then:
+            - if:
+                condition:
+                  lambda: return id(wake_engine_select).state == "openwakeword";
+                then:
+                  - micro_wake_word.stop:
+                  - lambda: |-
+                      id(openwakeword_wake_detected) = false;
+                      id(voice_assistant_phase) = 1;
+                      id(va).set_use_wake_word(true);
+                  - if:
+                      condition:
+                        not:
+                          voice_assistant.is_running:
+                      then:
+                        - voice_assistant.start_continuous:
+                  - script.execute: control_leds
+                else:
+                  - if:
+                      condition:
+                        voice_assistant.is_running:
+                      then:
+                        - voice_assistant.stop:
+                  - delay: 150ms
+                  - lambda: |-
+                      id(openwakeword_wake_detected) = false;
+                      id(va).set_use_wake_word(false);
+                  - if:
+                      condition:
+                        switch.is_off: timer_ringing
+                      then:
+                        - micro_wake_word.disable_model: stop
+                  - micro_wake_word.start:
+                  - micro_wake_word.enable_model: ${wake_word_name}
+
   # Master script controlling the LEDs, based on different conditions : initialization in progress, wifi and api connected and voice assistant phase.
   # For the sake of simplicity and re-usability, the script calls child scripts defined below.
   # This script will be called every time one of these conditions is changing.
@@ -19,6 +60,8 @@ script:
             id(control_leds_init_state).execute();
           } else if (!id(wifi_id).is_connected() || !id(api_id).is_connected()){
             id(control_leds_no_ha_connection_state).execute();
+          } else if (id(push_to_intercom_active)) {
+            id(control_leds_push_to_intercom_phase).execute();
           } else if (id(center_button).state) {
             id(control_leds_center_button_touched).execute();
           } else if (id(jack_plugged_recently)) {
@@ -32,7 +75,7 @@ script:
           } else if (id(remote_timer_running)) {
             id(control_leds_remote_timer_ticking).execute();
           } else if (id(voice_assistant_phase) == 2) {
-            id(control_leds_voice_assistant_waiting_for_command_phase).execute();
+            id(control_leds_voice_assistant_listening_for_command_phase).execute();
           } else if (id(voice_assistant_phase) == 3) {
             id(control_leds_voice_assistant_listening_for_command_phase).execute();
           } else if (id(voice_assistant_phase) == 4) {
@@ -141,6 +184,18 @@ script:
     then:
       - light.turn_on:
           brightness: !lambda return max( id(led_ring).current_values.get_brightness() , 0.2f );
+          id: voice_assistant_leds
+          effect: "Listening For Command"
+
+  # Script executed while the center button is held for push-to-intercom.
+  # Tater orange listening animation so it reads differently from a normal touch.
+  - id: control_leds_push_to_intercom_phase
+    then:
+      - light.turn_on:
+          brightness: !lambda return max( id(led_ring).current_values.get_brightness() , 0.45f );
+          red: 100%
+          green: 54%
+          blue: 0%
           id: voice_assistant_leds
           effect: "Listening For Command"
 

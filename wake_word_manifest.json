@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 96
+      "count": 104
     }
   ],
-  "count": 498,
+  "count": 506,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -7365,6 +7365,24 @@
       "minimum_esphome_version": "2024.7.0"
     },
     {
+      "id": "microWakeWordsV3:cassiope_french",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "cassiope_french",
+      "name": "cassiope_french",
+      "label": "Cassiope French",
+      "path": "microWakeWordsV3/cassiope_french.json",
+      "model_path": "microWakeWordsV3/cassiope_french.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/cassiope_french.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/cassiope_french.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
       "id": "microWakeWordsV3:clancy",
       "source": "microWakeWordsV3",
       "source_label": "microWakeWordsV3",
@@ -7581,6 +7599,24 @@
       "minimum_esphome_version": "2024.7.0"
     },
     {
+      "id": "microWakeWordsV3:hello_jarvis",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "hello_jarvis",
+      "name": "hello_jarvis",
+      "label": "Hello Jarvis",
+      "path": "microWakeWordsV3/hello_jarvis.json",
+      "model_path": "microWakeWordsV3/hello_jarvis.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hello_jarvis.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hello_jarvis.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
       "id": "microWakeWordsV3:help_me_now",
       "source": "microWakeWordsV3",
       "source_label": "microWakeWordsV3",
@@ -7717,6 +7753,24 @@
       "model_path": "microWakeWordsV3/hey_brad.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_brad.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_brad.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:hey_butternut",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "hey_butternut",
+      "name": "hey_butternut",
+      "label": "Hey Butternut",
+      "path": "microWakeWordsV3/hey_butternut.json",
+      "model_path": "microWakeWordsV3/hey_butternut.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_butternut.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_butternut.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
@@ -8481,6 +8535,42 @@
       "minimum_esphome_version": "2024.7.0"
     },
     {
+      "id": "microWakeWordsV3:kalina",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "kalina",
+      "name": "kalina",
+      "label": "Kalina",
+      "path": "microWakeWordsV3/kalina.json",
+      "model_path": "microWakeWordsV3/kalina.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/kalina.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/kalina.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:kodi_or_cody_kohdee",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "kodi_or_cody_kohdee",
+      "name": "kodi_or_cody_kohdee",
+      "label": "Kodi Or Cody Kohdee",
+      "path": "microWakeWordsV3/kodi_or_cody_kohdee.json",
+      "model_path": "microWakeWordsV3/kodi_or_cody_kohdee.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/kodi_or_cody_kohdee.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/kodi_or_cody_kohdee.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
       "id": "microWakeWordsV3:marvin",
       "source": "microWakeWordsV3",
       "source_label": "microWakeWordsV3",
@@ -8913,6 +9003,42 @@
       "minimum_esphome_version": "2024.7.0"
     },
     {
+      "id": "microWakeWordsV3:pypa",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "pypa",
+      "name": "pypa",
+      "label": "Pypa",
+      "path": "microWakeWordsV3/pypa.json",
+      "model_path": "microWakeWordsV3/pypa.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/pypa.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/pypa.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:ramn_spanish",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "ramn_spanish",
+      "name": "ramn_spanish",
+      "label": "Ramn Spanish",
+      "path": "microWakeWordsV3/ramn_spanish.json",
+      "model_path": "microWakeWordsV3/ramn_spanish.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/ramn_spanish.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/ramn_spanish.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
       "id": "microWakeWordsV3:sayaka",
       "source": "microWakeWordsV3",
       "source_label": "microWakeWordsV3",
@@ -8959,6 +9085,24 @@
       "model_path": "microWakeWordsV3/vance.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/vance.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/vance.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:vortex",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "vortex",
+      "name": "vortex",
+      "label": "Vortex",
+      "path": "microWakeWordsV3/vortex.json",
+      "model_path": "microWakeWordsV3/vortex.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/vortex.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/vortex.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"

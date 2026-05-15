@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Satellite1 Radar Tuner — LD2410</title>
+<style>
+:root{--bg:#0a0d12;--panel:#10131a;--border:#1e2330;--text:#d0d4dc;--dim:#6b7280;--accent:#3b82f6;--green:#22c55e;--red:#ef4444;--yellow:#eab308;--orange:#f97316}
+[data-theme="light"]{--bg:#f5f6f8;--panel:#ffffff;--border:#d1d5db;--text:#1f2937;--dim:#6b7280;--accent:#2563eb;--green:#16a34a;--red:#dc2626;--yellow:#ca8a04;--orange:#ea580c}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:flex;flex-direction:column;height:100vh}
+header{background:var(--panel);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:12px}
+header h1{font-size:16px;font-weight:600}
+.status{width:8px;height:8px;border-radius:50%;background:var(--red)}
+.status.ok{background:var(--green)}
+.wrap{display:flex;flex:1;overflow:hidden}
+.canvas-wrap{flex:1;position:relative;overflow:hidden}
+canvas{display:block;width:100%;height:100%}
+.panel{width:280px;background:var(--panel);border-left:1px solid var(--border);padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.panel label{font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px}
+.panel input,.panel select{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:4px;width:100%;font-size:13px}
+.btn{padding:6px 12px;border:none;border-radius:4px;cursor:pointer;font-size:13px;font-weight:500;transition:opacity .15s}
+.btn:hover{opacity:.85}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-danger{background:var(--red);color:#fff}
+.btn-success{background:var(--green);color:#fff}
+.group{display:flex;flex-direction:column;gap:6px}
+.row{display:flex;gap:6px}
+.hint{font-size:11px;color:var(--dim);line-height:1.4}
+.instructions{font-size:11px;color:var(--dim);line-height:1.5;border:1px solid var(--border);border-radius:4px;padding:8px 10px;background:var(--bg)}
+.tooltip{position:relative;display:inline-block;cursor:help;margin-left:4px;width:14px;height:14px;border-radius:50%;background:var(--border);color:var(--dim);font-size:10px;text-align:center;line-height:14px}
+.tooltip .tt{visibility:hidden;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:6px 8px;font-size:11px;line-height:1.4;position:absolute;z-index:10;bottom:120%;left:50%;transform:translateX(-50%);width:220px;text-transform:none;letter-spacing:0;font-weight:400}
+.tooltip:hover .tt{visibility:visible}
+.toggle{position:relative;display:inline-block;width:40px;height:22px}
+.toggle input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:var(--border);border-radius:22px;transition:.2s}
+.slider::before{content:"";position:absolute;height:16px;width:16px;left:3px;bottom:3px;background:var(--dim);border-radius:50%;transition:.2s}
+.toggle input:checked+.slider{background:var(--accent)}
+.toggle input:checked+.slider::before{transform:translateX(18px);background:#fff}
+.gate-btns{display:flex;flex-wrap:wrap;gap:4px}
+.gate-btn{padding:4px 0;width:28px;text-align:center;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--dim);font-size:11px;font-weight:500;cursor:pointer;transition:all .15s}
+.gate-btn:hover{border-color:var(--accent);color:var(--text)}
+.gate-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.theme-toggle{margin-left:auto;background:none;border:none;cursor:pointer;padding:4px;border-radius:4px;color:var(--dim);display:flex;align-items:center}
+.theme-toggle:hover{background:var(--border)}
+.theme-toggle svg{width:18px;height:18px;fill:currentColor}
+@media(max-width:700px){.wrap{flex-direction:column}.panel{width:100%;max-height:40vh;border-left:none;border-top:1px solid var(--border)}}
+</style>
+</head>
+<body>
+<header>
+<div class="status" id="statusDot"></div>
+<h1>Satellite1 Radar Tuner — LD2410</h1>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle light/dark mode"><svg id="themeIcon" viewBox="0 0 24 24"><path d="M21.75 12.02c-.06 5.27-4.38 9.53-9.65 9.48-4.3-.04-8.03-2.92-9.18-6.96-.12-.42.15-.82.58-.9 1.04-.17 2.05-.54 2.97-1.09 2.72-1.63 4.35-4.38 4.53-7.3.02-.33.05-.67.05-1.01 0-.52-.06-1.02-.16-1.52-.09-.43.19-.85.63-.89 5.43-.42 10.28 3.8 10.23 9.19z"/></svg></button>
+</header>
+<div class="wrap">
+<div class="canvas-wrap"><canvas id="cv"></canvas></div>
+<div class="panel">
+<div class="group">
+<p class="instructions">
+Select a gate below or click its column in the chart.<br>
+Drag any dashed threshold line up or down to adjust it visually, then press <b style="color:var(--text)">Save All</b> to write changes to the radar.
+</p>
+</div>
+<div class="group" id="gatePanel">
+<label>Select Gate</label>
+<div class="gate-btns" id="gateBtns"></div>
+<div id="threshRow" style="display:none;margin-top:6px">
+<label style="font-size:11px;margin-bottom:2px">Selected: <span id="gateLabel" style="color:var(--accent);text-transform:none">--</span></label>
+<div class="row">
+<div style="flex:1">
+<label style="font-size:11px">Move Thresh</label>
+<input type="number" id="moveThreshInput" min="0" max="100" step="1">
+</div>
+<div style="flex:1">
+<label style="font-size:11px">Still Thresh</label>
+<input type="number" id="stillThreshInput" min="0" max="100" step="1">
+</div>
+</div>
+<div class="row" style="margin-top:4px">
+<button class="btn btn-primary" style="flex:1" onclick="applyThreshold()">Apply Gate</button>
+</div>
+</div>
+</div>
+<hr style="border:none;border-top:1px solid var(--border)">
+<div class="group">
+<label>Timeout (seconds)<span class="tooltip">?<span class="tt">Duration in seconds the sensor continues to report presence after the last target disappears.</span></span></label>
+<div class="row">
+<input type="number" id="timeoutInput" min="0" max="65535" step="1" value="0">
+<button class="btn btn-primary" onclick="saveTimeout()">Set</button>
+</div>
+</div>
+<div class="group">
+<label>Max Moving Gate<span class="tooltip">?<span class="tt">Farthest gate that detects moving targets (0-8). Gates beyond this are ignored for motion detection.</span></span></label>
+<div class="row">
+<input type="number" id="maxMoveGate" min="0" max="8" step="1" value="8">
+<button class="btn btn-primary" onclick="saveMaxMoveGate()">Set</button>
+</div>
+</div>
+<div class="group">
+<label>Max Still Gate<span class="tooltip">?<span class="tt">Farthest gate that detects still targets (0-8). Gates beyond this are ignored for stationary detection.</span></span></label>
+<div class="row">
+<input type="number" id="maxStillGate" min="0" max="8" step="1" value="8">
+<button class="btn btn-primary" onclick="saveMaxStillGate()">Set</button>
+</div>
+</div>
+<div class="group">
+<label>Bluetooth<span class="tooltip">?<span class="tt">Enable or disable the radar module's Bluetooth radio.</span></span></label>
+<div class="row" style="align-items:center">
+<label class="toggle"><input type="checkbox" id="btToggle" onchange="saveBluetooth()"><span class="slider"></span></label>
+<span id="btLabel" style="font-size:12px;color:var(--dim)">OFF</span>
+</div>
+</div>
+<div class="group">
+<label>Distance Resolution<span class="tooltip">?<span class="tt">Controls the distance granularity per gate. At 0.75m each of the 9 gates covers 0.75 m (max range &asymp; 6 m). At 0.2m each gate covers 0.2 m (max range &asymp; 1.6 m) for finer close-range detection.</span></span></label>
+<div class="row">
+<select id="distRes" style="flex:1">
+<option value="0.75m">0.75 m (default)</option>
+<option value="0.2m">0.2 m (fine)</option>
+</select>
+<button class="btn btn-primary" onclick="saveDistRes()">Set</button>
+</div>
+</div>
+<div class="group">
+<button class="btn btn-success" style="width:100%" onclick="saveAll()">Save All</button>
+</div>
+<div class="group">
+<p class="hint">
+<b style="color:rgba(59,130,246,0.9)">Blue</b> = Moving energy &nbsp;
+<b style="color:rgba(34,197,94,0.9)">Green</b> = Still energy<br>
+<b style="color:#6b7280">Dashed</b> = Threshold (drag to adjust)
+</p>
+</div>
+</div>
+</div>
+<script>
+const MOON_PATH='M21.75 12.02c-.06 5.27-4.38 9.53-9.65 9.48-4.3-.04-8.03-2.92-9.18-6.96-.12-.42.15-.82.58-.9 1.04-.17 2.05-.54 2.97-1.09 2.72-1.63 4.35-4.38 4.53-7.3.02-.33.05-.67.05-1.01 0-.52-.06-1.02-.16-1.52-.09-.43.19-.85.63-.89 5.43-.42 10.28 3.8 10.23 9.19z';
+const SUN_PATH='M12 2a1 1 0 011 1v1a1 1 0 01-2 0V3a1 1 0 011-1zm0 15a5 5 0 100-10 5 5 0 000 10zm0 3a1 1 0 011 1v1a1 1 0 01-2 0v-1a1 1 0 011-1zm9-9a1 1 0 010 2h-1a1 1 0 010-2h1zM4 11a1 1 0 010 2H3a1 1 0 010-2h1zm15.07-6.36a1 1 0 010 1.41l-.71.71a1 1 0 01-1.41-1.41l.7-.71a1 1 0 011.42 0zM7.05 17.66a1 1 0 010 1.41l-.7.71a1 1 0 01-1.42-1.41l.71-.71a1 1 0 011.41 0zM4.93 4.64a1 1 0 011.41 0l.71.71a1 1 0 01-1.41 1.41l-.71-.7a1 1 0 010-1.42zm12.02 13.02a1 1 0 011.41 0l.71.71a1 1 0 01-1.41 1.41l-.71-.7a1 1 0 010-1.42z';
+function isLight(){return document.documentElement.getAttribute('data-theme')==='light'}
+function toggleTheme(){
+  const next=isLight()?'dark':'light';
+  document.documentElement.setAttribute('data-theme',next);
+  localStorage.setItem('radar-tuner-theme',next);
+  updateThemeIcon();draw();
+}
+function updateThemeIcon(){
+  document.getElementById('themeIcon').innerHTML='<path d="'+(isLight()?SUN_PATH:MOON_PATH)+'"/>';
+}
+(function(){var s=localStorage.getItem('radar-tuner-theme');if(s)document.documentElement.setAttribute('data-theme',s);updateThemeIcon()})();
+
+const BASE=window.location.origin;
+const cv=document.getElementById('cv');
+const ctx=cv.getContext('2d');
+const GATES=9;
+
+function chartColors(){
+  if(isLight())return{dim:'#6b7280',accent:'#2563eb',grid:'#d1d5db',selBg:'rgba(37,99,235,0.08)',waitText:'#9ca3af'};
+  return{dim:'#6b7280',accent:'#3b82f6',grid:'#1a1e28',selBg:'rgba(59,130,246,0.08)',waitText:'#4b5563'};
+}
+const C_MOVE='59,130,246';
+const C_STILL='34,197,94';
+
+let moveEnergy=new Array(GATES).fill(0);
+let stillEnergy=new Array(GATES).fill(0);
+let dispMove=new Array(GATES).fill(0);
+let dispStill=new Array(GATES).fill(0);
+let moveThresh=new Array(GATES).fill(50);
+let stillThresh=new Array(GATES).fill(50);
+let selGate=-1;
+let connected=false;
+let everReceivedData=false;
+let W,H;
+const FETCH_OPTS={headers:{'Connection':'close'}};
+function wait(ms){return new Promise(r=>setTimeout(r,ms))}
+
+// Drag state
+let isDragging=false;
+let dragGate=-1;
+let dragType='';
+let dragStartY=0;
+let dragMoved=false;
+
+function resize(){
+  const r=cv.parentElement.getBoundingClientRect();
+  cv.width=r.width*devicePixelRatio;
+  cv.height=r.height*devicePixelRatio;
+  W=cv.width;H=cv.height;
+}
+window.addEventListener('resize',resize);
+
+function getLayout(){
+  const dpr=devicePixelRatio;
+  const pad={top:30*dpr,bottom:40*dpr,left:50*dpr,right:20*dpr};
+  const cw=W-pad.left-pad.right;
+  const ch=H-pad.top-pad.bottom;
+  const gw=cw/GATES;
+  const barW=gw*0.35;
+  return {dpr,pad,cw,ch,gw,barW};
+}
+
+function draw(){
+  if(!W||!H)return;
+  const cc=chartColors();
+  ctx.clearRect(0,0,W,H);
+  const {dpr,pad,cw,ch,gw,barW}=getLayout();
+
+  ctx.fillStyle=cc.dim;ctx.font=`${10*dpr}px sans-serif`;ctx.textAlign='right';ctx.textBaseline='middle';
+  for(let p=0;p<=100;p+=25){
+    const y=pad.top+ch*(1-p/100);
+    ctx.fillText(p+'%',pad.left-8*dpr,y);
+    ctx.strokeStyle=cc.grid;ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(pad.left,y);ctx.lineTo(W-pad.right,y);ctx.stroke();
+  }
+
+  ctx.fillStyle=cc.dim;ctx.font=`${11*dpr}px sans-serif`;ctx.textAlign='center';
+  ctx.fillText('GATE ENERGY & THRESHOLDS',W/2,16*dpr);
+
+  for(let g=0;g<GATES;g++){
+    const gx=pad.left+g*gw;
+    const cx_=gx+gw/2;
+
+    if(g===selGate){
+      ctx.fillStyle=cc.selBg;
+      ctx.fillRect(gx+2,pad.top,gw-4,ch);
+    }
+
+    const mh=ch*dispMove[g]/100;
+    const mActive=dispMove[g]>moveThresh[g];
+    ctx.fillStyle=mActive?`rgba(${C_MOVE},0.9)`:`rgba(${C_MOVE},0.35)`;
+    ctx.fillRect(cx_-barW-1,pad.top+ch-mh,barW,mh);
+
+    const sh_=ch*dispStill[g]/100;
+    const sActive=dispStill[g]>stillThresh[g];
+    ctx.fillStyle=sActive?`rgba(${C_STILL},0.9)`:`rgba(${C_STILL},0.35)`;
+    ctx.fillRect(cx_+1,pad.top+ch-sh_,barW,sh_);
+
+    const mty=pad.top+ch*(1-moveThresh[g]/100);
+    ctx.strokeStyle=`rgba(${C_MOVE},0.7)`;ctx.lineWidth=2*dpr;ctx.setLineDash([4*dpr,3*dpr]);
+    ctx.beginPath();ctx.moveTo(gx+4,mty);ctx.lineTo(cx_-1,mty);ctx.stroke();
+    ctx.setLineDash([]);
+
+    const sty=pad.top+ch*(1-stillThresh[g]/100);
+    ctx.strokeStyle=`rgba(${C_STILL},0.7)`;ctx.lineWidth=2*dpr;ctx.setLineDash([4*dpr,3*dpr]);
+    ctx.beginPath();ctx.moveTo(cx_+1,sty);ctx.lineTo(gx+gw-4,sty);ctx.stroke();
+    ctx.setLineDash([]);
+
+    if(isDragging&&dragGate===g){
+      const val=dragType==='move'?moveThresh[g]:stillThresh[g];
+      const ty=dragType==='move'?mty:sty;
+      ctx.fillStyle=`rgba(${dragType==='move'?C_MOVE:C_STILL},0.9)`;
+      ctx.font=`bold ${10*dpr}px sans-serif`;ctx.textAlign='center';
+      ctx.fillText(Math.round(val)+'',cx_,ty-8*dpr);
+    }
+
+    ctx.fillStyle=g===selGate?cc.accent:cc.dim;
+    ctx.font=`${g===selGate?'bold ':''}${11*dpr}px sans-serif`;ctx.textAlign='center';
+    ctx.fillText('G'+g,cx_,H-pad.bottom+16*dpr);
+  }
+
+  if(!everReceivedData){
+    ctx.fillStyle=cc.waitText;
+    ctx.font=`${13*dpr}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('Waiting for radar engineering data\u2026',W/2,pad.top+ch/2);
+    ctx.font=`${10*dpr}px sans-serif`;
+    ctx.fillText('Engineering mode is being enabled on the sensor.',W/2,pad.top+ch/2+18*dpr);
+  }
+}
+
+// Animation loop
+function animate(){
+  let needsRedraw=false;
+  for(let g=0;g<GATES;g++){
+    const dm=moveEnergy[g]-dispMove[g];
+    const ds=stillEnergy[g]-dispStill[g];
+    if(Math.abs(dm)>0.2){dispMove[g]+=dm*0.15;needsRedraw=true}else if(dm!==0){dispMove[g]=moveEnergy[g];needsRedraw=true}
+    if(Math.abs(ds)>0.2){dispStill[g]+=ds*0.15;needsRedraw=true}else if(ds!==0){dispStill[g]=stillEnergy[g];needsRedraw=true}
+  }
+  if(needsRedraw||isDragging)draw();
+  requestAnimationFrame(animate);
+}
+
+// Hit-test: is point near a threshold line?
+function hitTestThreshold(canvasX,canvasY){
+  const {dpr,pad,cw,ch,gw,barW}=getLayout();
+  const hitDist=8*dpr;
+  for(let g=0;g<GATES;g++){
+    const gx=pad.left+g*gw;
+    const cx_=gx+gw/2;
+    const mty=pad.top+ch*(1-moveThresh[g]/100);
+    if(canvasX>=gx&&canvasX<=cx_&&Math.abs(canvasY-mty)<hitDist)return{gate:g,type:'move'};
+    const sty=pad.top+ch*(1-stillThresh[g]/100);
+    if(canvasX>=cx_&&canvasX<=gx+gw&&Math.abs(canvasY-sty)<hitDist)return{gate:g,type:'still'};
+  }
+  return null;
+}
+
+function canvasCoords(e){
+  const dpr=devicePixelRatio;
+  const rect=cv.getBoundingClientRect();
+  const t=e.touches?e.touches[0]||e.changedTouches[0]:e;
+  return{x:(t.clientX-rect.left)*dpr,y:(t.clientY-rect.top)*dpr};
+}
+
+function yToThreshVal(canvasY){
+  const {pad,ch}=getLayout();
+  const pct=(1-(canvasY-pad.top)/ch)*100;
+  return Math.max(0,Math.min(100,Math.round(pct)));
+}
+
+function onPointerDown(e){
+  const {x,y}=canvasCoords(e);
+  const hit=hitTestThreshold(x,y);
+  dragStartY=y;
+  dragMoved=false;
+  if(hit){
+    isDragging=true;
+    dragGate=hit.gate;
+    dragType=hit.type;
+    cv.style.cursor='ns-resize';
+    e.preventDefault();
+  }
+}
+
+function onPointerMove(e){
+  const {x,y}=canvasCoords(e);
+  if(isDragging){
+    dragMoved=true;
+    const val=yToThreshVal(y);
+    if(dragType==='move')moveThresh[dragGate]=val;
+    else stillThresh[dragGate]=val;
+    if(selGate===dragGate)syncThreshInputs();
+    draw();
+    e.preventDefault();
+    return;
+  }
+  const hit=hitTestThreshold(x,y);
+  cv.style.cursor=hit?'ns-resize':'default';
+}
+
+function onPointerUp(e){
+  if(isDragging){
+    const g=dragGate;
+    isDragging=false;
+    cv.style.cursor='default';
+    if(dragMoved){
+      // threshold values stay local until user applies/saves
+    }
+    selectGate(g);
+    e.preventDefault();
+    return;
+  }
+  if(!dragMoved){
+    const {x}=canvasCoords(e);
+    const {pad,gw}=getLayout();
+    const g=Math.floor((x-pad.left)/gw);
+    if(g>=0&&g<GATES)selectGate(g);
+  }
+}
+
+cv.addEventListener('mousedown',onPointerDown);
+cv.addEventListener('mousemove',onPointerMove);
+cv.addEventListener('mouseup',onPointerUp);
+cv.addEventListener('mouseleave',()=>{if(!isDragging)cv.style.cursor='default'});
+cv.addEventListener('touchstart',onPointerDown,{passive:false});
+cv.addEventListener('touchmove',onPointerMove,{passive:false});
+cv.addEventListener('touchend',onPointerUp,{passive:false});
+
+function selectGate(g){
+  selGate=g;
+  document.getElementById('gateLabel').textContent='Gate '+g;
+  document.getElementById('threshRow').style.display='block';
+  syncThreshInputs();
+  document.querySelectorAll('.gate-btn').forEach((b,i)=>b.classList.toggle('active',i===g));
+  draw();
+}
+
+function syncThreshInputs(){
+  if(selGate<0)return;
+  document.getElementById('moveThreshInput').value=Math.round(moveThresh[selGate]);
+  document.getElementById('stillThreshInput').value=Math.round(stillThresh[selGate]);
+}
+
+// Build gate selector buttons
+(function(){
+  const c=document.getElementById('gateBtns');
+  for(let g=0;g<GATES;g++){
+    const b=document.createElement('button');
+    b.className='gate-btn';b.textContent='G'+g;
+    b.addEventListener('click',()=>selectGate(g));
+    c.appendChild(b);
+  }
+})();
+
+async function apiGet(path){const r=await fetch(BASE+path,FETCH_OPTS);if(!r.ok)throw new Error(r.statusText);return r.json()}
+async function apiPatch(path,payload){
+  const r=await fetch(BASE+path,{method:'PATCH',headers:{'Content-Type':'application/json','Connection':'close'},body:JSON.stringify(payload)});
+  if(!r.ok)throw new Error(r.statusText);
+  return r.json();
+}
+async function flushPrefs(){await fetch(BASE+'/api/v1/save',{method:'POST',...FETCH_OPTS})}
+async function applyConfig(){await fetch(BASE+'/api/v1/ld2410/apply',{method:'POST',...FETCH_OPTS})}
+
+async function loadConfig(){
+  const cfg=await apiGet('/api/v1/ld2410/config');
+  document.getElementById('timeoutInput').value=Math.round(cfg.timeout||0);
+  document.getElementById('maxMoveGate').value=Math.round(cfg.max_move_gate||8);
+  document.getElementById('maxStillGate').value=Math.round(cfg.max_still_gate||8);
+  const on=cfg.bluetooth===true;
+  document.getElementById('btToggle').checked=on;
+  document.getElementById('btLabel').textContent=on?'ON':'OFF';
+  if(cfg.distance_resolution)document.getElementById('distRes').value=cfg.distance_resolution;
+  for(let g=0;g<GATES;g++){
+    moveThresh[g]=(cfg.gate_move_thresholds&&cfg.gate_move_thresholds[g])||0;
+    stillThresh[g]=(cfg.gate_still_thresholds&&cfg.gate_still_thresholds[g])||0;
+  }
+}
+
+async function pollGates(){
+  try{
+    const r=await fetch(BASE+'/api/v1/ld2410/live',FETCH_OPTS);
+    if(!r.ok)throw new Error();
+    const d=await r.json();
+    let anyNonZero=false;
+    for(let g=0;g<GATES;g++){
+      moveEnergy[g]=(d.gates&&d.gates.move&&d.gates.move[g])||0;
+      stillEnergy[g]=(d.gates&&d.gates.still&&d.gates.still[g])||0;
+      if(moveEnergy[g]>0||stillEnergy[g]>0)anyNonZero=true;
+    }
+    if(anyNonZero)everReceivedData=true;
+    if(!connected){connected=true;document.getElementById('statusDot').classList.add('ok')}
+  }catch(e){
+    if(connected){connected=false;document.getElementById('statusDot').classList.remove('ok')}
+  }
+}
+
+async function saveTimeout(){
+  const v=parseInt(document.getElementById('timeoutInput').value)||0;
+  await apiPatch('/api/v1/ld2410/config',{timeout:v});await applyConfig();await flushPrefs();
+}
+async function saveMaxMoveGate(){
+  const v=parseInt(document.getElementById('maxMoveGate').value)||0;
+  await apiPatch('/api/v1/ld2410/config',{max_move_gate:v});await applyConfig();await flushPrefs();
+}
+async function saveMaxStillGate(){
+  const v=parseInt(document.getElementById('maxStillGate').value)||0;
+  await apiPatch('/api/v1/ld2410/config',{max_still_gate:v});await applyConfig();await flushPrefs();
+}
+async function saveBluetooth(){
+  const on=document.getElementById('btToggle').checked;
+  document.getElementById('btLabel').textContent=on?'ON':'OFF';
+  await apiPatch('/api/v1/ld2410/config',{bluetooth:on});
+}
+async function saveDistRes(){
+  const v=document.getElementById('distRes').value;
+  await apiPatch('/api/v1/ld2410/config',{distance_resolution:v});
+  await applyConfig();await flushPrefs();
+}
+async function applyThreshold(){
+  if(selGate<0)return;
+  const mt=parseInt(document.getElementById('moveThreshInput').value)||0;
+  const st=parseInt(document.getElementById('stillThreshInput').value)||0;
+  moveThresh[selGate]=mt;stillThresh[selGate]=st;
+  const move=moveThresh.map(v=>Math.round(v));
+  const still=stillThresh.map(v=>Math.round(v));
+  await apiPatch('/api/v1/ld2410/config',{gate_move_thresholds:move,gate_still_thresholds:still});
+  await applyConfig();await flushPrefs();
+  draw();
+}
+async function saveAll(){
+  await apiPatch('/api/v1/ld2410/config',{
+    timeout:parseInt(document.getElementById('timeoutInput').value)||0,
+    max_move_gate:parseInt(document.getElementById('maxMoveGate').value)||0,
+    max_still_gate:parseInt(document.getElementById('maxStillGate').value)||0,
+    distance_resolution:document.getElementById('distRes').value,
+    bluetooth:document.getElementById('btToggle').checked,
+    gate_move_thresholds:moveThresh.map(v=>Math.round(v)),
+    gate_still_thresholds:stillThresh.map(v=>Math.round(v))
+  });
+  await applyConfig();await flushPrefs();
+}
+
+async function init(){
+  try{
+    await loadConfig();
+    connected=true;document.getElementById('statusDot').classList.add('ok');
+  }catch(e){connected=false}
+  draw();
+  setInterval(pollGates,500);
+}
+resize();
+requestAnimationFrame(animate);
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Satellite1 Radar Tuner — LD2450</title>
+<style>
+:root{--bg:#0a0d12;--panel:#10131a;--border:#1e2330;--text:#d0d4dc;--dim:#6b7280;--accent:#3b82f6;--green:#22c55e;--red:#ef4444;--yellow:#eab308;--orange:#f97316}
+[data-theme="light"]{--bg:#f5f6f8;--panel:#ffffff;--border:#d1d5db;--text:#1f2937;--dim:#6b7280;--accent:#2563eb;--green:#16a34a;--red:#dc2626;--yellow:#ca8a04;--orange:#ea580c}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:flex;flex-direction:column;height:100vh}
+header{background:var(--panel);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:12px}
+header h1{font-size:16px;font-weight:600}
+.status{width:8px;height:8px;border-radius:50%;background:var(--red)}
+.status.ok{background:var(--green)}
+.wrap{display:flex;flex:1;overflow:hidden}
+.canvas-wrap{flex:1;position:relative;overflow:hidden}
+canvas{display:block;width:100%;height:100%;cursor:crosshair}
+.panel{width:260px;background:var(--panel);border-left:1px solid var(--border);padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.panel label{font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px}
+.panel input{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:4px;width:100%;font-size:13px}
+.btn{padding:6px 12px;border:none;border-radius:4px;cursor:pointer;font-size:13px;font-weight:500;transition:opacity .15s}
+.btn:hover{opacity:.85}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-danger{background:var(--red);color:#fff}
+.btn-success{background:var(--green);color:#fff}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-outline.active{border-color:var(--accent);color:var(--accent)}
+.zone-btns{display:flex;gap:4px;flex-wrap:wrap}
+.zone-btns .btn{flex:1;min-width:0;font-size:11px;padding:5px 4px}
+.group{display:flex;flex-direction:column;gap:6px}
+.row{display:flex;gap:6px}
+.hint{font-size:11px;color:var(--dim);line-height:1.4}
+.tooltip{position:relative;display:inline-block;cursor:help;margin-left:4px;width:14px;height:14px;border-radius:50%;background:var(--border);color:var(--dim);font-size:10px;text-align:center;line-height:14px}
+.tooltip .tt{visibility:hidden;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:6px 8px;font-size:11px;line-height:1.4;position:absolute;z-index:10;top:120%;bottom:auto;left:50%;transform:translateX(-50%);width:220px;text-transform:none;letter-spacing:0;font-weight:400}
+.tooltip:hover .tt{visibility:visible}
+.toggle{position:relative;display:inline-block;width:40px;height:22px}
+.toggle input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:var(--border);border-radius:22px;transition:.2s}
+.slider::before{content:"";position:absolute;height:16px;width:16px;left:3px;bottom:3px;background:var(--dim);border-radius:50%;transition:.2s}
+.toggle input:checked+.slider{background:var(--accent)}
+.toggle input:checked+.slider::before{transform:translateX(18px);background:#fff}
+.theme-toggle{margin-left:auto;background:none;border:none;cursor:pointer;padding:4px;border-radius:4px;color:var(--dim);display:flex;align-items:center}
+.theme-toggle:hover{background:var(--border)}
+.theme-toggle svg{width:18px;height:18px;fill:currentColor}
+.notice{display:none;border:1px solid var(--orange);background:color-mix(in srgb,var(--orange) 12%,transparent);border-radius:6px;padding:10px;gap:8px;flex-direction:column}
+.notice.show{display:flex}
+.notice p{font-size:12px;line-height:1.4;color:var(--text)}
+.ui-disabled{opacity:.45;pointer-events:none;filter:saturate(.6)}
+.panel.ui-disabled{opacity:.5;filter:saturate(.65)}
+.panel.ui-disabled *{cursor:not-allowed!important}
+.offline-note{display:none;font-size:12px;color:var(--orange)}
+.offline-note.show{display:block}
+.zone-validity{font-size:11px;line-height:1.4}
+.zone-validity .ok{color:var(--green)}
+.zone-validity .warn{color:var(--orange)}
+@media(max-width:700px){.wrap{flex-direction:column}.panel{width:100%;max-height:40vh;border-left:none;border-top:1px solid var(--border)}}
+</style>
+</head>
+<body>
+<header>
+<div class="status" id="statusDot"></div>
+<h1>Satellite1 Radar Tuner — LD2450</h1>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle light/dark mode"><svg id="themeIcon" viewBox="0 0 24 24"><path d="M21.75 12.02c-.06 5.27-4.38 9.53-9.65 9.48-4.3-.04-8.03-2.92-9.18-6.96-.12-.42.15-.82.58-.9 1.04-.17 2.05-.54 2.97-1.09 2.72-1.63 4.35-4.38 4.53-7.3.02-.33.05-.67.05-1.01 0-.52-.06-1.02-.16-1.52-.09-.43.19-.85.63-.89 5.43-.42 10.28 3.8 10.23 9.19z"/></svg></button>
+</header>
+<div class="wrap">
+<div class="canvas-wrap"><canvas id="cv"></canvas></div>
+<div class="panel">
+<p class="offline-note" id="offlineNote">Device offline - controls are disabled.</p>
+<div class="group">
+<label>Max Detection Range (cm)<span class="tooltip">?<span class="tt">Maximum detection range for the LD2450 sensor. The hardware maximum is 600 cm (6 meters). Targets beyond this range are ignored.</span></span></label>
+<div class="row">
+<input type="number" id="rangeInput" min="0" max="600" step="1" value="0">
+<button class="btn btn-primary" onclick="saveRange()">Set</button>
+</div>
+</div>
+<div class="group">
+<label>Timeout (seconds)<span class="tooltip">?<span class="tt">Duration in seconds the sensor continues to report presence after the last target disappears. Helps prevent rapid on/off toggling.</span></span></label>
+<div class="row">
+<input type="number" id="timeoutInput" min="0" max="65535" step="1" value="0">
+<button class="btn btn-primary" onclick="saveTimeout()">Set</button>
+</div>
+</div>
+<div class="group">
+<label>Stability<span class="tooltip">?<span class="tt">Controls how stable target count and zone state readings are. Higher values require more consecutive radar frames to agree before updating, reducing flicker but adding response delay. 0 = raw (no filtering), 10 = maximum stability (~1s delay).</span></span></label>
+<div class="row" style="align-items:center">
+<input type="range" id="stabilitySlider" min="0" max="10" step="1" value="5" style="flex:1" oninput="document.getElementById('stabilityVal').textContent=this.value">
+<span id="stabilityVal" style="min-width:20px;text-align:center;font-size:13px;color:var(--text)">5</span>
+<button class="btn btn-primary" onclick="saveStability()">Set</button>
+</div>
+</div>
+<div class="group">
+<label>Multi-Target Tracking<span class="tooltip">?<span class="tt">When enabled, the LD2450 tracks up to 3 targets simultaneously. When disabled, only a single target is tracked. Multi-target mode is recommended for zone-based detection.</span></span></label>
+<div class="row" style="align-items:center">
+<label class="toggle"><input type="checkbox" id="multiTargetToggle" onchange="saveMultiTarget()"><span class="slider"></span></label>
+<span id="multiTargetLabel" style="font-size:12px;color:var(--dim)">OFF</span>
+</div>
+</div>
+<div class="notice" id="rebootNotice">
+<p><b>Reboot required.</b> Configuration changes are saved, but require a device reboot to take effect in Home Assistant.</p>
+<p>Note: after reboot, the mmWave config UI will be disabled until it is enabled again from Home Assistant.</p>
+<button class="btn btn-danger" onclick="requestReboot()">Reboot Device</button>
+</div>
+<div class="group">
+<label>Bluetooth<span class="tooltip">?<span class="tt">Enable or disable the radar module's Bluetooth radio.</span></span></label>
+<div class="row" style="align-items:center">
+<label class="toggle"><input type="checkbox" id="btToggle" onchange="saveBluetooth()"><span class="slider"></span></label>
+<span id="btLabel" style="font-size:12px;color:var(--dim)">OFF</span>
+</div>
+</div>
+<div class="group">
+<label>Active Zone</label>
+<div class="zone-btns">
+<button class="btn btn-outline active" onclick="selectZone(0)">Zone 1</button>
+<button class="btn btn-outline" onclick="selectZone(1)">Zone 2</button>
+<button class="btn btn-outline" onclick="selectZone(2)">Zone 3</button>
+<button class="btn btn-outline" onclick="selectZone(3)" style="color:var(--red)">Exclusion</button>
+</div>
+</div>
+<div class="group">
+<label>Zone Actions</label>
+<div class="row">
+<button class="btn btn-success" onclick="saveCurrentZone()">Save Zone</button>
+<button class="btn btn-danger" onclick="clearCurrentZone()">Clear Zone</button>
+</div>
+<button class="btn btn-primary" style="width:100%" onclick="saveAllZones()">Save All Zones</button>
+<p class="hint">A zone needs at least 3 points to be valid and create a zone sensor after reboot.</p>
+<div class="zone-validity" id="zoneValidity"></div>
+</div>
+<div class="group">
+<p class="hint">
+<b>Click</b> canvas to add point (max 8)<br>
+<b>Drag</b> vertex to move it<br>
+<b>Right-click</b> vertex to delete<br>
+<b>Drag inside</b> polygon to move all
+</p>
+</div>
+<div class="group" id="coordsDisplay"></div>
+</div>
+</div>
+<script>
+const MOON_PATH='M21.75 12.02c-.06 5.27-4.38 9.53-9.65 9.48-4.3-.04-8.03-2.92-9.18-6.96-.12-.42.15-.82.58-.9 1.04-.17 2.05-.54 2.97-1.09 2.72-1.63 4.35-4.38 4.53-7.3.02-.33.05-.67.05-1.01 0-.52-.06-1.02-.16-1.52-.09-.43.19-.85.63-.89 5.43-.42 10.28 3.8 10.23 9.19z';
+const SUN_PATH='M12 2a1 1 0 011 1v1a1 1 0 01-2 0V3a1 1 0 011-1zm0 15a5 5 0 100-10 5 5 0 000 10zm0 3a1 1 0 011 1v1a1 1 0 01-2 0v-1a1 1 0 011-1zm9-9a1 1 0 010 2h-1a1 1 0 010-2h1zM4 11a1 1 0 010 2H3a1 1 0 010-2h1zm15.07-6.36a1 1 0 010 1.41l-.71.71a1 1 0 01-1.41-1.41l.7-.71a1 1 0 011.42 0zM7.05 17.66a1 1 0 010 1.41l-.7.71a1 1 0 01-1.42-1.41l.71-.71a1 1 0 011.41 0zM4.93 4.64a1 1 0 011.41 0l.71.71a1 1 0 01-1.41 1.41l-.71-.7a1 1 0 010-1.42zm12.02 13.02a1 1 0 011.41 0l.71.71a1 1 0 01-1.41 1.41l-.71-.7a1 1 0 010-1.42z';
+function isLight(){return document.documentElement.getAttribute('data-theme')==='light'}
+function themeColors(){
+  if(isLight())return{grid:'#d1d5db',fov:'#9ca3af',dim:'#6b7280',target:'#1f2937',targetLabel:'rgba(31,41,55,0.6)'};
+  return{grid:'#1a1e28',fov:'#2a2e38',dim:'#6b7280',target:'#fff',targetLabel:'rgba(255,255,255,0.6)'};
+}
+function toggleTheme(){
+  const next=isLight()?'dark':'light';
+  document.documentElement.setAttribute('data-theme',next);
+  localStorage.setItem('radar-tuner-theme',next);
+  updateThemeIcon();draw();
+}
+function updateThemeIcon(){
+  document.getElementById('themeIcon').innerHTML='<path d="'+(isLight()?SUN_PATH:MOON_PATH)+'"/>';
+}
+(function(){var s=localStorage.getItem('radar-tuner-theme');if(s)document.documentElement.setAttribute('data-theme',s);updateThemeIcon()})();
+
+const BASE=window.location.origin;
+const cv=document.getElementById('cv');
+const ctx=cv.getContext('2d');
+const ZONES=4;
+const MAX_PTS=8;
+const FOV_DEG=120;
+const COLORS=['rgba(34,197,94,','rgba(59,130,246,','rgba(234,179,8,','rgba(239,68,68,'];
+let zones=Array.from({length:ZONES},()=>[]);
+let activeZone=0;
+let dragIdx=-1,dragZone=-1,dragAll=false,dragStart=null,dragOrigPts=null;
+let targets=[{x:0,y:0},{x:0,y:0},{x:0,y:0}];
+let detRange=0;
+let timeout=0;
+let connected=false;
+let rebootRequired=false;
+let W,H,cx,cy,scale;
+
+function setUiEnabled(enabled){
+  const panel=document.querySelector('.panel');
+  panel.classList.toggle('ui-disabled',!enabled);
+  const interactive=document.querySelectorAll('.panel .btn,.panel input');
+  interactive.forEach(el=>{el.disabled=!enabled});
+  document.getElementById('offlineNote').classList.toggle('show',!enabled);
+  document.getElementById('cv').classList.toggle('ui-disabled',!enabled);
+}
+
+function resize(){
+  const r=cv.parentElement.getBoundingClientRect();
+  cv.width=r.width*devicePixelRatio;
+  cv.height=r.height*devicePixelRatio;
+  W=cv.width;H=cv.height;
+  cx=W/2;cy=20*devicePixelRatio;
+  scale=Math.min(W,H)*0.0013;
+  draw();
+}
+window.addEventListener('resize',resize);
+
+function cmToCanvas(x,y){return[cx+x*scale,cy+y*scale]}
+function canvasToCm(px,py){return[(px-cx)/scale,(py-cy)/scale]}
+
+function draw(){
+  const tc=themeColors();
+  ctx.clearRect(0,0,W,H);
+  ctx.save();
+  ctx.strokeStyle=tc.grid;ctx.lineWidth=1;
+  for(let d=100;d<=600;d+=100){
+    const r=d*scale;
+    ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI);ctx.stroke();
+  }
+  const fovRad=FOV_DEG*Math.PI/360;
+  ctx.strokeStyle=tc.fov;ctx.lineWidth=2;
+  ctx.beginPath();
+  ctx.moveTo(cx,cy);
+  const fl=600*scale;
+  ctx.lineTo(cx-fl*Math.sin(fovRad),cy+fl*Math.cos(fovRad));
+  ctx.moveTo(cx,cy);
+  ctx.lineTo(cx+fl*Math.sin(fovRad),cy+fl*Math.cos(fovRad));
+  ctx.stroke();
+  if(detRange>0){
+    const rr=detRange*scale;
+    ctx.strokeStyle='rgba(59,130,246,0.5)';ctx.lineWidth=2;ctx.setLineDash([6,4]);
+    ctx.beginPath();ctx.arc(cx,cy,rr,Math.PI/2-fovRad,Math.PI/2+fovRad);ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  ctx.fillStyle=tc.dim;ctx.font=`${11*devicePixelRatio}px sans-serif`;ctx.textAlign='center';
+  ctx.fillText('SENSOR',cx,cy-10*devicePixelRatio);
+  // Zones
+  for(let z=0;z<ZONES;z++){
+    const pts=zones[z];if(pts.length<1)continue;
+    const c=COLORS[z];
+    if(pts.length>=3){
+      ctx.fillStyle=c+(z===activeZone?'0.15)':'0.08)');
+      ctx.strokeStyle=c+(z===activeZone?'0.8)':'0.4)');
+      ctx.lineWidth=z===activeZone?2:1;
+      ctx.beginPath();
+      const[fx,fy]=cmToCanvas(pts[0].x,pts[0].y);
+      ctx.moveTo(fx,fy);
+      for(let i=1;i<pts.length;i++){const[px,py]=cmToCanvas(pts[i].x,pts[i].y);ctx.lineTo(px,py)}
+      ctx.closePath();ctx.fill();ctx.stroke();
+    }else if(pts.length===2){
+      ctx.strokeStyle=c+'0.6)';ctx.lineWidth=1;ctx.beginPath();
+      const[ax,ay]=cmToCanvas(pts[0].x,pts[0].y);
+      const[bx,by]=cmToCanvas(pts[1].x,pts[1].y);
+      ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();
+    }
+    // Vertices
+    for(let i=0;i<pts.length;i++){
+      const[px,py]=cmToCanvas(pts[i].x,pts[i].y);
+      const sz=(z===activeZone?6:4)*devicePixelRatio;
+      ctx.fillStyle=c+'1)';
+      ctx.fillRect(px-sz/2,py-sz/2,sz,sz);
+    }
+  }
+  for(let t=0;t<3;t++){
+    const tx=targets[t].x,ty=targets[t].y;
+    if(tx===0&&ty===0)continue;
+    const[px,py]=cmToCanvas(tx,ty);
+    ctx.fillStyle=tc.target;ctx.beginPath();ctx.arc(px,py,4*devicePixelRatio,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=tc.targetLabel;ctx.font=`${10*devicePixelRatio}px sans-serif`;ctx.textAlign='left';
+    ctx.fillText(`T${t+1}`,px+6*devicePixelRatio,py-4*devicePixelRatio);
+  }
+  ctx.restore();
+  updateCoords();
+  updateZoneValidity();
+}
+
+function updateCoords(){
+  const el=document.getElementById('coordsDisplay');
+  const pts=zones[activeZone];
+  if(!pts.length){el.innerHTML='<p class="hint">No points yet</p>';return}
+  let h='<label>Points ('+pts.length+'/'+MAX_PTS+')</label>';
+  pts.forEach((p,i)=>{h+=`<div style="font-size:11px;color:var(--dim)">P${i+1}: (${Math.round(p.x)}, ${Math.round(p.y)})</div>`});
+  el.innerHTML=h;
+}
+
+function updateZoneValidity(){
+  const el=document.getElementById('zoneValidity');
+  let h='';
+  for(let z=0;z<3;z++){
+    const n=zones[z].length;
+    if(n>=3)h+=`<div class="ok">Zone ${z+1}: defined (${n} points)</div>`;
+    else h+=`<div class="warn">Zone ${z+1}: incomplete (${n}/3+ points)</div>`;
+  }
+  el.innerHTML=h;
+}
+
+function selectZone(z){
+  if(!connected)return;
+  activeZone=z;
+  document.querySelectorAll('.zone-btns .btn').forEach((b,i)=>{
+    b.classList.toggle('active',i===z);
+  });
+  draw();
+}
+
+function hitVertex(mx,my,radius){
+  const r=radius||10*devicePixelRatio;
+  for(let z=0;z<ZONES;z++){
+    for(let i=0;i<zones[z].length;i++){
+      const[px,py]=cmToCanvas(zones[z][i].x,zones[z][i].y);
+      if(Math.hypot(mx-px,my-py)<r)return{zone:z,idx:i};
+    }
+  }
+  return null;
+}
+
+function pointInPolygon(pts,x,y){
+  let inside=false;
+  for(let i=0,j=pts.length-1;i<pts.length;j=i++){
+    const xi=pts[i].x,yi=pts[i].y,xj=pts[j].x,yj=pts[j].y;
+    if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi))inside=!inside;
+  }
+  return inside;
+}
+
+cv.addEventListener('mousedown',e=>{
+  if(!connected)return;
+  if(e.button===2)return;
+  const rect=cv.getBoundingClientRect();
+  const mx=(e.clientX-rect.left)*devicePixelRatio;
+  const my=(e.clientY-rect.top)*devicePixelRatio;
+  const hit=hitVertex(mx,my);
+  if(hit){
+    dragIdx=hit.idx;dragZone=hit.zone;
+    if(hit.zone!==activeZone)selectZone(hit.zone);
+    return;
+  }
+  // Check drag-all for active zone
+  const[cmx,cmy]=canvasToCm(mx,my);
+  if(zones[activeZone].length>=3&&pointInPolygon(zones[activeZone],cmx,cmy)){
+    dragAll=true;
+    dragStart={x:cmx,y:cmy};
+    dragOrigPts=zones[activeZone].map(p=>({...p}));
+    return;
+  }
+  // Add point
+  if(zones[activeZone].length<MAX_PTS){
+    zones[activeZone].push({x:Math.round(cmx),y:Math.round(cmy)});
+    draw();
+  }
+});
+
+cv.addEventListener('mousemove',e=>{
+  if(!connected)return;
+  const rect=cv.getBoundingClientRect();
+  const mx=(e.clientX-rect.left)*devicePixelRatio;
+  const my=(e.clientY-rect.top)*devicePixelRatio;
+  if(dragIdx>=0){
+    const[cmx,cmy]=canvasToCm(mx,my);
+    zones[dragZone][dragIdx]={x:Math.round(cmx),y:Math.round(cmy)};
+    draw();
+  }else if(dragAll&&dragStart){
+    const[cmx,cmy]=canvasToCm(mx,my);
+    const dx=cmx-dragStart.x,dy=cmy-dragStart.y;
+    zones[activeZone]=dragOrigPts.map(p=>({x:Math.round(p.x+dx),y:Math.round(p.y+dy)}));
+    draw();
+  }
+});
+
+cv.addEventListener('mouseup',()=>{dragIdx=-1;dragZone=-1;dragAll=false;dragStart=null;dragOrigPts=null});
+cv.addEventListener('mouseleave',()=>{dragIdx=-1;dragZone=-1;dragAll=false;dragStart=null;dragOrigPts=null});
+
+cv.addEventListener('contextmenu',e=>{
+  if(!connected)return;
+  e.preventDefault();
+  const rect=cv.getBoundingClientRect();
+  const mx=(e.clientX-rect.left)*devicePixelRatio;
+  const my=(e.clientY-rect.top)*devicePixelRatio;
+  const hit=hitVertex(mx,my);
+  if(hit){
+    zones[hit.zone].splice(hit.idx,1);
+    draw();
+  }
+});
+
+// Touch support
+cv.addEventListener('touchstart',e=>{
+  if(!connected)return;
+  e.preventDefault();
+  const t=e.touches[0];
+  cv.dispatchEvent(new MouseEvent('mousedown',{clientX:t.clientX,clientY:t.clientY,button:0}));
+},{passive:false});
+cv.addEventListener('touchmove',e=>{
+  if(!connected)return;
+  e.preventDefault();
+  const t=e.touches[0];
+  cv.dispatchEvent(new MouseEvent('mousemove',{clientX:t.clientX,clientY:t.clientY}));
+},{passive:false});
+cv.addEventListener('touchend',()=>{cv.dispatchEvent(new MouseEvent('mouseup',{}))});
+
+// API
+const FETCH_OPTS={headers:{'Connection':'close'}};
+async function apiGet(path){
+  const r=await fetch(BASE+path,FETCH_OPTS);
+  if(!r.ok)throw new Error(r.statusText);
+  return r.json();
+}
+async function apiPatch(path,payload){
+  const r=await fetch(BASE+path,{method:'PATCH',headers:{'Content-Type':'application/json','Connection':'close'},body:JSON.stringify(payload)});
+  if(!r.ok)throw new Error(r.statusText);
+  return r.json();
+}
+let saving=false;
+async function flushPrefs(){await fetch(BASE+'/api/v1/save',{method:'POST',...FETCH_OPTS})}
+function setRebootRequired(required){
+  rebootRequired=required===true;
+  document.getElementById('rebootNotice').classList.toggle('show',rebootRequired);
+}
+
+async function loadAll(){
+  const cfg=await apiGet('/api/v1/ld2450/config');
+  for(let z=0;z<3;z++)zones[z]=cfg.zones&&cfg.zones[z]?cfg.zones[z].map(p=>({x:p.x,y:p.y})):[];
+  zones[3]=cfg.exclusion?cfg.exclusion.map(p=>({x:p.x,y:p.y})):[];
+  detRange=cfg.detection_range||0;
+  document.getElementById('rangeInput').value=Math.round(detRange);
+  timeout=cfg.timeout||0;
+  document.getElementById('timeoutInput').value=Math.round(timeout);
+  const sv=Math.round(cfg.stability||5);
+  document.getElementById('stabilitySlider').value=sv;
+  document.getElementById('stabilityVal').textContent=sv;
+  const mtOn=cfg.multi_target===true;
+  document.getElementById('multiTargetToggle').checked=mtOn;
+  document.getElementById('multiTargetLabel').textContent=mtOn?'ON':'OFF';
+  const btOn=cfg.bluetooth===true;
+  document.getElementById('btToggle').checked=btOn;
+  document.getElementById('btLabel').textContent=btOn?'ON':'OFF';
+  setRebootRequired(cfg.reboot_required===true);
+  draw();
+}
+
+async function requestReboot(){
+  if(!connected)return;
+  document.getElementById('rebootNotice').classList.remove('show');
+  const status=document.getElementById('statusDot');
+  status.classList.remove('ok');
+  connected=false;
+  setUiEnabled(false);
+  await fetch(BASE+'/api/v1/reboot',{method:'POST',...FETCH_OPTS});
+}
+
+async function saveZone(z){
+  if(!connected)return;
+  if(z<3){
+    const zonesPayload=[zones[0],zones[1],zones[2]].map(arr=>arr.map(p=>({x:Math.round(p.x),y:Math.round(p.y)})));
+    const res=await apiPatch('/api/v1/ld2450/config',{zones:zonesPayload});
+    setRebootRequired(res.reboot_required===true);
+  }else{
+    const exclusion=zones[3].map(p=>({x:Math.round(p.x),y:Math.round(p.y)}));
+    const res=await apiPatch('/api/v1/ld2450/config',{exclusion});
+    setRebootRequired(res.reboot_required===true);
+  }
+}
+
+async function saveCurrentZone(){saving=true;try{await saveZone(activeZone);await flushPrefs()}finally{saving=false}}
+async function saveAllZones(){saving=true;try{for(let z=0;z<ZONES;z++)await saveZone(z);await flushPrefs()}finally{saving=false}}
+function clearCurrentZone(){if(!connected)return;zones[activeZone]=[];draw()}
+async function saveRange(){
+  if(!connected)return;
+  const v=parseInt(document.getElementById('rangeInput').value)||0;
+  detRange=v;await apiPatch('/api/v1/ld2450/config',{detection_range:v});await flushPrefs();draw();
+}
+async function saveTimeout(){
+  if(!connected)return;
+  const v=parseInt(document.getElementById('timeoutInput').value)||0;
+  timeout=v;await apiPatch('/api/v1/ld2450/config',{timeout:v});await flushPrefs();
+}
+async function saveStability(){
+  if(!connected)return;
+  const v=parseInt(document.getElementById('stabilitySlider').value)||0;
+  await apiPatch('/api/v1/ld2450/config',{stability:v});await flushPrefs();
+}
+async function saveMultiTarget(){
+  if(!connected)return;
+  const on=document.getElementById('multiTargetToggle').checked;
+  document.getElementById('multiTargetLabel').textContent=on?'ON':'OFF';
+  const res=await apiPatch('/api/v1/ld2450/config',{multi_target:on});
+  await flushPrefs();
+  setRebootRequired(res.reboot_required===true);
+}
+async function saveBluetooth(){
+  if(!connected)return;
+  const on=document.getElementById('btToggle').checked;
+  document.getElementById('btLabel').textContent=on?'ON':'OFF';
+  await apiPatch('/api/v1/ld2450/config',{bluetooth:on});
+}
+
+// Polling for live target data
+let pollTimer=null;
+
+async function pollTargets(){
+  if(saving)return;
+  try{
+    const r=await fetch(BASE+'/api/v1/ld2450/live',FETCH_OPTS);
+    if(!r.ok)throw new Error();
+    const d=await r.json();
+    for(let i=0;i<3;i++){
+      targets[i].x=d.targets[i].x;
+      targets[i].y=d.targets[i].y;
+    }
+    if(!connected){
+      connected=true;
+      document.getElementById('statusDot').classList.add('ok');
+      setUiEnabled(true);
+      try{await loadAll()}catch(_e){}
+    }
+    draw();
+  }catch(e){
+    if(connected){
+      connected=false;
+      document.getElementById('statusDot').classList.remove('ok');
+      setUiEnabled(false);
+    }
+  }
+}
+
+async function init(){
+  try{
+    await loadAll();
+    connected=true;
+    document.getElementById('statusDot').classList.add('ok');
+    setUiEnabled(true);
+  }catch(e){
+    connected=false;
+    setUiEnabled(false);
+  }
+  pollTimer=setInterval(pollTargets,500);
+}
+
+resize();
+init();
+</script>
+</body>
+</html>
