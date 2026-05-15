@@ -230,6 +230,20 @@ voice_assistant:
         id(push_to_intercom_handoff) = false;
     - if:
         condition:
+          and:
+            - lambda: return id(wake_engine_select).state == "openwakeword";
+            - or:
+                - lambda: return code == "wake-provider-missing";
+                - lambda: return code == "wake-provider-disabled";
+                - lambda: return code == "wake-provider-error";
+        then:
+          - select.set:
+              id: wake_engine_select
+              option: microwakeword
+          - lambda: id(voice_assistant_phase) = 1;
+          - script.execute: control_leds
+    - if:
+        condition:
           or:
             - lambda: return code == "duplicate_wake_up_detected";
             - lambda: return code == "stt-no-text-recognized";
