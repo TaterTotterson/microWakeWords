@@ -18,6 +18,7 @@ external_components:
     components:
       - voice_assistant
       - micro_wake_word
+      - remote_wake_word
     refresh: 0s
 
 microphone:
@@ -91,6 +92,73 @@ micro_wake_word:
                             - voice_assistant.start:
                                 wake_word: !lambda return wake_word;
 
+remote_wake_word:
+  id: oww
+  microphone:
+    microphone: sat1_mics
+    channels: 1
+    gain_factor: 6
+  url: ${openwakeword_server_url}
+  source_device: ${node_name}
+  wake_word: ${wake_word_name}
+  chunk_duration_ms: 500
+  max_failures: ${openwakeword_max_failures}
+  http_timeout_ms: ${openwakeword_http_timeout_ms}
+  on_wake_word_detected:
+    - logger.log:
+        level: INFO
+        tag: tater.voice
+        format: "Remote openWakeWord detected: %s"
+        args: [ 'wake_word.c_str()' ]
+    - if:
+        condition:
+          switch.is_off: master_mute_switch
+        then:
+          - if:
+              condition:
+                switch.is_on: timer_ringing
+              then:
+                - switch.turn_off: timer_ringing
+              else:
+                - if:
+                    condition:
+                      voice_assistant.is_running:
+                    then:
+                      - voice_assistant.stop:
+                    else:
+                      - lambda: |-
+                          id(openwakeword_wake_detected) = true;
+                          id(voice_assistant_phase) = 2;
+                      - script.execute: control_leds
+                      - if:
+                          condition:
+                            media_player.is_announcing:
+                          then:
+                            - media_player.stop:
+                                announcement: true
+                      - if:
+                          condition:
+                            switch.is_on: wake_sound
+                          then:
+                            - script.execute:
+                                id: play_sound
+                                priority: false
+                                sound_file: !lambda return id(wake_word_triggered_sound);
+                            - delay: 300ms
+                      - voice_assistant.start:
+                          wake_word: !lambda return wake_word;
+  on_error:
+    - logger.log:
+        level: WARN
+        tag: tater.voice
+        format: "Remote openWakeWord unavailable, falling back to microWakeWord: %s"
+        args: [ 'message.c_str()' ]
+    - lambda: |-
+        id(openwakeword_wake_detected) = false;
+        auto call = id(wake_engine_select).make_call();
+        call.set_option("microwakeword");
+        call.perform();
+
 switch:
   - platform: template
     id: capture_wake_audio
@@ -130,6 +198,19 @@ text:
     set_action:
       - lambda: id(mww).set_capture_upload_url(x);
 
+  - platform: template
+    id: openwakeword_server_url
+    name: openWakeWord Server URL
+    icon: "mdi:server-network"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: "${openwakeword_server_url}"
+    mode: TEXT
+    max_length: 255
+    set_action:
+      - lambda: id(oww).set_url(x);
+
 number:
   - platform: template
     id: close_miss_threshold
@@ -144,6 +225,35 @@ number:
     step: 0.01
     set_action:
       - lambda: id(mww).set_capture_close_miss_probability_cutoff(x);
+
+  - platform: template
+    id: openwakeword_http_timeout_ms
+    name: openWakeWord HTTP Timeout
+    icon: "mdi:timer-outline"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: ${openwakeword_http_timeout_ms}
+    min_value: 250
+    max_value: 10000
+    step: 50
+    unit_of_measurement: ms
+    set_action:
+      - lambda: id(oww).set_http_timeout_ms((uint32_t) x);
+
+  - platform: template
+    id: openwakeword_max_failures
+    name: openWakeWord Max Failures
+    icon: "mdi:alert-circle-outline"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: ${openwakeword_max_failures}
+    min_value: 1
+    max_value: 20
+    step: 1
+    set_action:
+      - lambda: id(oww).set_max_failures((uint8_t) x);
 
 voice_assistant:
   id: va
@@ -170,6 +280,7 @@ voice_assistant:
         id(mww).set_capture_close_misses_enabled(id(capture_close_misses).state);
         id(mww).set_capture_close_miss_probability_cutoff(id(close_miss_threshold).state);
         id(mww).set_capture_upload_url(id(trainer_app_url).state);
+        id(oww).set_url(id(openwakeword_server_url).state);
     - script.execute: apply_wake_engine
     - lambda: id(voice_assistant_phase) = 1;
     - script.execute: control_leds
@@ -179,6 +290,7 @@ voice_assistant:
         tag: tater.voice
         format: "Voice assistant client disconnected; stopping wake word detection."
     - voice_assistant.stop:
+    - remote_wake_word.stop:
     - lambda: |-
         id(openwakeword_wake_detected) = false;
         id(voice_assistant_phase) = 10;
@@ -240,6 +352,7 @@ voice_assistant:
 
   # When the voice assistant starts: Play a wake up sound, duck audio.
   on_start:
+    - remote_wake_word.stop:
     - mixer_speaker.apply_ducking:
         id: media_mixing_input
         decibel_reduction: 20   # Number of dB quieter; higher implies more quiet, 0 implies full volume
@@ -359,16 +472,28 @@ script:
                   lambda: return id(wake_engine_select).state == "openwakeword";
                 then:
                   - micro_wake_word.stop:
+                  - if:
+                      condition:
+                        voice_assistant.is_running:
+                      then:
+                        - voice_assistant.stop:
+                        - delay: 150ms
+                  - remote_wake_word.stop:
+                  - wait_until:
+                      condition:
+                        lambda: return !id(oww).is_running();
+                      timeout: 3s
                   - lambda: |-
                       id(openwakeword_wake_detected) = false;
                       id(voice_assistant_phase) = 1;
-                      id(va).set_use_wake_word(true);
-                  - if:
-                      condition:
-                        not:
-                          voice_assistant.is_running:
-                      then:
-                        - voice_assistant.start_continuous:
+                      id(va).set_use_wake_word(false);
+                      id(oww).set_url(id(openwakeword_server_url).state);
+                  - logger.log:
+                      level: INFO
+                      tag: tater.voice
+                      format: "Using remote openWakeWord endpoint (%s)."
+                      args: [ 'id(openwakeword_server_url).state.c_str()' ]
+                  - remote_wake_word.start:
                   - script.execute: control_leds
                 else:
                   - if:
@@ -377,6 +502,11 @@ script:
                       then:
                         - voice_assistant.stop:
                   - delay: 150ms
+                  - remote_wake_word.stop:
+                  - wait_until:
+                      condition:
+                        lambda: return !id(oww).is_running();
+                      timeout: 3s
                   - lambda: |-
                       id(openwakeword_wake_detected) = false;
                       id(va).set_use_wake_word(false);

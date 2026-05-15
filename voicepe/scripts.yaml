@@ -11,16 +11,28 @@ script:
                   lambda: return id(wake_engine_select).state == "openwakeword";
                 then:
                   - micro_wake_word.stop:
+                  - if:
+                      condition:
+                        voice_assistant.is_running:
+                      then:
+                        - voice_assistant.stop:
+                        - delay: 150ms
+                  - remote_wake_word.stop:
+                  - wait_until:
+                      condition:
+                        lambda: return !id(oww).is_running();
+                      timeout: 3s
                   - lambda: |-
                       id(openwakeword_wake_detected) = false;
                       id(voice_assistant_phase) = 1;
-                      id(va).set_use_wake_word(true);
-                  - if:
-                      condition:
-                        not:
-                          voice_assistant.is_running:
-                      then:
-                        - voice_assistant.start_continuous:
+                      id(va).set_use_wake_word(false);
+                      id(oww).set_url(id(openwakeword_server_url).state);
+                  - logger.log:
+                      level: INFO
+                      tag: tater.voice
+                      format: "Using remote openWakeWord endpoint (%s)."
+                      args: [ 'id(openwakeword_server_url).state.c_str()' ]
+                  - remote_wake_word.start:
                   - script.execute: control_leds
                 else:
                   - if:
@@ -29,6 +41,11 @@ script:
                       then:
                         - voice_assistant.stop:
                   - delay: 150ms
+                  - remote_wake_word.stop:
+                  - wait_until:
+                      condition:
+                        lambda: return !id(oww).is_running();
+                      timeout: 3s
                   - lambda: |-
                       id(openwakeword_wake_detected) = false;
                       id(va).set_use_wake_word(false);
