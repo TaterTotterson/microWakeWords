@@ -1,6 +1,6 @@
 substitutions:
   # DEVICE IDENTITY
-  firmware_version: "1.0.5"
+  firmware_version: "v2.0.0"
   device_name: tatervpe
   friendly_name: TaterVPE
 
@@ -10,7 +10,10 @@ substitutions:
   ha_voice_ip: "127.0.0.1"   # optional - remove if not needed
 
   # WAKE WORD CONFIG
-  wake_engine: microwakeword
+  wake_engine: openwakeword
+  openwakeword_server_url: http://tater.local:8501
+  openwakeword_http_timeout_ms: "1400"
+  openwakeword_max_failures: "3"
   wake_word_name: hey_tater
   wake_word_model_url: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/microWakeWords/hey_tater.json
 
