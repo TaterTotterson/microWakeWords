@@ -87,7 +87,7 @@ micro_wake_word:
                                       id: play_sound
                                       priority: false
                                       sound_file: !lambda return id(wake_word_triggered_sound);
-                                  - delay: 300ms
+                                  - delay: 120ms
                             - voice_assistant.start:
                                 wake_word: !lambda return wake_word;
 
@@ -236,7 +236,7 @@ voice_assistant:
                     id: play_sound
                     priority: false
                     sound_file: !lambda return id(wake_word_triggered_sound);
-                - delay: 300ms
+                - delay: 120ms
 
   # When the voice assistant starts: Play a wake up sound, duck audio.
   on_start:
