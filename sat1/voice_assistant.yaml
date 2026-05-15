@@ -221,6 +221,9 @@ voice_assistant:
             - lambda: return !id(init_in_progress);
             - lambda: return code != "duplicate_wake_up_detected";
             - lambda: return code != "stt-no-text-recognized";
+            - lambda: return code != "wake-provider-missing";
+            - lambda: return code != "wake-provider-disabled";
+            - lambda: return code != "wake-provider-error";
         then:
           - lambda: id(voice_assistant_phase) = 11;
           - script.execute: control_leds
@@ -237,7 +240,7 @@ voice_assistant:
         then:
           - lambda: |-
               id(openwakeword_wake_detected) = true;
-              id(voice_assistant_phase) = 3;
+              id(voice_assistant_phase) = 2;
           - script.execute: control_leds
           - if:
               condition:
@@ -264,7 +267,7 @@ voice_assistant:
         condition:
           lambda: return id(wake_engine_select).state != "openwakeword" || id(openwakeword_wake_detected) || id(push_to_intercom_active);
         then:
-          - lambda: id(voice_assistant_phase) = 3;
+          - lambda: id(voice_assistant_phase) = 2;
         else:
           - lambda: id(voice_assistant_phase) = 1;
     - script.execute: control_leds
