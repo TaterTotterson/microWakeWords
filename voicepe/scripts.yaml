@@ -4,20 +4,24 @@ script:
     then:
       - if:
           condition:
-            lambda: return !id(init_in_progress);
+            lambda: return !id(init_in_progress) && !id(push_to_intercom_active);
           then:
             - if:
                 condition:
                   lambda: return id(wake_engine_select).state == "openwakeword";
                 then:
                   - micro_wake_word.stop:
-                  - lambda: id(va).set_use_wake_word(true);
+                  - lambda: |-
+                      id(openwakeword_wake_detected) = false;
+                      id(voice_assistant_phase) = 1;
+                      id(va).set_use_wake_word(true);
                   - if:
                       condition:
                         not:
                           voice_assistant.is_running:
                       then:
                         - voice_assistant.start_continuous:
+                  - script.execute: control_leds
                 else:
                   - if:
                       condition:
@@ -25,7 +29,9 @@ script:
                       then:
                         - voice_assistant.stop:
                   - delay: 150ms
-                  - lambda: id(va).set_use_wake_word(false);
+                  - lambda: |-
+                      id(openwakeword_wake_detected) = false;
+                      id(va).set_use_wake_word(false);
                   - if:
                       condition:
                         switch.is_off: timer_ringing

@@ -62,4 +62,5 @@ event:
       - double_press
       - triple_press
       - long_press
+      - push_to_intercom
       - easter_egg_press

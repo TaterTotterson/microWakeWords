@@ -223,8 +223,6 @@ binary_sensor:
                 and:
                   - lambda: return !id(init_in_progress) && !id(color_changed) && !id(group_volume_changed) && !id(factory_reset_requested);
                   - switch.is_off: master_mute_switch
-                  - not:
-                      voice_assistant.is_running:
               then:
                 - if:
                     condition:
@@ -238,6 +236,16 @@ binary_sensor:
                     id(push_to_intercom_active) = true;
                     id(voice_assistant_phase) = 3;
                 - script.execute: control_leds
+                - if:
+                    condition:
+                      voice_assistant.is_running:
+                    then:
+                      - lambda: id(push_to_intercom_handoff) = true;
+                      - voice_assistant.stop:
+                      - wait_until:
+                          not:
+                            voice_assistant.is_running
+                      - delay: 50ms
                 - script.execute:
                     id: play_sound
                     priority: true

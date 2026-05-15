@@ -4,6 +4,11 @@ globals:
     type: int
     restore_value: no
     initial_value: '10'
+  # True after Tater's server-side openWakeWord detector has fired for this turn.
+  - id: openwakeword_wake_detected
+    type: bool
+    restore_value: no
+    initial_value: 'false'
 
 external_components:
   - source:
@@ -157,7 +162,9 @@ voice_assistant:
         level: INFO
         tag: tater.voice
         format: "Voice assistant client connected; starting wake word detection."
-    - lambda: id(init_in_progress) = false;
+    - lambda: |-
+        id(init_in_progress) = false;
+        id(openwakeword_wake_detected) = false;
     - lambda: |-
         id(mww).set_capture_upload_enabled(id(capture_wake_audio).state);
         id(mww).set_capture_close_misses_enabled(id(capture_close_misses).state);
@@ -172,15 +179,34 @@ voice_assistant:
         tag: tater.voice
         format: "Voice assistant client disconnected; stopping wake word detection."
     - voice_assistant.stop:
-    - lambda: id(voice_assistant_phase) = 10;
+    - lambda: |-
+        id(openwakeword_wake_detected) = false;
+        id(voice_assistant_phase) = 10;
     - script.execute: control_leds
   on_error:
-    - lambda: id(push_to_intercom_active) = false;
+    - lambda: |-
+        id(openwakeword_wake_detected) = false;
+        id(push_to_intercom_active) = false;
+        id(push_to_intercom_handoff) = false;
+    - if:
+        condition:
+          or:
+            - lambda: return code == "duplicate_wake_up_detected";
+            - lambda: return code == "stt-no-text-recognized";
+        then:
+          - if:
+              condition:
+                voice_assistant.is_running:
+              then:
+                - voice_assistant.stop:
+          - lambda: id(voice_assistant_phase) = 1;
+          - script.execute: control_leds
     - if:
         condition:
           and:
             - lambda: return !id(init_in_progress);
             - lambda: return code != "duplicate_wake_up_detected";
+            - lambda: return code != "stt-no-text-recognized";
         then:
           - lambda: id(voice_assistant_phase) = 11;
           - script.execute: control_leds
@@ -190,6 +216,28 @@ voice_assistant:
         decibel_reduction: 0   # 0 dB means no reduction
         duration: 1.0s
 
+  on_wake_word_detected:
+    - if:
+        condition:
+          lambda: return id(wake_engine_select).state == "openwakeword";
+        then:
+          - lambda: |-
+              id(openwakeword_wake_detected) = true;
+              id(voice_assistant_phase) = 2;
+          - script.execute: control_leds
+          - if:
+              condition:
+                and:
+                  - switch.is_off: master_mute_switch
+                  - switch.is_off: timer_ringing
+                  - switch.is_on: wake_sound
+              then:
+                - script.execute:
+                    id: play_sound
+                    priority: false
+                    sound_file: !lambda return id(wake_word_triggered_sound);
+                - delay: 300ms
+
   # When the voice assistant starts: Play a wake up sound, duck audio.
   on_start:
     - mixer_speaker.apply_ducking:
@@ -198,22 +246,42 @@ voice_assistant:
         duration: 0.0s          # The duration of the transition (default is 0)
     - micro_wake_word.disable_model: ${wake_word_name}
   on_listening:
-    - lambda: id(voice_assistant_phase) = 2;
+    - if:
+        condition:
+          lambda: return id(wake_engine_select).state != "openwakeword" || id(openwakeword_wake_detected) || id(push_to_intercom_active);
+        then:
+          - lambda: id(voice_assistant_phase) = 2;
+        else:
+          - lambda: id(voice_assistant_phase) = 1;
     - script.execute: control_leds
   on_stt_vad_start:
-    - lambda: id(voice_assistant_phase) = 3;
-    - script.execute: control_leds
+    - if:
+        condition:
+          lambda: return id(wake_engine_select).state != "openwakeword" || id(openwakeword_wake_detected) || id(push_to_intercom_active);
+        then:
+          - lambda: id(voice_assistant_phase) = 3;
+          - script.execute: control_leds
   on_stt_vad_end:
-    - lambda: id(voice_assistant_phase) = 4;
-    - script.execute: control_leds
+    - if:
+        condition:
+          lambda: return id(wake_engine_select).state != "openwakeword" || id(openwakeword_wake_detected) || id(push_to_intercom_active);
+        then:
+          - lambda: id(voice_assistant_phase) = 4;
+          - script.execute: control_leds
   on_tool_call_start:
-    - lambda: id(voice_assistant_phase) = 6;
-    - script.execute: control_leds
+    - if:
+        condition:
+          lambda: return id(wake_engine_select).state != "openwakeword" || id(openwakeword_wake_detected) || id(push_to_intercom_active);
+        then:
+          - lambda: id(voice_assistant_phase) = 6;
+          - script.execute: control_leds
   on_intent_progress:
     - if:
         condition:
-          # A nonempty x variable means a streaming TTS url was sent to the media player
-          lambda: 'return !x.empty();'
+          and:
+            # A nonempty x variable means a streaming TTS url was sent to the media player
+            - lambda: 'return !x.empty();'
+            - lambda: return id(wake_engine_select).state != "openwakeword" || id(openwakeword_wake_detected) || id(push_to_intercom_active);
         then:
           - lambda: id(voice_assistant_phase) = 5;
           - script.execute: control_leds
@@ -222,8 +290,10 @@ voice_assistant:
   on_tts_start:
     - if:
         condition:
-          # The intent_progress trigger didn't start the TTS Reponse
-          lambda: 'return id(voice_assistant_phase) != 5;'
+          and:
+            # The intent_progress trigger didn't start the TTS Reponse
+            - lambda: 'return id(voice_assistant_phase) != 5;'
+            - lambda: return id(wake_engine_select).state != "openwakeword" || id(openwakeword_wake_detected) || id(push_to_intercom_active);
         then:
           - lambda: id(voice_assistant_phase) = 5;
           - script.execute: control_leds
@@ -234,7 +304,14 @@ voice_assistant:
     - wait_until:
         not:
           voice_assistant.is_running:
-    - lambda: id(push_to_intercom_active) = false;
+    - if:
+        condition:
+          lambda: return id(push_to_intercom_handoff);
+        then:
+          - lambda: id(push_to_intercom_handoff) = false;
+        else:
+          - lambda: id(push_to_intercom_active) = false;
+    - lambda: id(openwakeword_wake_detected) = false;
     # Stop ducking audio.
     - mixer_speaker.apply_ducking:
         id: media_mixing_input
@@ -243,7 +320,11 @@ voice_assistant:
     # Stop the script that would potentially enable the stop word if the response is longer than a second
     - script.stop: activate_stop_word_if_tts_step_is_long
     # Disable the stop word if the timer is not ringing, and re-enable the normal wake path.
-    - script.execute: apply_wake_engine
+    - if:
+        condition:
+          lambda: return !id(push_to_intercom_active);
+        then:
+          - script.execute: apply_wake_engine
     # If the end happened because of an error, let the error phase on for a second
     - if:
         condition:
@@ -271,20 +352,24 @@ script:
     then:
       - if:
           condition:
-            lambda: return !id(init_in_progress);
+            lambda: return !id(init_in_progress) && !id(push_to_intercom_active);
           then:
             - if:
                 condition:
                   lambda: return id(wake_engine_select).state == "openwakeword";
                 then:
                   - micro_wake_word.stop:
-                  - lambda: id(va).set_use_wake_word(true);
+                  - lambda: |-
+                      id(openwakeword_wake_detected) = false;
+                      id(voice_assistant_phase) = 1;
+                      id(va).set_use_wake_word(true);
                   - if:
                       condition:
                         not:
                           voice_assistant.is_running:
                       then:
                         - voice_assistant.start_continuous:
+                  - script.execute: control_leds
                 else:
                   - if:
                       condition:
@@ -292,7 +377,9 @@ script:
                       then:
                         - voice_assistant.stop:
                   - delay: 150ms
-                  - lambda: id(va).set_use_wake_word(false);
+                  - lambda: |-
+                      id(openwakeword_wake_detected) = false;
+                      id(va).set_use_wake_word(false);
                   - if:
                       condition:
                         switch.is_off: timer_ringing
