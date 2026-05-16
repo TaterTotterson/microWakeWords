@@ -155,6 +155,8 @@ sensor:
     unit_of_measurement: s
     accuracy_decimals: 0
     update_interval: 1s
+    filters:
+      - delta: 1
     lambda: |-
       return id(remote_timer_remaining_seconds);
 
