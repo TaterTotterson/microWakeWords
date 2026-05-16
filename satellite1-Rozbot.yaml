@@ -37,6 +37,15 @@ substitutions:
   wake_model_stop_url: https://github.com/kahrendt/microWakeWord/releases/download/stop/stop.json
 
   # -----------------------------
+  # OPENWAKEWORD (remote) CONFIG
+  # Required by voice_assistant.yaml package even when using microwakeword.
+  # Leave as-is if you are not using a remote OpenWakeWord server.
+  # -----------------------------
+  openwakeword_server_url: ""
+  openwakeword_max_failures: "3"
+  openwakeword_http_timeout_ms: "500"
+
+  # -----------------------------
   # WAKE WORD SENSITIVITY (probability cutoff)
   # -----------------------------
   wake_cutoff_slight: "250"     # ~0.98
@@ -216,13 +225,13 @@ logger:
     sensor: WARN  # avoids logging frequent sensor updates
 
 dashboard_import:
-  package_import_url: github://TaterTotterson/microWakeWords/satellite1-TaterTimer.yaml@main
+  package_import_url: github://TryTryAgain/my-satellite1-config/satellite1-Rozbot.yaml@main
   import_full_config: true
 
 external_components:
   - source:
       type: git
-      url: https://github.com/TaterTotterson/microWakeWords
+      url: https://github.com/TryTryAgain/my-satellite1-config
       ref: main
       path: sat1/components
     components:
@@ -236,8 +245,8 @@ external_components:
     refresh: 0s
 
 packages:
-  TaterTotterson.Sat1:
-    url: https://github.com/TaterTotterson/microWakeWords
+  Rozbot.Sat1:
+    url: https://github.com/TryTryAgain/my-satellite1-config
     ref: main
     files:
       - sat1/dashboard_build.yaml
