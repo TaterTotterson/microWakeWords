@@ -5,10 +5,10 @@
     {
       "key": "wakeSounds",
       "label": "wakeSounds",
-      "count": 35
+      "count": 36
     }
   ],
-  "count": 35,
+  "count": 36,
   "entries": [
     {
       "id": "wakeSounds:14",
@@ -107,6 +107,20 @@
       "extension": "flac",
       "media_type": "audio/flac",
       "size_bytes": 13938
+    },
+    {
+      "id": "wakeSounds:danny-low_what",
+      "source": "wakeSounds",
+      "source_label": "wakeSounds",
+      "slug": "danny-low_what",
+      "name": "danny-low_what",
+      "label": "Danny Low What",
+      "path": "wakeSounds/danny-low_what.flac",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/danny-low_what.flac",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/danny-low_what.flac",
+      "extension": "flac",
+      "media_type": "audio/flac",
+      "size_bytes": 20150
     },
     {
       "id": "wakeSounds:double-beep",
