@@ -1,0 +1,43 @@
+substitutions:
+  name: satellite1-c7f604
+  friendly_name: Rozbot
+  xmos_fw_version: v1.0.3
+  log_level: debug
+
+packages:
+  FutureProofHomes.Satellite1:
+    url: https://github.com/futureproofhomes/satellite1-esphome
+    ref: staging
+    refresh: 1s
+    files:
+      - config/satellite1.base.yaml
+      - config/common/dashboard_build.yaml
+      - path: config/common/components.external.yaml
+        vars:
+          ext_comp_repo_ref: staging
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  name_add_mac_suffix: false
+
+logger:
+  level: ${log_level}
+
+api:
+  encryption:
+    key: !secret sat_api_enc_key
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+micro_wake_word:
+  id: mww
+  models:
+    - id: hey_rozbot
+      model: https://raw.githubusercontent.com/TryTryAgain/my-satellite1-config/refs/heads/main/microWakeWordsV3/hey_rozbot.json
+    - id: !remove hey_jarvis
+
+select:
+  id: !remove mww_sensitivity_select

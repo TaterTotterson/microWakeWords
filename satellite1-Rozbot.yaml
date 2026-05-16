@@ -1,0 +1,346 @@
+substitutions:
+  # -----------------------------
+  # DEVICE IDENTITY
+  # -----------------------------
+  friendly_name: "Rozbot"
+  node_name: satellite1-c7f604
+  company_name: FractalSystems
+  project_name: Rozbot_Sat1
+  component_name: Core
+
+  # -----------------------------
+  # WIFI / NETWORK
+  # -----------------------------
+  wifi_ssid: !secret wifi_ssid
+  wifi_password: !secret wifi_password
+  # ha_voice_ip: "127.0.0.1"   # optional - remove if not needed
+  hidden_ssid: "false"
+
+  # -----------------------------
+  # SENSOR CALIBRATION
+  # -----------------------------
+  temp_offset: "-3"
+  humidity_offset: "5"
+
+  # -----------------------------
+  # FIRMWARE VERSIONS
+  # -----------------------------
+  esp32_fw_version: "1.0.12"
+  xmos_fw_version: "v1.0.3"
+
+  # -----------------------------
+  # WAKE WORD CONFIG
+  # -----------------------------
+  wake_engine: microwakeword
+  wake_word_name: hey_rozbot
+  wake_word_model_url: https://raw.githubusercontent.com/TryTryAgain/my-satellite1-config/refs/heads/main/microWakeWordsV3/hey_rozbot.json
+  wake_model_stop_url: https://github.com/kahrendt/microWakeWord/releases/download/stop/stop.json
+
+  # -----------------------------
+  # WAKE WORD SENSITIVITY (probability cutoff)
+  # -----------------------------
+  wake_cutoff_slight: "250"     # ~0.98
+  wake_cutoff_moderate: "245"   # ~0.96
+  wake_cutoff_very: "222"       # ~0.87
+
+  # -----------------------------
+  # AUDIO FILE URLS
+  # -----------------------------
+  center_button_press_sound_file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/center_button_press.flac
+  center_button_double_press_sound_file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/center_button_double_press.flac
+  center_button_triple_press_sound_file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/center_button_triple_press.flac
+  center_button_long_press_sound_file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/center_button_long_press.flac
+  factory_reset_initiated_sound_file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/factory_reset_initiated.mp3
+  factory_reset_cancelled_sound_file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/factory_reset_cancelled.mp3
+  mute_switch_on_sound_file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/mute_switch_on.flac
+  mute_switch_off_sound_file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/mute_switch_off.flac
+  timer_finished_sound_file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/timer_finished.flac
+  wake_word_triggered_sound_file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/wake_word_triggered.flac
+  jack_connected_sound_file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/jack_connected.flac
+  jack_disconnected_sound_file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/jack_disconnected.flac
+
+globals:
+  # Global initialisation variable. Initialized to true and set to false once everything is connected. Only used to have a smooth "plugging" experience
+  - id: init_in_progress
+    type: bool
+    restore_value: no
+    initial_value: 'true'
+  # Global variable storing if user action causes warning
+  - id: warning
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  # Global variable tracking the XMOS flasher status.
+  - id: xmos_flashing_state
+    type: int
+    restore_value: no
+    initial_value: '0'
+  # Remote (device-local) timer total duration in seconds.
+  - id: remote_timer_total_seconds
+    type: int
+    restore_value: yes
+    initial_value: "0"
+  # Remote (device-local) timer remaining duration in seconds.
+  - id: remote_timer_remaining_seconds
+    type: int
+    restore_value: yes
+    initial_value: "0"
+  # Tracks whether the remote timer is currently running.
+  - id: remote_timer_running
+    type: bool
+    restore_value: yes
+    initial_value: "false"
+
+interval:
+  - interval: 1s
+    then:
+      - if:
+          condition:
+            lambda: return id(remote_timer_running);
+          then:
+            - lambda: |-
+                if (id(remote_timer_remaining_seconds) > 0) {
+                  id(remote_timer_remaining_seconds) -= 1;
+                }
+            - script.execute: control_leds
+            - if:
+                condition:
+                  lambda: return id(remote_timer_running) && (id(remote_timer_remaining_seconds) <= 0);
+                then:
+                  - lambda: |-
+                      id(remote_timer_running) = false;
+                  - switch.turn_on: timer_ringing
+                  - script.execute: control_leds
+
+number:
+  - platform: template
+    id: remote_timer_seconds
+    name: "Remote Timer Seconds"
+    icon: mdi:timer
+    min_value: 0
+    max_value: 7200
+    step: 1
+    optimistic: true
+    restore_value: true
+    set_action:
+      - lambda: |-
+          int v = (int) x;
+          if (v < 0) v = 0;
+          id(remote_timer_total_seconds) = v;
+          id(remote_timer_remaining_seconds) = v;
+          id(control_leds).execute();
+
+binary_sensor:
+  - platform: template
+    id: remote_timer_running_sensor
+    name: "Remote Timer Running"
+    device_class: running
+    lambda: |-
+      return id(remote_timer_running);
+
+sensor:
+  - platform: template
+    id: remote_timer_remaining_seconds_sensor
+    name: "Remote Timer Remaining Seconds"
+    icon: mdi:timer-sand
+    unit_of_measurement: s
+    accuracy_decimals: 0
+    update_interval: 1s
+    lambda: |-
+      return id(remote_timer_remaining_seconds);
+
+button:
+  - platform: template
+    id: remote_timer_start
+    name: "Remote Timer Start"
+    icon: mdi:play
+    on_press:
+      - lambda: |-
+          id(remote_timer_remaining_seconds) = id(remote_timer_total_seconds);
+          id(remote_timer_running) = (id(remote_timer_remaining_seconds) > 0);
+      - switch.turn_off: timer_ringing
+      - script.execute: control_leds
+
+  - platform: template
+    id: remote_timer_cancel
+    name: "Remote Timer Cancel"
+    icon: mdi:stop
+    on_press:
+      - lambda: |-
+          id(remote_timer_running) = false;
+          id(remote_timer_total_seconds) = 0;
+          id(remote_timer_remaining_seconds) = 0;
+      - switch.turn_off: timer_ringing
+      - script.execute: control_leds
+
+esphome:
+  name: ${node_name}
+  name_add_mac_suffix: true
+  friendly_name: ${friendly_name}
+  min_version: 2026.4.0
+
+  project:
+    name: ${company_name}.${project_name}
+    version: ${esp32_fw_version}
+
+  on_boot:
+    - priority: -100
+      then:
+        - logger.log: "${company_name} ${project_name} ${component_name} running ESP firmware: ${esp32_fw_version} and XMOS firmware: ${xmos_fw_version}"
+        # Run the script to refresh the LED status
+        - script.execute: control_leds
+        - delay: 1s
+
+        # if line_out was used previously but is not available try speaker
+        - lambda: |
+            if( !id(line_out_sensor).state && id(dac_proxy).active_dac == 1){
+              id(dac_proxy).activate_speaker();
+            }
+
+        # If after 10 minutes, the device is still initializing (It did not yet connect to Home Assistant), turn off the init_in_progress variable and run the script to refresh the LED status
+        - delay: 10min
+        - if:
+            condition:
+              lambda: return id(init_in_progress);
+            then:
+              - lambda: id(init_in_progress) = false;
+              - script.execute: control_leds
+
+ota:
+  - platform: esphome
+    id: ota_esphome
+
+logger:
+  level: DEBUG
+  logs:
+    sensor: WARN  # avoids logging frequent sensor updates
+
+dashboard_import:
+  package_import_url: github://TaterTotterson/microWakeWords/satellite1-TaterTimer.yaml@main
+  import_full_config: true
+
+external_components:
+  - source:
+      type: git
+      url: https://github.com/TaterTotterson/microWakeWords
+      ref: main
+      path: sat1/components
+    components:
+      - fusb302b
+      - i2s_audio
+      - memory_flasher
+      - pcm5122
+      - satellite1
+      - satellite1_radar
+      - tas2780
+    refresh: 0s
+
+packages:
+  TaterTotterson.Sat1:
+    url: https://github.com/TaterTotterson/microWakeWords
+    ref: main
+    files:
+      - sat1/dashboard_build.yaml
+      - sat1/core_board.yaml
+      - sat1/wifi_improv.yaml
+      - sat1/hat_sensors.yaml
+      - sat1/buttons.yaml
+      - sat1/home_assistant.yaml
+      - sat1/media_player.yaml
+      - sat1/voice_assistant.yaml
+      - sat1/timer.yaml
+      - sat1/led_ring.yaml
+
+      ## OPTIONAL COMPONENTS
+      # - sat1/mmwave_ld2410.yaml
+      # - sat1/mmwave_ld2450.yaml
+      # - sat1/debug.yaml
+      # - sat1/developer.yaml
+
+wifi:
+  ssid: ${wifi_ssid}
+  password: ${wifi_password}
+  fast_connect: ${hidden_ssid}
+
+api:
+  encryption:
+    key: !secret sat_api_enc_key
+
+http_request:
+
+safe_mode:
+
+status_led:
+  pin:
+    number: GPIO45
+    ignore_strapping_warning: true
+
+satellite1:
+  id: satellite1_id
+  spi_id: spi_0
+  cs_pin: GPIO10
+  data_rate: 8000000
+  spi_mode: MODE3
+  xmos_rst_pin: GPIO4
+
+  on_xmos_no_response:
+    then:
+      - text_sensor.template.publish:
+          id: xmos_firmware_version_text
+          state: !lambda 'return id(satellite1_id).status_string();'
+
+  on_xmos_connected:
+    then:
+      - text_sensor.template.publish:
+          id: xmos_firmware_version_text
+          state: !lambda 'return id(satellite1_id).status_string();'
+
+memory_flasher:
+  - platform: satellite1
+    id: xflash
+    embed_flash_image:
+      image_version: ${xmos_fw_version}
+      image_file: https://raw.githubusercontent.com/FutureProofHomes/Documentation/refs/heads/main/assets/firmware/xmos/${xmos_fw_version}/satellite1_firmware_fixed_delay.factory.bin
+      md5_file: https://raw.githubusercontent.com/FutureProofHomes/Documentation/refs/heads/main/assets/firmware/xmos/${xmos_fw_version}/satellite1_firmware_fixed_delay.factory.md5
+
+    on_flashing_start:
+      then:
+        - lambda: id(xmos_flashing_state) = 1;
+        - script.execute: control_leds
+
+    on_progress_update:
+      then:
+        - lambda: id(global_led_animation_index) = id(xflash).flashing_progress * 24 / 100;
+        - script.execute: control_leds
+
+    on_flashing_success:
+      then:
+        - logger.log: "success called"
+        - lambda: id(xmos_flashing_state) = 2;
+        - script.execute: control_leds
+        - lambda: id(xmos_flashing_state) = 0;
+        - if:
+            condition:
+              lambda: |-
+                return id(pd_fusb302b).contract_voltage >= 9;
+            then:
+              - tas2780.activate:
+                  mode: 2
+            else:
+              - tas2780.activate:
+                  mode: 0
+
+    on_flashing_failed:
+      then:
+        - logger.log: "failed called"
+        - lambda: id(xmos_flashing_state) = 3;
+        - script.execute: control_leds
+        - lambda: id(xmos_flashing_state) = 0;
+
+    on_erasing_done:
+      then:
+        - if:
+            condition:
+              lambda: return id(factory_reset_requested);
+            then:
+              - button.press: factory_reset_button
