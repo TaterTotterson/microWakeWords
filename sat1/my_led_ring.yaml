@@ -14,29 +14,77 @@ globals:
     type: bool
     restore_value: no
     initial_value: 'false'
-  # Global variable to enable Christmas lights mode.
-  - id: christmas_mode
-    type: bool
-    restore_value: yes
-    initial_value: 'false'
+
+select:
+  - platform: template
+    id: festivity_select
+    name: "Festivity Theme"
+    icon: "mdi:party-popper"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_option: ${festivity_initial_theme}
+    options:
+      - "Off"
+      - "Christmas"
+      - "Halloween"
+      - "New Year"
+    on_value:
+      # Auto-populate the music URL for the selected theme
+      - if:
+          condition:
+            lambda: return x == "Christmas";
+          then:
+            - text.set:
+                id: festivity_music_url_text
+                value: ${christmas_music_url}
+      - if:
+          condition:
+            lambda: return x == "Halloween";
+          then:
+            - text.set:
+                id: festivity_music_url_text
+                value: ${halloween_music_url}
+      - if:
+          condition:
+            lambda: return x == "New Year";
+          then:
+            - text.set:
+                id: festivity_music_url_text
+                value: ${new_year_music_url}
+      - script.execute: control_leds
 
 switch:
-  # Expose Christmas Mode as a toggle switch in Home Assistant
   - platform: template
-    name: "Christmas Mode"
-    id: christmas_mode_switch
-    icon: "mdi:pine-tree"
-    lambda: 'return id(christmas_mode);'
+    id: festivity_music_switch
+    name: "Festivity Music"
+    icon: "mdi:music-note"
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
     turn_on_action:
-      - globals.set:
-          id: christmas_mode
-          value: 'true'
-      - script.execute: control_leds
+      - if:
+          condition:
+            lambda: return id(festivity_select).current_option() != "Off";
+          then:
+            - media_player.play_media:
+                id: external_media_player
+                media_url: !lambda return id(festivity_music_url_text).state;
     turn_off_action:
-      - globals.set:
-          id: christmas_mode
-          value: 'false'
-      - script.execute: control_leds
+      - media_player.stop:
+          id: external_media_player
+
+text:
+  - platform: template
+    id: festivity_music_url_text
+    name: "Festivity Music URL"
+    icon: "mdi:music-box-outline"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: ${christmas_music_url}
+    mode: TEXT
+    max_length: 500
 
 light:
   # Hardware LED ring. Not used because remapping needed
@@ -616,6 +664,84 @@ light:
               it[i] = xmas_colors[color_idx] * flicker[i];
             }
 
+      - addressable_lambda:
+          name: "Halloween Lights"
+          update_interval: 50ms
+          lambda: |-
+            static uint8_t flicker[24];
+            static uint8_t flicker_target[24];
+            static uint8_t rotation = 0;
+            static uint8_t rotation_counter = 0;
+            if (initial_run) {
+              for (int i = 0; i < 24; i++) {
+                flicker[i] = 100;
+                flicker_target[i] = 40 + (random_uint32() % 215);
+              }
+              rotation = 0;
+              rotation_counter = 0;
+            }
+            // Orange / Purple alternating every 2 LEDs
+            Color halloween_colors[2] = {
+              Color(255, 60, 0),   // Orange
+              Color(140, 0, 220),  // Purple
+            };
+            // Faster rotation than Christmas (~1 step every 0.75s)
+            rotation_counter++;
+            if (rotation_counter >= 15) {
+              rotation_counter = 0;
+              rotation = (rotation + 1) % 2;
+            }
+            for (int i = 0; i < 24; i++) {
+              if (flicker[i] < flicker_target[i]) {
+                uint8_t step = (flicker_target[i] - flicker[i]) > 8 ? 8 : (flicker_target[i] - flicker[i]);
+                flicker[i] += step;
+              } else if (flicker[i] > flicker_target[i]) {
+                uint8_t step = (flicker[i] - flicker_target[i]) > 8 ? 8 : (flicker[i] - flicker_target[i]);
+                flicker[i] -= step;
+              } else {
+                flicker_target[i] = 40 + (random_uint32() % 215);
+              }
+              int color_idx = (i % 2 + rotation) % 2;
+              it[i] = halloween_colors[color_idx] * flicker[i];
+            }
+
+      - addressable_lambda:
+          name: "New Year Lights"
+          update_interval: 30ms
+          lambda: |-
+            static uint8_t brightness[24] = {0};
+            static uint8_t color_idx[24] = {0};
+            static uint8_t timer[24] = {0};
+            if (initial_run) {
+              for (int i = 0; i < 24; i++) {
+                brightness[i] = 0;
+                timer[i] = random_uint32() % 20;
+                color_idx[i] = random_uint32() % 4;
+              }
+            }
+            // Gold / Silver / Red / Blue confetti burst
+            Color confetti[4] = {
+              Color(255, 215, 0),  // Gold
+              Color(210, 210, 210), // Silver
+              Color(255, 40, 40),  // Red
+              Color(40, 80, 255),  // Blue
+            };
+            for (int i = 0; i < 24; i++) {
+              if (timer[i] == 0) {
+                brightness[i] = 255;
+                color_idx[i] = random_uint32() % 4;
+                timer[i] = 4 + (random_uint32() % 18);
+              } else {
+                timer[i]--;
+              }
+              if (brightness[i] > 0) {
+                it[i] = confetti[color_idx[i]] * brightness[i];
+                brightness[i] = brightness[i] > 18 ? brightness[i] - 18 : 0;
+              } else {
+                it[i] = Color::BLACK;
+              }
+            }
+
 script:
   # Master script controlling the LEDs, based on different conditions : initialization in progress, wifi and api connected and voice assistant phase.
   # For the sake of simplicity and re-usability, the script calls child scripts defined below.
@@ -667,8 +793,12 @@ script:
             id(control_leds_muted_or_silent).execute();
           } else if (id(external_media_player).volume == 0.0f || id(external_media_player).is_muted()) {
             id(control_leds_muted_or_silent).execute();
-          } else if (id(christmas_mode)) {
+          } else if (id(festivity_select).current_option() == "Christmas") {
             id(control_leds_christmas_lights).execute();
+          } else if (id(festivity_select).current_option() == "Halloween") {
+            id(control_leds_halloween_lights).execute();
+          } else if (id(festivity_select).current_option() == "New Year") {
+            id(control_leds_new_year_lights).execute();
           } else if (id(voice_assistant_phase) == 1) {
             id(control_leds_voice_assistant_idle_phase).execute();
           }
@@ -909,3 +1039,21 @@ script:
           brightness: !lambda return max( id(led_ring).current_values.get_brightness() , 0.3f );
           id: voice_assistant_leds
           effect: "Christmas Lights"
+
+  # Script executed when Halloween Mode is active
+  # Orange / purple flickering pattern with faster circular rotation
+  - id: control_leds_halloween_lights
+    then:
+      - light.turn_on:
+          brightness: !lambda return max( id(led_ring).current_values.get_brightness() , 0.3f );
+          id: voice_assistant_leds
+          effect: "Halloween Lights"
+
+  # Script executed when New Year Mode is active
+  # Gold / silver / red / blue confetti burst sparkle
+  - id: control_leds_new_year_lights
+    then:
+      - light.turn_on:
+          brightness: !lambda return max( id(led_ring).current_values.get_brightness() , 0.3f );
+          id: voice_assistant_leds
+          effect: "New Year Lights"
