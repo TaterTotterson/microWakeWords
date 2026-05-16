@@ -3,7 +3,6 @@
 #ifdef USE_ESP32
 
 #include "esphome/components/audio/audio_transfer_buffer.h"
-#include "esphome/components/network/util.h"
 #include "esphome/core/application.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/helpers.h"
@@ -13,10 +12,12 @@
 #include "esp_crt_bundle.h"
 #endif
 
-#include <esp_http_client.h>
+#include <esp_event.h>
+#include <esp_websocket_client.h>
 
 #include <algorithm>
 #include <cctype>
+#include <cstdio>
 #include <cstring>
 #include <cstdlib>
 
@@ -26,10 +27,25 @@ namespace remote_wake_word {
 static const char *const TAG = "remote_wake_word";
 static const size_t DATA_TIMEOUT_MS = 50;
 static const uint32_t RING_BUFFER_DURATION_MS = 2000;
-static const size_t HTTP_BUFFER_SIZE = 2048;
 static const uint32_t TASK_STACK_SIZE = 12288;
 static const UBaseType_t TASK_PRIORITY = 2;
 static const ssize_t EVENT_QUEUE_LENGTH = 4;
+static const ssize_t WEBSOCKET_EVENT_QUEUE_LENGTH = 8;
+
+struct RemoteWakeWordWebSocketEvent {
+  enum Type {
+    CONNECTED,
+    DISCONNECTED,
+    ERROR,
+    DATA,
+  };
+  Type type;
+  std::string data;
+};
+
+struct RemoteWakeWordWebSocketContext {
+  QueueHandle_t queue{nullptr};
+};
 
 static const LogString *remote_wake_word_state_to_string(State state) {
   switch (state) {
@@ -60,6 +76,72 @@ static std::string trim_copy(const std::string &value) {
 
 static bool starts_with_http(const std::string &value) {
   return value.rfind("http://", 0) == 0 || value.rfind("https://", 0) == 0;
+}
+
+static bool starts_with_websocket(const std::string &value) {
+  return value.rfind("ws://", 0) == 0 || value.rfind("wss://", 0) == 0;
+}
+
+static std::string url_encode(const std::string &value) {
+  std::string encoded;
+  encoded.reserve(value.size());
+  char buffer[4] = {};
+  for (const unsigned char ch : value) {
+    if (std::isalnum(ch) || ch == '-' || ch == '_' || ch == '.' || ch == '~') {
+      encoded.push_back(static_cast<char>(ch));
+    } else {
+      std::snprintf(buffer, sizeof(buffer), "%%%02X", ch);
+      encoded.append(buffer);
+    }
+  }
+  return encoded;
+}
+
+static void queue_websocket_event(QueueHandle_t queue, RemoteWakeWordWebSocketEvent::Type type,
+                                  const char *data = nullptr, int data_len = 0) {
+  if (queue == nullptr) {
+    return;
+  }
+  auto *event = new RemoteWakeWordWebSocketEvent();
+  event->type = type;
+  if (data != nullptr && data_len > 0) {
+    event->data.assign(data, data_len);
+  }
+  if (xQueueSend(queue, &event, 0) != pdTRUE) {
+    delete event;
+  }
+}
+
+static void websocket_event_handler(void *handler_args, esp_event_base_t event_base, int32_t event_id,
+                                    void *event_data) {
+  auto *context = static_cast<RemoteWakeWordWebSocketContext *>(handler_args);
+  if (context == nullptr) {
+    return;
+  }
+  switch (event_id) {
+    case WEBSOCKET_EVENT_CONNECTED:
+      queue_websocket_event(context->queue, RemoteWakeWordWebSocketEvent::CONNECTED);
+      break;
+    case WEBSOCKET_EVENT_DISCONNECTED:
+      queue_websocket_event(context->queue, RemoteWakeWordWebSocketEvent::DISCONNECTED);
+      break;
+    case WEBSOCKET_EVENT_ERROR:
+      queue_websocket_event(context->queue, RemoteWakeWordWebSocketEvent::ERROR);
+      break;
+    case WEBSOCKET_EVENT_DATA: {
+      auto *data = static_cast<esp_websocket_event_data_t *>(event_data);
+      if (data == nullptr || data->data_ptr == nullptr || data->data_len <= 0) {
+        return;
+      }
+      if (data->op_code != 0x1 || (data->payload_len > data->data_len && data->payload_offset != 0)) {
+        return;
+      }
+      queue_websocket_event(context->queue, RemoteWakeWordWebSocketEvent::DATA, data->data_ptr, data->data_len);
+      break;
+    }
+    default:
+      break;
+  }
 }
 
 static bool response_has_true_field(const std::string &body, const std::string &field) {
@@ -125,14 +207,15 @@ static float json_float_field(const std::string &body, const std::string &field,
 float RemoteWakeWord::get_setup_priority() const { return setup_priority::AFTER_CONNECTION; }
 
 void RemoteWakeWord::dump_config() {
-  const std::string endpoint = this->build_endpoint_url_();
+  const std::string endpoint = trim_copy(this->url_);
   ESP_LOGCONFIG(TAG, "Remote Wake Word:");
   ESP_LOGCONFIG(TAG, "  endpoint: %s", endpoint.empty() ? "not configured" : endpoint.c_str());
+  ESP_LOGCONFIG(TAG, "  transport: WebSocket stream");
   ESP_LOGCONFIG(TAG, "  wake word hint: %s", this->wake_word_.empty() ? "any" : this->wake_word_.c_str());
   ESP_LOGCONFIG(TAG, "  source device: %s", this->source_device_.empty() ? "not configured" : this->source_device_.c_str());
   ESP_LOGCONFIG(TAG, "  chunk duration: %ums", static_cast<unsigned int>(this->chunk_duration_ms_));
   ESP_LOGCONFIG(TAG, "  max failures before fallback: %u", static_cast<unsigned int>(this->max_failures_));
-  ESP_LOGCONFIG(TAG, "  HTTP timeout: %ums", static_cast<unsigned int>(this->http_timeout_ms_));
+  ESP_LOGCONFIG(TAG, "  transport timeout: %ums", static_cast<unsigned int>(this->http_timeout_ms_));
 }
 
 void RemoteWakeWord::setup() {
@@ -171,13 +254,13 @@ void RemoteWakeWord::start() {
     ESP_LOGW(TAG, "Remote wake word detection is already running.");
     return;
   }
-  const std::string endpoint = this->build_endpoint_url_();
+  const std::string endpoint = trim_copy(this->url_);
   if (endpoint.empty()) {
     this->queue_event_(RemoteWakeWordEvent::ERROR, "", "Remote wake endpoint is not configured.", 0.0f);
     return;
   }
-  if (!starts_with_http(endpoint)) {
-    this->queue_event_(RemoteWakeWordEvent::ERROR, "", "Remote wake endpoint must be an HTTP URL.", 0.0f);
+  if (!starts_with_http(endpoint) && !starts_with_websocket(endpoint)) {
+    this->queue_event_(RemoteWakeWordEvent::ERROR, "", "Remote wake endpoint must be an HTTP or WebSocket URL.", 0.0f);
     return;
   }
   this->stop_requested_.store(false);
@@ -259,38 +342,144 @@ void RemoteWakeWord::detection_task(void *params) {
         parent->microphone_source_->start();
         parent->task_started_.store(true);
 
-        while (!parent->stop_requested_.load()) {
-          audio_buffer->transfer_data_from_source(pdMS_TO_TICKS(DATA_TIMEOUT_MS));
-          if (audio_buffer->available() < bytes_to_process) {
-            continue;
+        {
+          const std::string stream_endpoint = parent->build_stream_endpoint_url_(stream_info);
+          QueueHandle_t websocket_queue = xQueueCreate(WEBSOCKET_EVENT_QUEUE_LENGTH, sizeof(RemoteWakeWordWebSocketEvent *));
+          RemoteWakeWordWebSocketContext websocket_context{websocket_queue};
+          esp_websocket_client_config_t websocket_config = {};
+          websocket_config.uri = stream_endpoint.c_str();
+          websocket_config.disable_auto_reconnect = true;
+          websocket_config.network_timeout_ms = std::max<uint32_t>(parent->http_timeout_ms_, 3000);
+          websocket_config.reconnect_timeout_ms = std::max<uint32_t>(parent->http_timeout_ms_, 3000);
+          websocket_config.ping_interval_sec = 15;
+          websocket_config.buffer_size = 1024;
+          websocket_config.task_stack = 4096;
+#if CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
+          if (stream_endpoint.find("wss:") != std::string::npos) {
+            websocket_config.crt_bundle_attach = esp_crt_bundle_attach;
+          }
+#endif
+
+          esp_websocket_client_handle_t websocket_client = nullptr;
+          if (websocket_queue == nullptr) {
+            terminal_error = "WebSocket event queue could not be initialized.";
+          } else {
+            websocket_client = esp_websocket_client_init(&websocket_config);
+            if (websocket_client == nullptr) {
+              terminal_error = "WebSocket client could not be initialized.";
+            }
           }
 
-          std::vector<uint8_t> audio_bytes(bytes_to_process);
-          std::memcpy(audio_bytes.data(), audio_buffer->get_buffer_start(), bytes_to_process);
-          audio_buffer->decrease_buffer_length(bytes_to_process);
+          if (terminal_error.empty()) {
+            esp_websocket_register_events(websocket_client, WEBSOCKET_EVENT_ANY, websocket_event_handler,
+                                          &websocket_context);
+            const esp_err_t err = esp_websocket_client_start(websocket_client);
+            if (err != ESP_OK) {
+              terminal_error = std::string("WebSocket start failed: ") + esp_err_to_name(err);
+            }
+          }
 
-          RemoteWakeWordHttpResult result = parent->post_audio_chunk_(audio_bytes, stream_info);
-          if (!result.ok) {
-            const uint8_t failures = parent->consecutive_failures_.fetch_add(1) + 1;
-            ESP_LOGW(TAG, "Remote wake request failed (%u/%u): %s", static_cast<unsigned int>(failures),
-                     static_cast<unsigned int>(parent->max_failures_), result.error.c_str());
-            if (failures >= parent->max_failures_) {
-              terminal_error = result.error.empty() ? "Remote wake server is unavailable." : result.error;
+          bool websocket_connected = false;
+          auto drain_websocket_events = [&]() {
+            RemoteWakeWordWebSocketEvent *event = nullptr;
+            while (websocket_queue != nullptr && xQueueReceive(websocket_queue, &event, 0) == pdTRUE) {
+              delete event;
+            }
+          };
+          auto handle_websocket_event = [&](RemoteWakeWordWebSocketEvent *event) {
+            if (event == nullptr) {
+              return;
+            }
+            if (event->type == RemoteWakeWordWebSocketEvent::CONNECTED) {
+              websocket_connected = true;
+              parent->consecutive_failures_.store(0);
+            } else if (event->type == RemoteWakeWordWebSocketEvent::DISCONNECTED) {
+              if (!parent->stop_requested_.load() && detected_wake_word.empty()) {
+                terminal_error = "WebSocket disconnected.";
+              }
+            } else if (event->type == RemoteWakeWordWebSocketEvent::ERROR) {
+              if (!parent->stop_requested_.load() && detected_wake_word.empty()) {
+                terminal_error = "WebSocket error.";
+              }
+            } else if (event->type == RemoteWakeWordWebSocketEvent::DATA) {
+              if (response_has_true_field(event->data, "detected")) {
+                detected_wake_word = json_string_field(event->data, "wake_word");
+                if (detected_wake_word.empty()) {
+                  detected_wake_word = parent->wake_word_.empty() ? "openwakeword" : parent->wake_word_;
+                }
+                detected_score = json_float_field(event->data, "score", 0.0f);
+                parent->stop_requested_.store(true);
+              } else if (response_has_true_field(event->data, "ok") == false &&
+                         event->data.find("\"ok\"") != std::string::npos) {
+                const std::string message = json_string_field(event->data, "error");
+                terminal_error = message.empty() ? "WebSocket server returned an error." : message;
+              }
+            }
+          };
+
+          if (terminal_error.empty()) {
+            const uint32_t connect_started_ms = millis();
+            while (!websocket_connected && terminal_error.empty() && !parent->stop_requested_.load()) {
+              RemoteWakeWordWebSocketEvent *event = nullptr;
+              if (xQueueReceive(websocket_queue, &event, pdMS_TO_TICKS(50)) == pdTRUE) {
+                handle_websocket_event(event);
+                delete event;
+              }
+              if (!websocket_connected && (millis() - connect_started_ms) >= parent->http_timeout_ms_) {
+                terminal_error = "WebSocket connect timed out after " + std::to_string(parent->http_timeout_ms_) + "ms.";
+                break;
+              }
+            }
+          }
+
+          while (terminal_error.empty() && !parent->stop_requested_.load()) {
+            RemoteWakeWordWebSocketEvent *event = nullptr;
+            while (xQueueReceive(websocket_queue, &event, 0) == pdTRUE) {
+              handle_websocket_event(event);
+              delete event;
+              if (!terminal_error.empty() || !detected_wake_word.empty()) {
+                break;
+              }
+            }
+            if (!terminal_error.empty() || !detected_wake_word.empty()) {
               break;
             }
-            delay(100);
-            continue;
+
+            audio_buffer->transfer_data_from_source(pdMS_TO_TICKS(DATA_TIMEOUT_MS));
+            if (audio_buffer->available() < bytes_to_process) {
+              continue;
+            }
+
+            std::vector<uint8_t> audio_bytes(bytes_to_process);
+            std::memcpy(audio_bytes.data(), audio_buffer->get_buffer_start(), bytes_to_process);
+            audio_buffer->decrease_buffer_length(bytes_to_process);
+
+            const int sent =
+                esp_websocket_client_send_bin(websocket_client, reinterpret_cast<const char *>(audio_bytes.data()),
+                                              audio_bytes.size(), pdMS_TO_TICKS(parent->http_timeout_ms_));
+            if (sent != static_cast<int>(audio_bytes.size())) {
+              const uint8_t failures = parent->consecutive_failures_.fetch_add(1) + 1;
+              ESP_LOGW(TAG, "Remote wake WebSocket send failed (%u/%u): sent %d of %u bytes",
+                       static_cast<unsigned int>(failures), static_cast<unsigned int>(parent->max_failures_), sent,
+                       static_cast<unsigned int>(audio_bytes.size()));
+              if (failures >= parent->max_failures_) {
+                terminal_error = "WebSocket send failed.";
+                break;
+              }
+              delay(100);
+              continue;
+            }
+            parent->consecutive_failures_.store(0);
+            delay(0);
           }
 
-          parent->consecutive_failures_.store(0);
-          if (result.detected) {
-            detected_wake_word = result.wake_word.empty() ? parent->wake_word_ : result.wake_word;
-            if (detected_wake_word.empty()) {
-              detected_wake_word = "openwakeword";
-            }
-            detected_score = result.score;
-            parent->stop_requested_.store(true);
-            break;
+          if (websocket_client != nullptr) {
+            esp_websocket_client_stop(websocket_client);
+            esp_websocket_client_destroy(websocket_client);
+          }
+          drain_websocket_events();
+          if (websocket_queue != nullptr) {
+            vQueueDelete(websocket_queue);
           }
         }
         parent->microphone_source_->stop();
@@ -308,110 +497,38 @@ void RemoteWakeWord::detection_task(void *params) {
   vTaskDelete(nullptr);
 }
 
-RemoteWakeWordHttpResult RemoteWakeWord::post_audio_chunk_(const std::vector<uint8_t> &audio_bytes,
-                                                           const audio::AudioStreamInfo &stream_info) {
-  RemoteWakeWordHttpResult result;
-  if (!network::is_connected()) {
-    result.error = "network is not connected";
-    return result;
-  }
-  if (audio_bytes.empty()) {
-    result.ok = true;
-    return result;
-  }
-
-  const std::string endpoint = this->build_endpoint_url_();
-  esp_http_client_config_t config = {};
-  config.url = endpoint.c_str();
-  config.method = HTTP_METHOD_POST;
-  config.timeout_ms = this->http_timeout_ms_;
-  config.buffer_size = HTTP_BUFFER_SIZE;
-  config.buffer_size_tx = HTTP_BUFFER_SIZE;
-
-#if CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
-  if (endpoint.find("https:") != std::string::npos) {
-    config.crt_bundle_attach = esp_crt_bundle_attach;
-  }
-#endif
-
-  esp_http_client_handle_t client = esp_http_client_init(&config);
-  if (client == nullptr) {
-    result.error = "HTTP client could not be initialized";
-    return result;
-  }
-
-  const std::string sample_rate = std::to_string(stream_info.get_sample_rate());
-  const std::string bits_per_sample = std::to_string(stream_info.get_bits_per_sample());
-  const std::string channels = std::to_string(stream_info.get_channels());
-  esp_http_client_set_header(client, "Content-Type", "application/octet-stream");
-  esp_http_client_set_header(client, "X-Audio-Format", "pcm_s16le");
-  esp_http_client_set_header(client, "X-Audio-Rate", sample_rate.c_str());
-  esp_http_client_set_header(client, "X-Audio-Bits", bits_per_sample.c_str());
-  esp_http_client_set_header(client, "X-Audio-Channels", channels.c_str());
-  esp_http_client_set_header(client, "X-Source-Device", this->source_device_.c_str());
-  esp_http_client_set_header(client, "X-Wake-Word", this->wake_word_.c_str());
-
-  esp_err_t err = esp_http_client_open(client, audio_bytes.size());
-  if (err != ESP_OK) {
-    result.error = std::string("open failed: ") + esp_err_to_name(err);
-    esp_http_client_cleanup(client);
-    return result;
-  }
-
-  size_t bytes_written = 0;
-  const char *payload = reinterpret_cast<const char *>(audio_bytes.data());
-  while (bytes_written < audio_bytes.size()) {
-    const size_t remaining = audio_bytes.size() - bytes_written;
-    const size_t chunk_size = std::min(remaining, HTTP_BUFFER_SIZE);
-    const int written = esp_http_client_write(client, payload + bytes_written, chunk_size);
-    if (written <= 0) {
-      result.error = "write failed";
-      esp_http_client_close(client);
-      esp_http_client_cleanup(client);
-      return result;
-    }
-    bytes_written += written;
-    delay(0);
-  }
-
-  (void) esp_http_client_fetch_headers(client);
-  const int status_code = esp_http_client_get_status_code(client);
-  char response_buffer[512] = {};
-  const int read_len = esp_http_client_read_response(client, response_buffer, sizeof(response_buffer) - 1);
-  esp_http_client_close(client);
-  esp_http_client_cleanup(client);
-
-  if ((status_code < 200) || (status_code >= 300)) {
-    result.error = "HTTP status " + std::to_string(status_code);
-    return result;
-  }
-  if (read_len < 0) {
-    result.error = "read failed";
-    return result;
-  }
-
-  const std::string response(response_buffer, read_len > 0 ? read_len : 0);
-  result.ok = true;
-  result.detected = response_has_true_field(response, "detected");
-  if (result.detected) {
-    result.wake_word = json_string_field(response, "wake_word");
-    result.score = json_float_field(response, "score", 0.0f);
-  }
-  return result;
-}
-
-std::string RemoteWakeWord::build_endpoint_url_() const {
+std::string RemoteWakeWord::build_stream_endpoint_url_(const audio::AudioStreamInfo &stream_info) const {
   std::string endpoint = trim_copy(this->url_);
   if (endpoint.empty()) {
     return "";
   }
-  if (endpoint.find("/api/openwakeword/detect") != std::string::npos) {
-    return endpoint;
+  if (endpoint.rfind("http://", 0) == 0) {
+    endpoint.replace(0, 7, "ws://");
+  } else if (endpoint.rfind("https://", 0) == 0) {
+    endpoint.replace(0, 8, "wss://");
   }
-  while (!endpoint.empty() && endpoint.back() == '/') {
-    endpoint.pop_back();
+  const std::string detect_path = "/api/openwakeword/detect";
+  const std::string stream_path = "/api/openwakeword/stream";
+  const size_t detect_pos = endpoint.find(detect_path);
+  if (detect_pos != std::string::npos) {
+    endpoint.replace(detect_pos, detect_path.size(), stream_path);
+  } else if (endpoint.find(stream_path) == std::string::npos) {
+    while (!endpoint.empty() && endpoint.back() == '/') {
+      endpoint.pop_back();
+    }
+    endpoint += stream_path;
   }
-  return endpoint + "/api/openwakeword/detect";
+
+  const char separator = endpoint.find('?') == std::string::npos ? '?' : '&';
+  endpoint.push_back(separator);
+  endpoint += "selector=" + url_encode(this->source_device_);
+  if (!this->wake_word_.empty()) {
+    endpoint += "&wake_word=" + url_encode(this->wake_word_);
+  }
+  endpoint += "&rate=" + std::to_string(stream_info.get_sample_rate());
+  endpoint += "&bits=" + std::to_string(stream_info.get_bits_per_sample());
+  endpoint += "&channels=" + std::to_string(stream_info.get_channels());
+  return endpoint;
 }
 
 void RemoteWakeWord::queue_event_(RemoteWakeWordEvent::Type type, const std::string &wake_word,
