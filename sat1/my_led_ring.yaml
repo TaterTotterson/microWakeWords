@@ -30,28 +30,34 @@ select:
       - "Halloween"
       - "New Year"
     on_value:
-      # Auto-populate the music URL for the selected theme
+      # Auto-populate the music URL for the selected theme.
+      # Guard with init_in_progress so this doesn't fire during boot restore
+      # before festivity_music_url_text is initialized.
       - if:
           condition:
-            lambda: return x == "Christmas";
+            lambda: return !id(init_in_progress);
           then:
-            - text.set:
-                id: festivity_music_url_text
-                value: ${christmas_music_url}
-      - if:
-          condition:
-            lambda: return x == "Halloween";
-          then:
-            - text.set:
-                id: festivity_music_url_text
-                value: ${halloween_music_url}
-      - if:
-          condition:
-            lambda: return x == "New Year";
-          then:
-            - text.set:
-                id: festivity_music_url_text
-                value: ${new_year_music_url}
+            - if:
+                condition:
+                  lambda: return x == "Christmas";
+                then:
+                  - text.set:
+                      id: festivity_music_url_text
+                      value: ${christmas_music_url}
+            - if:
+                condition:
+                  lambda: return x == "Halloween";
+                then:
+                  - text.set:
+                      id: festivity_music_url_text
+                      value: ${halloween_music_url}
+            - if:
+                condition:
+                  lambda: return x == "New Year";
+                then:
+                  - text.set:
+                      id: festivity_music_url_text
+                      value: ${new_year_music_url}
       - script.execute: control_leds
 
 switch:
