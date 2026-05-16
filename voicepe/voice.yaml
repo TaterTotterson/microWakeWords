@@ -162,13 +162,9 @@ remote_wake_word:
     - logger.log:
         level: WARN
         tag: tater.voice
-        format: "Remote openWakeWord unavailable, falling back to microWakeWord: %s"
+        format: "Remote openWakeWord unavailable, temporarily using microWakeWord: %s"
         args: [ 'message.c_str()' ]
-    - lambda: |-
-        id(openwakeword_wake_detected) = false;
-        auto call = id(wake_engine_select).make_call();
-        call.set_option("microwakeword");
-        call.perform();
+    - script.execute: recover_openwakeword_after_fallback
 
 switch:
   - platform: template
@@ -279,7 +275,7 @@ number:
 
   - platform: template
     id: openwakeword_http_timeout_ms
-    name: openWakeWord HTTP Timeout
+    name: openWakeWord Transport Timeout
     icon: "mdi:timer-outline"
     entity_category: config
     optimistic: true

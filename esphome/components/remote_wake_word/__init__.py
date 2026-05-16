@@ -1,7 +1,7 @@
 from esphome import automation
 from esphome.automation import register_action, register_condition
 import esphome.codegen as cg
-from esphome.components import microphone
+from esphome.components import esp32, microphone
 import esphome.config_validation as cv
 from esphome.const import CONF_ID, CONF_MICROPHONE, CONF_TRIGGER_ID, CONF_URL
 
@@ -39,7 +39,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_SOURCE_DEVICE, default=""): cv.string,
         cv.Optional(CONF_CHUNK_DURATION_MS, default=500): cv.int_range(min=100, max=2000),
         cv.Optional(CONF_MAX_FAILURES, default=3): cv.int_range(min=1, max=20),
-        cv.Optional(CONF_HTTP_TIMEOUT_MS, default=1400): cv.int_range(min=250, max=10000),
+        cv.Optional(CONF_HTTP_TIMEOUT_MS, default=3000): cv.int_range(min=250, max=10000),
         cv.Optional(CONF_ON_WAKE_WORD_DETECTED): automation.validate_automation(
             {
                 cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
@@ -81,6 +81,7 @@ async def to_code(config):
     cg.add(var.set_max_failures(config[CONF_MAX_FAILURES]))
     cg.add(var.set_http_timeout_ms(config[CONF_HTTP_TIMEOUT_MS]))
     cg.add_define("USE_REMOTE_WAKE_WORD")
+    esp32.add_idf_component(name="espressif/esp_websocket_client", ref="1.4.0")
 
     for conf in config.get(CONF_ON_WAKE_WORD_DETECTED, []):
         await automation.build_automation(

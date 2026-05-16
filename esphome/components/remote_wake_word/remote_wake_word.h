@@ -27,14 +27,6 @@ enum class State {
   STOPPED,
 };
 
-struct RemoteWakeWordHttpResult {
-  bool ok{false};
-  bool detected{false};
-  std::string wake_word{};
-  std::string error{};
-  float score{0.0f};
-};
-
 struct RemoteWakeWordEvent {
   enum Type {
     DETECTION,
@@ -108,12 +100,10 @@ class RemoteWakeWord : public Component {
   std::string source_device_;
   uint32_t chunk_duration_ms_{500};
   uint8_t max_failures_{3};
-  uint32_t http_timeout_ms_{1400};
+  uint32_t http_timeout_ms_{3000};
 
   static void detection_task(void *params);
-  RemoteWakeWordHttpResult post_audio_chunk_(const std::vector<uint8_t> &audio_bytes,
-                                             const audio::AudioStreamInfo &stream_info);
-  std::string build_endpoint_url_() const;
+  std::string build_stream_endpoint_url_(const audio::AudioStreamInfo &stream_info) const;
   void queue_event_(RemoteWakeWordEvent::Type type, const std::string &wake_word, const std::string &message,
                     float score);
   void set_state_(State state);

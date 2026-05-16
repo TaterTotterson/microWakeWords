@@ -151,13 +151,9 @@ remote_wake_word:
     - logger.log:
         level: WARN
         tag: tater.voice
-        format: "Remote openWakeWord unavailable, falling back to microWakeWord: %s"
+        format: "Remote openWakeWord unavailable, temporarily using microWakeWord: %s"
         args: [ 'message.c_str()' ]
-    - lambda: |-
-        id(openwakeword_wake_detected) = false;
-        auto call = id(wake_engine_select).make_call();
-        call.set_option("microwakeword");
-        call.perform();
+    - script.execute: recover_openwakeword_after_fallback
 
 switch:
   - platform: template
@@ -228,7 +224,7 @@ number:
 
   - platform: template
     id: openwakeword_http_timeout_ms
-    name: openWakeWord HTTP Timeout
+    name: openWakeWord Transport Timeout
     icon: "mdi:timer-outline"
     entity_category: config
     optimistic: true
@@ -517,6 +513,42 @@ script:
                         - micro_wake_word.disable_model: stop
                   - micro_wake_word.start:
                   - micro_wake_word.enable_model: ${wake_word_name}
+
+  - id: recover_openwakeword_after_fallback
+    mode: restart
+    then:
+      - lambda: |-
+          id(openwakeword_wake_detected) = false;
+          id(voice_assistant_phase) = 1;
+          id(va).set_use_wake_word(false);
+      - remote_wake_word.stop:
+      - wait_until:
+          condition:
+            lambda: return !id(oww).is_running();
+          timeout: 3s
+      - if:
+          condition:
+            lambda: return id(wake_engine_select).state == "openwakeword" && !id(push_to_intercom_active);
+          then:
+            - if:
+                condition:
+                  switch.is_off: timer_ringing
+                then:
+                  - micro_wake_word.disable_model: stop
+            - micro_wake_word.start:
+            - micro_wake_word.enable_model: ${wake_word_name}
+            - script.execute: control_leds
+            - delay: 60s
+            - if:
+                condition:
+                  lambda: return id(wake_engine_select).state == "openwakeword" && !id(push_to_intercom_active);
+                then:
+                  - logger.log:
+                      level: INFO
+                      tag: tater.voice
+                      format: "Retrying remote openWakeWord endpoint (%s)."
+                      args: [ 'id(openwakeword_server_url).state.c_str()' ]
+                  - script.execute: apply_wake_engine
 
   # Script used activate the stop word if the TTS step is long.
   # Why is this wrapped on a script?

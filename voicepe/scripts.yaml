@@ -57,6 +57,42 @@ script:
                   - micro_wake_word.start:
                   - micro_wake_word.enable_model: ${wake_word_name}
 
+  - id: recover_openwakeword_after_fallback
+    mode: restart
+    then:
+      - lambda: |-
+          id(openwakeword_wake_detected) = false;
+          id(voice_assistant_phase) = 1;
+          id(va).set_use_wake_word(false);
+      - remote_wake_word.stop:
+      - wait_until:
+          condition:
+            lambda: return !id(oww).is_running();
+          timeout: 3s
+      - if:
+          condition:
+            lambda: return id(wake_engine_select).state == "openwakeword" && !id(push_to_intercom_active);
+          then:
+            - if:
+                condition:
+                  switch.is_off: timer_ringing
+                then:
+                  - micro_wake_word.disable_model: stop
+            - micro_wake_word.start:
+            - micro_wake_word.enable_model: ${wake_word_name}
+            - script.execute: control_leds
+            - delay: 60s
+            - if:
+                condition:
+                  lambda: return id(wake_engine_select).state == "openwakeword" && !id(push_to_intercom_active);
+                then:
+                  - logger.log:
+                      level: INFO
+                      tag: tater.voice
+                      format: "Retrying remote openWakeWord endpoint (%s)."
+                      args: [ 'id(openwakeword_server_url).state.c_str()' ]
+                  - script.execute: apply_wake_engine
+
   # Master script controlling the LEDs, based on different conditions : initialization in progress, wifi and api connected and voice assistant phase.
   # For the sake of simplicity and re-usability, the script calls child scripts defined below.
   # This script will be called every time one of these conditions is changing.
