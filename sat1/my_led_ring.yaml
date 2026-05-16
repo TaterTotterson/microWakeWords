@@ -14,6 +14,29 @@ globals:
     type: bool
     restore_value: no
     initial_value: 'false'
+  # Global variable to enable Christmas lights mode.
+  - id: christmas_mode
+    type: bool
+    restore_value: yes
+    initial_value: 'false'
+
+switch:
+  # Expose Christmas Mode as a toggle switch in Home Assistant
+  - platform: template
+    name: "Christmas Mode"
+    id: christmas_mode_switch
+    icon: "mdi:pine-tree"
+    lambda: 'return id(christmas_mode);'
+    turn_on_action:
+      - globals.set:
+          id: christmas_mode
+          value: 'true'
+      - script.execute: control_leds
+    turn_off_action:
+      - globals.set:
+          id: christmas_mode
+          value: 'false'
+      - script.execute: control_leds
 
 light:
   # Hardware LED ring. Not used because remapping needed
@@ -346,7 +369,6 @@ light:
             if (brightness_step == 0 || brightness_step == brightness_step_number) {
               brightness_decreasing = !brightness_decreasing;
             }
-
       - addressable_lambda:
           name: "Warning"
           update_interval: 10ms
@@ -388,7 +410,6 @@ light:
           update_interval: 100ms
           min_brightness: 50%
           max_brightness: 100%
-
       - addressable_lambda:
           name: "Timer Ring"
           update_interval: 10ms
@@ -547,6 +568,54 @@ light:
               }
               index = (index + 1);
 
+      # -----------------------------------------------------------------------
+      # Christmas Lights effect: red / green / white repeating stripe with
+      # per-LED independent flickering and slow clockwise colour rotation.
+      # -----------------------------------------------------------------------
+      - addressable_lambda:
+          name: "Christmas Lights"
+          update_interval: 50ms
+          lambda: |-
+            static uint8_t flicker[24];
+            static uint8_t flicker_target[24];
+            static uint8_t rotation = 0;
+            static uint8_t rotation_counter = 0;
+            if (initial_run) {
+              for (int i = 0; i < 24; i++) {
+                flicker[i] = 150;
+                flicker_target[i] = 60 + (random_uint32() % 195);
+              }
+              rotation = 0;
+              rotation_counter = 0;
+            }
+            // Red / Green / White — repeating every 3 LEDs around the ring
+            Color xmas_colors[3] = {
+              Color(220, 20,  20),   // Red
+              Color(20,  180, 20),   // Green
+              Color(200, 200, 200)   // White
+            };
+            // Slowly rotate the colour pattern around the ring (~1 step/second)
+            rotation_counter++;
+            if (rotation_counter >= 20) {
+              rotation_counter = 0;
+              rotation = (rotation + 1) % 3;
+            }
+            for (int i = 0; i < 24; i++) {
+              // Smooth flicker: drift each LED brightness toward its random target
+              if (flicker[i] < flicker_target[i]) {
+                uint8_t step = (flicker_target[i] - flicker[i]) > 5 ? 5 : (flicker_target[i] - flicker[i]);
+                flicker[i] += step;
+              } else if (flicker[i] > flicker_target[i]) {
+                uint8_t step = (flicker[i] - flicker_target[i]) > 5 ? 5 : (flicker[i] - flicker_target[i]);
+                flicker[i] -= step;
+              } else {
+                // Pick a new random brightness target once we arrive
+                flicker_target[i] = 60 + (random_uint32() % 195);
+              }
+              int color_idx = (i % 3 + rotation) % 3;
+              it[i] = xmas_colors[color_idx] * flicker[i];
+            }
+
 script:
   # Master script controlling the LEDs, based on different conditions : initialization in progress, wifi and api connected and voice assistant phase.
   # For the sake of simplicity and re-usability, the script calls child scripts defined below.
@@ -598,6 +667,8 @@ script:
             id(control_leds_muted_or_silent).execute();
           } else if (id(external_media_player).volume == 0.0f || id(external_media_player).is_muted()) {
             id(control_leds_muted_or_silent).execute();
+          } else if (id(christmas_mode)) {
+            id(control_leds_christmas_lights).execute();
           } else if (id(voice_assistant_phase) == 1) {
             id(control_leds_voice_assistant_idle_phase).execute();
           }
@@ -697,8 +768,7 @@ script:
           id: voice_assistant_leds
           effect: "Tool Call"
 
-
-  # Script executed when the voice assistant is thinking to a command
+  # Script executed when the voice assistant is replying
   # Fast anticlockwise spin of the LED ring.
   - id: control_leds_voice_assistant_replying_phase
     then:
@@ -811,8 +881,7 @@ script:
           id: voice_assistant_leds
           effect: "Timer tick"
 
-  # Script executed when the timer is ticking, to control the LEDs
-  # The LEDs shows the remaining time as a fraction of the full ring.
+  # Script executed to update LEDs during XMOS flashing
   - id: control_leds_xmos_flasher_state_update
     then:
       - if:
@@ -831,3 +900,12 @@ script:
             - delay: 1s
             - light.turn_off:
                 id: voice_assistant_leds
+
+  # Script executed when Christmas Mode is active
+  # Red / green / white flickering pattern with slow circular rotation
+  - id: control_leds_christmas_lights
+    then:
+      - light.turn_on:
+          brightness: !lambda return max( id(led_ring).current_values.get_brightness() , 0.3f );
+          id: voice_assistant_leds
+          effect: "Christmas Lights"

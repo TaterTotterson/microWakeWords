@@ -15,6 +15,9 @@ substitutions:
   wifi_password: !secret wifi_password
   # ha_voice_ip: "127.0.0.1"   # optional - remove if not needed
   hidden_ssid: "false"
+  rozbot_sat1_ip: !secret rozbot_sat1_ip
+  wifi_gateway: !secret wifi_gateway
+  wifi_subnet: !secret wifi_subnet
 
   # -----------------------------
   # SENSOR CALIBRATION
@@ -186,7 +189,7 @@ button:
 
 esphome:
   name: ${node_name}
-  name_add_mac_suffix: true
+  name_add_mac_suffix: false
   friendly_name: ${friendly_name}
   min_version: 2026.4.0
 
@@ -247,7 +250,7 @@ external_components:
     refresh: 0s
 
 packages:
-  Rozbot.Sat1:
+  TryTryAgain.Sat1:
     url: https://github.com/TryTryAgain/my-satellite1-config
     ref: main
     files:
@@ -258,9 +261,9 @@ packages:
       - sat1/buttons.yaml
       - sat1/home_assistant.yaml
       - sat1/media_player.yaml
-      - sat1/voice_assistant.yaml
+      - sat1/my_voice_assistant.yaml
       - sat1/timer.yaml
-      - sat1/led_ring.yaml
+      - sat1/my_led_ring.yaml
 
       ## OPTIONAL COMPONENTS
       # - sat1/mmwave_ld2410.yaml
@@ -272,6 +275,11 @@ wifi:
   ssid: ${wifi_ssid}
   password: ${wifi_password}
   fast_connect: ${hidden_ssid}
+  manual_ip:
+    static_ip: ${rozbot_sat1_ip}
+    gateway: ${wifi_gateway}
+    subnet: ${wifi_subnet}
+    dns1: !secret wifi_gateway
 
 api:
   encryption:
