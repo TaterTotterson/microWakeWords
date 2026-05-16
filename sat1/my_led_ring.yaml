@@ -84,7 +84,7 @@ text:
     restore_value: true
     initial_value: ${christmas_music_url}
     mode: TEXT
-    max_length: 500
+    max_length: 255
 
 light:
   # Hardware LED ring. Not used because remapping needed
