@@ -30,34 +30,6 @@ select:
       - "Halloween"
       - "New Year"
     on_value:
-      # Auto-populate the music URL for the selected theme.
-      # Guard with init_in_progress so this doesn't fire during boot restore
-      # before festivity_music_url_text is initialized.
-      - if:
-          condition:
-            lambda: return !id(init_in_progress);
-          then:
-            - if:
-                condition:
-                  lambda: return x == "Christmas";
-                then:
-                  - text.set:
-                      id: festivity_music_url_text
-                      value: ${christmas_music_url}
-            - if:
-                condition:
-                  lambda: return x == "Halloween";
-                then:
-                  - text.set:
-                      id: festivity_music_url_text
-                      value: ${halloween_music_url}
-            - if:
-                condition:
-                  lambda: return x == "New Year";
-                then:
-                  - text.set:
-                      id: festivity_music_url_text
-                      value: ${new_year_music_url}
       - script.execute: control_leds
 
 switch:
@@ -75,22 +47,16 @@ switch:
           then:
             - media_player.play_media:
                 id: external_media_player
-                media_url: !lambda return id(festivity_music_url_text).state;
+                media_url: !lambda |-
+                  auto opt = id(festivity_select).current_option();
+                  if (opt == "Christmas") return std::string("${christmas_music_url}");
+                  if (opt == "Halloween") return std::string("${halloween_music_url}");
+                  if (opt == "New Year")  return std::string("${new_year_music_url}");
+                  return std::string("");
     turn_off_action:
       - media_player.stop:
           id: external_media_player
 
-text:
-  - platform: template
-    id: festivity_music_url_text
-    name: "Festivity Music URL"
-    icon: "mdi:music-box-outline"
-    entity_category: config
-    optimistic: true
-    restore_value: true
-    initial_value: ${christmas_music_url}
-    mode: TEXT
-    max_length: 255
 
 light:
   # Hardware LED ring. Not used because remapping needed
