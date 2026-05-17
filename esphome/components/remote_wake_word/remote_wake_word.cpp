@@ -324,6 +324,8 @@ void RemoteWakeWord::detection_task(void *params) {
   std::string detected_wake_word;
   float detected_score = 0.0f;
   std::string terminal_error;
+  bool detection_queued = false;
+  bool microphone_stopped = false;
 
   {
     const auto stream_info = parent->microphone_source_->get_audio_stream_info();
@@ -408,6 +410,12 @@ void RemoteWakeWord::detection_task(void *params) {
                   detected_wake_word = parent->wake_word_.empty() ? "openwakeword" : parent->wake_word_;
                 }
                 detected_score = json_float_field(event->data, "score", 0.0f);
+                if (!microphone_stopped) {
+                  parent->microphone_source_->stop();
+                  microphone_stopped = true;
+                }
+                parent->queue_event_(RemoteWakeWordEvent::DETECTION, detected_wake_word, "", detected_score);
+                detection_queued = true;
                 parent->stop_requested_.store(true);
               } else if (response_has_true_field(event->data, "ok") == false &&
                          event->data.find("\"ok\"") != std::string::npos) {
@@ -482,13 +490,16 @@ void RemoteWakeWord::detection_task(void *params) {
             vQueueDelete(websocket_queue);
           }
         }
-        parent->microphone_source_->stop();
+        if (!microphone_stopped) {
+          parent->microphone_source_->stop();
+          microphone_stopped = true;
+        }
       }
     }
   }
 
   parent->ring_buffer_.reset();
-  if (!detected_wake_word.empty()) {
+  if (!detected_wake_word.empty() && !detection_queued) {
     parent->queue_event_(RemoteWakeWordEvent::DETECTION, detected_wake_word, "", detected_score);
   } else if (!terminal_error.empty() && !parent->stop_requested_.load()) {
     parent->queue_event_(RemoteWakeWordEvent::ERROR, "", terminal_error, 0.0f);
