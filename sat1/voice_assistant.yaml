@@ -80,6 +80,10 @@ micro_wake_word:
                                 announcement: true
                           # Start the voice assistant and play the wake sound, if enabled
                           else:
+                            - lambda: |-
+                                id(openwakeword_wake_detected) = false;
+                                id(voice_assistant_phase) = 2;
+                            - script.execute: control_leds
                             - if:
                                 condition:
                                   switch.is_on: wake_sound
@@ -88,7 +92,6 @@ micro_wake_word:
                                       id: play_sound
                                       priority: false
                                       sound_file: !lambda return id(wake_word_triggered_sound);
-                                  - delay: 300ms
                             - voice_assistant.start:
                                 wake_word: !lambda return wake_word;
 
@@ -144,7 +147,6 @@ remote_wake_word:
                                 id: play_sound
                                 priority: false
                                 sound_file: !lambda return id(wake_word_triggered_sound);
-                            - delay: 300ms
                       - voice_assistant.start:
                           wake_word: !lambda return wake_word;
   on_error:
@@ -344,7 +346,6 @@ voice_assistant:
                     id: play_sound
                     priority: false
                     sound_file: !lambda return id(wake_word_triggered_sound);
-                - delay: 300ms
 
   # When the voice assistant starts: Play a wake up sound, duck audio.
   on_start:
