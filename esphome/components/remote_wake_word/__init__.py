@@ -16,6 +16,7 @@ CONF_HTTP_TIMEOUT_MS = "http_timeout_ms"
 CONF_ON_ERROR = "on_error"
 CONF_ON_WAKE_WORD_DETECTED = "on_wake_word_detected"
 CONF_SOURCE_DEVICE = "source_device"
+CONF_STREAM_PATH = "stream_path"
 CONF_WAKE_WORD = "wake_word"
 
 remote_wake_word_ns = cg.esphome_ns.namespace("remote_wake_word")
@@ -35,6 +36,7 @@ CONFIG_SCHEMA = cv.Schema(
             max_channels=1,
         ),
         cv.Required(CONF_URL): cv.string,
+        cv.Optional(CONF_STREAM_PATH, default="/api/openwakeword/stream"): cv.string,
         cv.Optional(CONF_WAKE_WORD, default=""): cv.string,
         cv.Optional(CONF_SOURCE_DEVICE, default=""): cv.string,
         cv.Optional(CONF_CHUNK_DURATION_MS, default=500): cv.int_range(min=100, max=2000),
@@ -75,6 +77,7 @@ async def to_code(config):
     mic_source = await microphone.microphone_source_to_code(config[CONF_MICROPHONE])
     cg.add(var.set_microphone_source(mic_source))
     cg.add(var.set_url(config[CONF_URL]))
+    cg.add(var.set_stream_path(config[CONF_STREAM_PATH]))
     cg.add(var.set_wake_word(config[CONF_WAKE_WORD]))
     cg.add(var.set_source_device(config[CONF_SOURCE_DEVICE]))
     cg.add(var.set_chunk_duration_ms(config[CONF_CHUNK_DURATION_MS]))

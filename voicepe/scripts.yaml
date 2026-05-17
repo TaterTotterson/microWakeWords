@@ -8,7 +8,7 @@ script:
           then:
             - if:
                 condition:
-                  lambda: return id(wake_engine_select).state == "openwakeword";
+                  lambda: return id(wake_engine_select).state != "microwakeword";
                 then:
                   - micro_wake_word.stop:
                   - if:
@@ -26,12 +26,18 @@ script:
                       id(openwakeword_wake_detected) = false;
                       id(voice_assistant_phase) = 1;
                       id(va).set_use_wake_word(false);
-                      id(oww).set_url(id(openwakeword_server_url).state);
+                      if (id(wake_engine_select).state == "nanowakeword") {
+                        id(oww).set_url(id(nanowakeword_server_url).state);
+                        id(oww).set_stream_path("/api/nanowakeword/stream");
+                      } else {
+                        id(oww).set_url(id(openwakeword_server_url).state);
+                        id(oww).set_stream_path("/api/openwakeword/stream");
+                      }
                   - logger.log:
                       level: INFO
                       tag: tater.voice
-                      format: "Using remote openWakeWord endpoint (%s)."
-                      args: [ 'id(openwakeword_server_url).state.c_str()' ]
+                      format: "Using remote wake endpoint (%s)."
+                      args: [ '(id(wake_engine_select).state == "nanowakeword" ? id(nanowakeword_server_url).state : id(openwakeword_server_url).state).c_str()' ]
                   - remote_wake_word.start:
                   - script.execute: control_leds
                 else:
@@ -71,7 +77,7 @@ script:
           timeout: 3s
       - if:
           condition:
-            lambda: return id(wake_engine_select).state == "openwakeword" && !id(push_to_intercom_active);
+            lambda: return id(wake_engine_select).state != "microwakeword" && !id(push_to_intercom_active);
           then:
             - if:
                 condition:
@@ -84,13 +90,13 @@ script:
             - delay: 60s
             - if:
                 condition:
-                  lambda: return id(wake_engine_select).state == "openwakeword" && !id(push_to_intercom_active);
+                  lambda: return id(wake_engine_select).state != "microwakeword" && !id(push_to_intercom_active);
                 then:
                   - logger.log:
                       level: INFO
                       tag: tater.voice
-                      format: "Retrying remote openWakeWord endpoint (%s)."
-                      args: [ 'id(openwakeword_server_url).state.c_str()' ]
+                      format: "Retrying remote wake endpoint (%s)."
+                      args: [ '(id(wake_engine_select).state == "nanowakeword" ? id(nanowakeword_server_url).state : id(openwakeword_server_url).state).c_str()' ]
                   - script.execute: apply_wake_engine
 
   # Master script controlling the LEDs, based on different conditions : initialization in progress, wifi and api connected and voice assistant phase.

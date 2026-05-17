@@ -210,6 +210,7 @@ void RemoteWakeWord::dump_config() {
   const std::string endpoint = trim_copy(this->url_);
   ESP_LOGCONFIG(TAG, "Remote Wake Word:");
   ESP_LOGCONFIG(TAG, "  endpoint: %s", endpoint.empty() ? "not configured" : endpoint.c_str());
+  ESP_LOGCONFIG(TAG, "  stream path: %s", this->stream_path_.empty() ? "/api/openwakeword/stream" : this->stream_path_.c_str());
   ESP_LOGCONFIG(TAG, "  transport: WebSocket stream");
   ESP_LOGCONFIG(TAG, "  wake word hint: %s", this->wake_word_.empty() ? "any" : this->wake_word_.c_str());
   ESP_LOGCONFIG(TAG, "  source device: %s", this->source_device_.empty() ? "not configured" : this->source_device_.c_str());
@@ -518,12 +519,24 @@ std::string RemoteWakeWord::build_stream_endpoint_url_(const audio::AudioStreamI
   } else if (endpoint.rfind("https://", 0) == 0) {
     endpoint.replace(0, 8, "wss://");
   }
-  const std::string detect_path = "/api/openwakeword/detect";
-  const std::string stream_path = "/api/openwakeword/stream";
-  const size_t detect_pos = endpoint.find(detect_path);
-  if (detect_pos != std::string::npos) {
+  std::string stream_path = trim_copy(this->stream_path_);
+  if (stream_path.empty()) {
+    stream_path = "/api/openwakeword/stream";
+  }
+  if (stream_path[0] != '/') {
+    stream_path = "/" + stream_path;
+  }
+  bool replaced_detect_path = false;
+  for (const std::string &detect_path : std::vector<std::string>{"/api/openwakeword/detect", "/api/nanowakeword/detect"}) {
+    const size_t detect_pos = endpoint.find(detect_path);
+    if (detect_pos == std::string::npos) {
+      continue;
+    }
     endpoint.replace(detect_pos, detect_path.size(), stream_path);
-  } else if (endpoint.find(stream_path) == std::string::npos) {
+    replaced_detect_path = true;
+    break;
+  }
+  if (!replaced_detect_path && endpoint.find(stream_path) == std::string::npos) {
     while (!endpoint.empty() && endpoint.back() == '/') {
       endpoint.pop_back();
     }

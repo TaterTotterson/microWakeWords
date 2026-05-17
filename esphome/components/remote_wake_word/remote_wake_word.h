@@ -53,6 +53,7 @@ class RemoteWakeWord : public Component {
     this->microphone_source_ = microphone_source;
   }
   void set_url(const std::string &url) { this->url_ = url; }
+  void set_stream_path(const std::string &stream_path) { this->stream_path_ = stream_path; }
   void set_wake_word(const std::string &wake_word) { this->wake_word_ = wake_word; }
   void set_source_device(const std::string &source_device) { this->source_device_ = source_device; }
   void set_chunk_duration_ms(uint32_t chunk_duration_ms) {
@@ -96,6 +97,7 @@ class RemoteWakeWord : public Component {
   std::atomic<uint8_t> consecutive_failures_{0};
 
   std::string url_;
+  std::string stream_path_{"/api/openwakeword/stream"};
   std::string wake_word_;
   std::string source_device_;
   uint32_t chunk_duration_ms_{500};
