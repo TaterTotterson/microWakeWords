@@ -25,7 +25,7 @@ substitutions:
   # -----------------------------
   # FIRMWARE VERSIONS
   # -----------------------------
-  esp32_fw_version: "v2.1.1"
+  esp32_fw_version: "v2.2.0"
   xmos_fw_version: "v1.0.3"
 
   # -----------------------------
@@ -33,6 +33,7 @@ substitutions:
   # -----------------------------
   wake_engine: openwakeword
   openwakeword_server_url: ws://tater.local:8501
+  nanowakeword_server_url: ws://tater.local:8501
   openwakeword_http_timeout_ms: "3000"
   openwakeword_max_failures: "3"
   wake_word_name: hey_tater
