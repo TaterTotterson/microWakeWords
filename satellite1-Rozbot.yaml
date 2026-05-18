@@ -55,6 +55,17 @@ substitutions:
   wake_cutoff_moderate: "245"   # ~0.96
   wake_cutoff_very: "222"       # ~0.87
 
+  # -----------------------------
+  # FESTIVITY MODE MUSIC
+  # -----------------------------
+  # Music URLs — replace with your preferred source or leave as-is.
+  # Christmas: SomaFM Christmas Lounge (live radio stream, ~128kbps MP3)
+  christmas_music_url: "http://ice2.somafm.com/christmas-128-mp3"
+  # Halloween: Grieg's Hall of the Mountain King (Archive.org public domain MP3)
+  halloween_music_url: "https://archive.org/download/PeerGyntSuite/01_In_the_Hall_of_the_Mountain_King.mp3"
+  # New Year: Auld Lang Syne orchestral (Archive.org public domain MP3)
+  new_year_music_url: "https://archive.org/download/auld-lang-syne-new-years/auld_lang_syne.mp3"
+
 
 
   # -----------------------------

@@ -69,6 +69,30 @@ switch:
           value: '0'
       - script.execute: control_leds
 
+  - platform: template
+    id: festivity_music_switch
+    name: "Festivity Music"
+    icon: "mdi:music-note"
+    # No entity_category: config so it stays in main list
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - if:
+          condition:
+            lambda: return id(festivity_mode) != 0;
+          then:
+            - media_player.play_media:
+                id: external_media_player
+                media_url: !lambda |-
+                  int mode = id(festivity_mode);
+                  if (mode == 1) return std::string("${christmas_music_url}");
+                  if (mode == 2) return std::string("${halloween_music_url}");
+                  if (mode == 3) return std::string("${new_year_music_url}");
+                  return std::string("");
+    turn_off_action:
+      - media_player.stop:
+          id: external_media_player
+
 
 light:
   # Hardware LED ring. Not used because remapping needed
