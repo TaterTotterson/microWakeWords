@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 109
+      "count": 110
     }
   ],
-  "count": 511,
+  "count": 512,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -8833,6 +8833,24 @@
       "model_path": "microWakeWordsV3/nestor_franais.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/nestor_franais.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/nestor_franais.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:ni_hao_xiao_pai",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "ni_hao_xiao_pai",
+      "name": "ni_hao_xiao_pai",
+      "label": "Ni Hao Xiao Pai",
+      "path": "microWakeWordsV3/ni_hao_xiao_pai.json",
+      "model_path": "microWakeWordsV3/ni_hao_xiao_pai.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/ni_hao_xiao_pai.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/ni_hao_xiao_pai.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
