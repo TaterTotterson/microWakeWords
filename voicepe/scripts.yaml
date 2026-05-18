@@ -11,6 +11,9 @@ script:
                   lambda: return id(wake_engine_select).state != "microwakeword";
                 then:
                   - micro_wake_word.stop:
+                  - wait_until:
+                      condition:
+                        lambda: return !id(mww).is_running();
                   - if:
                       condition:
                         voice_assistant.is_running:
