@@ -14,49 +14,30 @@ globals:
     type: bool
     restore_value: no
     initial_value: 'false'
+  # Global variable to enable Christmas lights mode.
+  - id: christmas_mode
+    type: bool
+    restore_value: yes
+    initial_value: 'false'
 
-select:
+switch:
+  # Expose Christmas Mode as a toggle switch in Home Assistant
   - platform: template
-    id: festivity_select
-    name: "Festivity Theme"
-    icon: "mdi:party-popper"
-    optimistic: true
-    restore_value: true
-    initial_option: ${festivity_initial_theme}
-    options:
-      - "Off"
-      - "Christmas"
-      - "Halloween"
-      - "New Year"
-    on_value:
+    name: "Christmas Mode"
+    id: christmas_mode_switch
+    icon: "mdi:pine-tree"
+    lambda: 'return id(christmas_mode);'
+    turn_on_action:
+      - globals.set:
+          id: christmas_mode
+          value: 'true'
+      - script.execute: control_leds
+    turn_off_action:
+      - globals.set:
+          id: christmas_mode
+          value: 'false'
       - script.execute: control_leds
 
-# Festivity music switch disabled for now — add back once festivity_select is
-# confirmed working in HA. References external_media_player with URL lambda.
-# switch:
-#   - platform: template
-#     id: festivity_music_switch
-#     name: "Festivity Music"
-#     icon: "mdi:music-note"
-#     entity_category: config
-#     optimistic: true
-#     restore_mode: RESTORE_DEFAULT_OFF
-#     turn_on_action:
-#       - if:
-#           condition:
-#             lambda: return id(festivity_select).current_option() != "Off";
-#           then:
-#             - media_player.play_media:
-#                 id: external_media_player
-#                 media_url: !lambda |-
-#                   auto opt = id(festivity_select).current_option();
-#                   if (opt == "Christmas") return std::string("${christmas_music_url}");
-#                   if (opt == "Halloween") return std::string("${halloween_music_url}");
-#                   if (opt == "New Year")  return std::string("${new_year_music_url}");
-#                   return std::string("");
-#     turn_off_action:
-#       - media_player.stop:
-#           id: external_media_player
 
 
 light:
@@ -766,12 +747,8 @@ script:
             id(control_leds_muted_or_silent).execute();
           } else if (id(external_media_player).volume == 0.0f || id(external_media_player).is_muted()) {
             id(control_leds_muted_or_silent).execute();
-          } else if (id(festivity_select).current_option() == "Christmas") {
+          } else if (id(christmas_mode)) {
             id(control_leds_christmas_lights).execute();
-          } else if (id(festivity_select).current_option() == "Halloween") {
-            id(control_leds_halloween_lights).execute();
-          } else if (id(festivity_select).current_option() == "New Year") {
-            id(control_leds_new_year_lights).execute();
           } else if (id(voice_assistant_phase) == 1) {
             id(control_leds_voice_assistant_idle_phase).execute();
           }
@@ -1012,21 +989,3 @@ script:
           brightness: !lambda return max( id(led_ring).current_values.get_brightness() , 0.3f );
           id: voice_assistant_leds
           effect: "Christmas Lights"
-
-  # Script executed when Halloween Mode is active
-  # Orange / purple flickering pattern with faster circular rotation
-  - id: control_leds_halloween_lights
-    then:
-      - light.turn_on:
-          brightness: !lambda return max( id(led_ring).current_values.get_brightness() , 0.3f );
-          id: voice_assistant_leds
-          effect: "Halloween Lights"
-
-  # Script executed when New Year Mode is active
-  # Gold / silver / red / blue confetti burst sparkle
-  - id: control_leds_new_year_lights
-    then:
-      - light.turn_on:
-          brightness: !lambda return max( id(led_ring).current_values.get_brightness() , 0.3f );
-          id: voice_assistant_leds
-          effect: "New Year Lights"
