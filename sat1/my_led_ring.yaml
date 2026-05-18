@@ -981,7 +981,7 @@ script:
       - light.turn_on:
           brightness: !lambda return min ( max( id(led_ring).current_values.get_brightness() , 0.2f ) + 0.1f , 1.0f );
           id: voice_assistant_leds
-          effect: "Timer tick"
+          effect: "Timer Tick"
 
   # Script executed to update LEDs during XMOS flashing
   - id: control_leds_xmos_flasher_state_update
