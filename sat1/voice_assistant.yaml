@@ -505,7 +505,6 @@ script:
                   - wait_until:
                       condition:
                         lambda: return !id(oww).is_running();
-                      timeout: 3s
                   - lambda: |-
                       id(openwakeword_wake_detected) = false;
                       id(voice_assistant_phase) = 1;
@@ -535,7 +534,6 @@ script:
                   - wait_until:
                       condition:
                         lambda: return !id(oww).is_running();
-                      timeout: 3s
                   - lambda: |-
                       id(openwakeword_wake_detected) = false;
                       id(va).set_use_wake_word(false);
@@ -558,7 +556,6 @@ script:
       - wait_until:
           condition:
             lambda: return !id(oww).is_running();
-          timeout: 3s
       - if:
           condition:
             lambda: return id(wake_engine_select).state != "microwakeword" && !id(push_to_intercom_active);
