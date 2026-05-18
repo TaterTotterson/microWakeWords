@@ -20,7 +20,6 @@ select:
     id: festivity_select
     name: "Festivity Theme"
     icon: "mdi:party-popper"
-    entity_category: config
     optimistic: true
     restore_value: true
     initial_option: ${festivity_initial_theme}

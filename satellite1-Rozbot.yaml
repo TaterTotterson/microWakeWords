@@ -260,7 +260,7 @@ external_components:
       - satellite1
       - satellite1_radar
       - tas2780
-    refresh: 1d
+    refresh: 0s
 
 packages:
   TryTryAgain.Sat1:
