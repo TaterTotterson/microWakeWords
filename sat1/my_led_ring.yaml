@@ -36,6 +36,7 @@ switch:
           id: festivity_mode
           value: '0'
       - script.execute: control_leds
+      - switch.turn_off: festivity_music_switch
 
   - platform: template
     name: "Halloween Theme"
@@ -52,6 +53,7 @@ switch:
           id: festivity_mode
           value: '0'
       - script.execute: control_leds
+      - switch.turn_off: festivity_music_switch
 
   - platform: template
     name: "New Year Theme"
@@ -68,6 +70,7 @@ switch:
           id: festivity_mode
           value: '0'
       - script.execute: control_leds
+      - switch.turn_off: festivity_music_switch
 
   - platform: template
     id: festivity_music_switch
