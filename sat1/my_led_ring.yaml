@@ -32,30 +32,32 @@ select:
     on_value:
       - script.execute: control_leds
 
-switch:
-  - platform: template
-    id: festivity_music_switch
-    name: "Festivity Music"
-    icon: "mdi:music-note"
-    entity_category: config
-    optimistic: true
-    restore_mode: RESTORE_DEFAULT_OFF
-    turn_on_action:
-      - if:
-          condition:
-            lambda: return id(festivity_select).current_option() != "Off";
-          then:
-            - media_player.play_media:
-                id: external_media_player
-                media_url: !lambda |-
-                  auto opt = id(festivity_select).current_option();
-                  if (opt == "Christmas") return std::string("${christmas_music_url}");
-                  if (opt == "Halloween") return std::string("${halloween_music_url}");
-                  if (opt == "New Year")  return std::string("${new_year_music_url}");
-                  return std::string("");
-    turn_off_action:
-      - media_player.stop:
-          id: external_media_player
+# Festivity music switch disabled for now — add back once festivity_select is
+# confirmed working in HA. References external_media_player with URL lambda.
+# switch:
+#   - platform: template
+#     id: festivity_music_switch
+#     name: "Festivity Music"
+#     icon: "mdi:music-note"
+#     entity_category: config
+#     optimistic: true
+#     restore_mode: RESTORE_DEFAULT_OFF
+#     turn_on_action:
+#       - if:
+#           condition:
+#             lambda: return id(festivity_select).current_option() != "Off";
+#           then:
+#             - media_player.play_media:
+#                 id: external_media_player
+#                 media_url: !lambda |-
+#                   auto opt = id(festivity_select).current_option();
+#                   if (opt == "Christmas") return std::string("${christmas_music_url}");
+#                   if (opt == "Halloween") return std::string("${halloween_music_url}");
+#                   if (opt == "New Year")  return std::string("${new_year_music_url}");
+#                   return std::string("");
+#     turn_off_action:
+#       - media_player.stop:
+#           id: external_media_player
 
 
 light:
