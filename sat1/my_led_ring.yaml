@@ -17,7 +17,7 @@ globals:
   # Festivity mode: 0=Off, 1=Christmas, 2=Halloween, 3=New Year
   - id: festivity_mode
     type: int
-    restore_value: yes
+    restore_value: no
     initial_value: '0'
 
 select:
@@ -26,7 +26,7 @@ select:
     name: "Festivity Theme"
     icon: "mdi:party-popper"
     optimistic: true
-    restore_value: true
+    restore_value: false
     initial_option: "Off"
     options:
       - "Off"
