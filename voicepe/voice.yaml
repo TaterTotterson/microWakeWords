@@ -209,6 +209,19 @@ text:
       - lambda: id(mww).set_capture_upload_url(x);
 
   - platform: template
+    id: microwakeword_model_url
+    name: microWakeWord Model URL
+    icon: "mdi:file-cloud"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: "${wake_word_model_url}"
+    mode: TEXT
+    max_length: 255
+    set_action:
+      - lambda: id(mww).set_runtime_model_url(x);
+
+  - platform: template
     id: openwakeword_server_url
     name: openWakeWord Server URL
     icon: "mdi:server-network"

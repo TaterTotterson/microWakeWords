@@ -133,8 +133,16 @@ class WakeWordModel final : public StreamingModel {
   const std::string &get_id() const { return this->id_; }
   const std::string &get_wake_word() const { return this->wake_word_; }
 
-  void add_trained_language(const std::string &language) { this->trained_languages_.push_back(language); }
+  void add_trained_language(const std::string &language) {
+    this->trained_languages_.push_back(language);
+    this->compiled_trained_languages_.push_back(language);
+  }
   const std::vector<std::string> &get_trained_languages() const { return this->trained_languages_; }
+
+  bool replace_model(const uint8_t *model_start, uint8_t default_probability_cutoff, size_t sliding_window_average_size,
+                     const std::string &wake_word, size_t tensor_arena_size,
+                     const std::vector<std::string> &trained_languages);
+  void restore_compiled_model();
 
   /// @brief Enable the model and save to flash. The next performing_streaming_inference call will load it.
   void enable() override;
@@ -152,6 +160,13 @@ class WakeWordModel final : public StreamingModel {
   bool internal_only_;
 
   ESPPreferenceObject pref_;
+
+  const uint8_t *compiled_model_start_{nullptr};
+  uint8_t compiled_default_probability_cutoff_{0};
+  size_t compiled_sliding_window_size_{0};
+  std::string compiled_wake_word_;
+  size_t compiled_tensor_arena_size_{0};
+  std::vector<std::string> compiled_trained_languages_;
 };
 
 class VADModel final : public StreamingModel {

@@ -12,6 +12,8 @@
 #include "esphome/core/defines.h"
 #include "esphome/core/ring_buffer.h"
 
+#include <esp_partition.h>
+#include <spi_flash_mmap.h>
 #ifdef USE_OTA_STATE_LISTENER
 #include "esphome/components/ota/ota_backend.h"
 #endif
@@ -53,6 +55,11 @@ class MicroWakeWord : public Component
     std::string event_type;
   };
 
+  struct RuntimeModelUpdateRequest {
+    MicroWakeWord *parent;
+    std::string url;
+  };
+
   void setup() override;
   void loop() override;
   float get_setup_priority() const override;
@@ -91,6 +98,9 @@ class MicroWakeWord : public Component
   }
   void set_capture_upload_url(const std::string &capture_upload_url) { this->capture_upload_url_ = capture_upload_url; }
   const std::string &get_capture_upload_url() const { return this->capture_upload_url_; }
+  void set_runtime_model_url(const std::string &runtime_model_url);
+  const std::string &get_runtime_model_url() const { return this->runtime_model_url_; }
+  const std::string &get_active_runtime_wake_word() const { return this->active_runtime_wake_word_; }
 
   Trigger<std::string> *get_wake_word_detected_trigger() { return &this->wake_word_detected_trigger_; }
 
@@ -150,6 +160,61 @@ class MicroWakeWord : public Component
 
   static void inference_task(void *params);
   TaskHandle_t inference_task_handle_{nullptr};
+
+  struct RuntimeModelHeader {
+    uint32_t magic;
+    uint16_t version;
+    uint16_t header_size;
+    uint32_t sequence;
+    uint32_t model_offset;
+    uint32_t model_size;
+    uint32_t model_crc32;
+    uint32_t tensor_arena_size;
+    uint16_t sliding_window_size;
+    uint8_t probability_cutoff;
+    uint8_t feature_step_size;
+    char wake_word[64];
+    char trained_languages[96];
+    char source_url[256];
+    uint8_t reserved[64];
+  };
+
+  struct RuntimeModelManifest {
+    std::string wake_word;
+    std::string model_url;
+    std::vector<std::string> trained_languages;
+    uint8_t probability_cutoff;
+    uint16_t sliding_window_size;
+    uint8_t feature_step_size;
+    uint32_t tensor_arena_size;
+  };
+
+  WakeWordModel *runtime_wake_word_model_{nullptr};
+  std::string runtime_model_url_;
+  std::string active_runtime_wake_word_{"compiled"};
+  std::atomic<bool> runtime_model_update_in_progress_{false};
+  const esp_partition_t *runtime_model_partitions_[2]{nullptr, nullptr};
+  const esp_partition_t *active_runtime_model_partition_{nullptr};
+  spi_flash_mmap_handle_t active_runtime_model_mmap_handle_{0};
+  const uint8_t *active_runtime_model_data_{nullptr};
+  uint32_t runtime_model_sequence_{0};
+
+  bool init_runtime_model_partitions_();
+  bool load_runtime_model_from_flash_();
+  bool activate_runtime_model_partition_(const esp_partition_t *partition, const RuntimeModelHeader &header);
+  bool write_runtime_model_from_url_(const std::string &url);
+  bool restore_compiled_runtime_model_(bool erase_slots);
+  bool parse_runtime_model_manifest_(const std::string &manifest_url, const std::string &manifest_json,
+                                     RuntimeModelManifest &manifest) const;
+  bool http_get_to_string_(const std::string &url, std::string &body, size_t max_body_size) const;
+  bool http_download_to_partition_(const std::string &url, const esp_partition_t *partition, uint32_t offset,
+                                   uint32_t max_size, uint32_t &bytes_written, uint32_t &crc32) const;
+  bool read_runtime_model_header_(const esp_partition_t *partition, RuntimeModelHeader &header) const;
+  bool validate_runtime_model_header_(const RuntimeModelHeader &header, const esp_partition_t *partition) const;
+  bool map_runtime_model_(const esp_partition_t *partition, const RuntimeModelHeader &header, const uint8_t **data,
+                          spi_flash_mmap_handle_t *handle) const;
+  void unmap_active_runtime_model_();
+  static void runtime_model_update_task(void *params);
 
   /// @brief Suspends the inference task
   void suspend_task_();
