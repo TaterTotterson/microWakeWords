@@ -1,0 +1,99 @@
+globals:
+  - id: user_led_ring_color_r
+    type: float
+    restore_value: yes
+    initial_value: '255.0'
+  - id: user_led_ring_color_g
+    type: float
+    restore_value: yes
+    initial_value: '0.0'
+  - id: user_led_ring_color_b
+    type: float
+    restore_value: yes
+    initial_value: '255.0'
+  - id: effect_color_r
+    type: float
+    restore_value: no
+    initial_value: '255.0'
+  - id: effect_color_g
+    type: float
+    restore_value: no
+    initial_value: '0.0'
+  - id: effect_color_b
+    type: float
+    restore_value: no
+    initial_value: '255.0'
+  - id: effect_brightness
+    type: float
+    restore_value: no
+    initial_value: '1.0'
+  - id: effect_speed
+    type: float
+    restore_value: yes
+    initial_value: "0.05"   # effects cycle per second (adjust as needed)
+  - id: init_in_progress
+    type: bool
+    restore_value: no
+    initial_value: 'true'
+  # Global variable storing the state of ImprovBLE. Used to draw different LED animations
+  - id: improv_ble_in_progress
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  # Global variable tracking the phase of the voice assistant (defined above). Initialized to not_ready
+  - id: voice_assistant_phase
+    type: int
+    restore_value: no
+    initial_value: ${voice_assist_not_ready_phase_id}
+  - id: saved_time_zone
+    type: std::string
+    restore_value: yes
+    initial_value: '"UTC0"'
+  - id: saved_alarm_action
+    type: std::string
+    restore_value: yes
+    initial_value: '"Play sound"'
+  # Global variable storing the first active timer
+  - id: first_active_timer
+    type: voice_assistant::Timer
+    restore_value: no
+  # Global variable storing if a timer is active
+  - id: is_timer_active
+    type: bool
+    restore_value: no
+  # Global variable storing if a factory reset was requested. If it is set to true, the device will factory reset once the center button is released
+  - id: factory_reset_requested
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  - id: current_led_effect
+    type: std::string
+    restore_value: no
+    initial_value: '"off"'
+  - id: volume_display_active
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  - id: last_led_update_time
+    type: uint32_t
+    restore_value: no
+    initial_value: '0'
+  # Global variable to store the current animated position for the beam effect
+  - id: animated_beam_position
+    type: float
+    restore_value: no
+    initial_value: '0.0'
+
+# Time sync from Home Assistant
+  - id: openwakeword_wake_detected
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  - id: push_to_intercom_active
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  - id: push_to_intercom_handoff
+    type: bool
+    restore_value: no
+    initial_value: 'false'

@@ -1,0 +1,571 @@
+external_components:
+  - source:
+      type: git
+      url: https://github.com/TaterTotterson/microWakeWords
+      ref: main
+    components:
+      - voice_assistant
+      - micro_wake_word
+      - remote_wake_word
+    refresh: 0s
+
+micro_wake_word:
+  id: mww
+  microphone:
+    microphone: i2s_mics
+    channels: 1
+  stop_after_detection: false
+  models:
+    - model: ${wake_word_model_url}
+      id: ${wake_word_name}
+    - model: ${wake_model_stop_url}
+      id: stop
+      internal: true
+  vad:
+    probability_cutoff: 0.05
+  on_wake_word_detected:
+    - if:
+        condition:
+          switch.is_off: mic_mute_switch
+        then:
+          - script.execute:
+              id: send_wake_word_event
+              wake_word: !lambda return wake_word;
+          - if:
+              condition:
+                switch.is_on: timer_ringing
+              then:
+                - switch.turn_off: timer_ringing
+              else:
+                - if:
+                    condition:
+                      voice_assistant.is_running:
+                    then:
+                      voice_assistant.stop:
+                    else:
+                      - if:
+                          condition:
+                            media_player.is_announcing:
+                              id: external_media_player
+                          then:
+                            - media_player.stop:
+                                announcement: true
+                                id: external_media_player
+                          else:
+                            - lambda: |-
+                                id(openwakeword_wake_detected) = false;
+                                id(voice_assistant_phase) = ${voice_assist_waiting_for_command_phase_id};
+                            - script.execute: control_leds
+                            - if:
+                                condition:
+                                  switch.is_on: wake_sound
+                                then:
+                                  - script.execute:
+                                      id: play_sound
+                                      priority: true
+                                      sound_file: "wake_word_triggered_sound"
+                                  - delay: 300ms
+                            - voice_assistant.start:
+                                wake_word: !lambda return wake_word;
+                            - if:
+                                condition:
+                                  switch.is_on: beam_lock_enabled
+                                then:
+                                  - lambda: id(respeaker).lock_beam();
+
+remote_wake_word:
+  id: oww
+  microphone:
+    microphone: i2s_mics
+    channels: 1
+  url: ${openwakeword_server_url}
+  stream_path: /api/openwakeword/stream
+  source_device: ${device_name}
+  wake_word: ${wake_word_name}
+  chunk_duration_ms: 500
+  max_failures: ${openwakeword_max_failures}
+  http_timeout_ms: ${openwakeword_http_timeout_ms}
+  on_wake_word_detected:
+    - logger.log:
+        level: INFO
+        tag: tater.voice
+        format: "Remote wake word detected: %s"
+        args: [ 'wake_word.c_str()' ]
+    - if:
+        condition:
+          switch.is_off: mic_mute_switch
+        then:
+          - script.execute:
+              id: send_wake_word_event
+              wake_word: !lambda return wake_word;
+          - if:
+              condition:
+                switch.is_on: timer_ringing
+              then:
+                - switch.turn_off: timer_ringing
+              else:
+                - if:
+                    condition:
+                      voice_assistant.is_running:
+                    then:
+                      - voice_assistant.stop:
+                    else:
+                      - lambda: |-
+                          id(openwakeword_wake_detected) = true;
+                          id(voice_assistant_phase) = ${voice_assist_waiting_for_command_phase_id};
+                      - script.execute: control_leds
+                      - if:
+                          condition:
+                            media_player.is_announcing:
+                              id: external_media_player
+                          then:
+                            - media_player.stop:
+                                announcement: true
+                                id: external_media_player
+                      - if:
+                          condition:
+                            switch.is_on: wake_sound
+                          then:
+                            - script.execute:
+                                id: play_sound
+                                priority: true
+                                sound_file: "wake_word_triggered_sound"
+                            - delay: 300ms
+                      - voice_assistant.start:
+                          wake_word: !lambda return wake_word;
+                      - if:
+                          condition:
+                            switch.is_on: beam_lock_enabled
+                          then:
+                            - lambda: id(respeaker).lock_beam();
+  on_error:
+    - logger.log:
+        level: WARN
+        tag: tater.voice
+        format: "Remote wake word unavailable, temporarily using microWakeWord: %s"
+        args: [ 'message.c_str()' ]
+    - script.execute: recover_openwakeword_after_fallback
+
+switch:
+  - platform: template
+    id: capture_wake_audio
+    name: Capture Wake Audio
+    icon: "mdi:waveform"
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - lambda: id(mww).set_capture_upload_enabled(true);
+    turn_off_action:
+      - lambda: id(mww).set_capture_upload_enabled(false);
+
+  - platform: template
+    id: capture_close_misses
+    name: Capture Close Misses
+    icon: "mdi:target"
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - lambda: id(mww).set_capture_close_misses_enabled(true);
+    turn_off_action:
+      - lambda: id(mww).set_capture_close_misses_enabled(false);
+
+text:
+  - platform: template
+    id: trainer_app_url
+    name: Trainer App URL
+    icon: "mdi:lan-connect"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: "http://trainer.local:8789"
+    mode: TEXT
+    max_length: 255
+    set_action:
+      - lambda: id(mww).set_capture_upload_url(x);
+
+  - platform: template
+    id: microwakeword_model_url
+    name: microWakeWord Model URL
+    icon: "mdi:file-cloud"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: "${wake_word_model_url}"
+    mode: TEXT
+    max_length: 255
+    set_action:
+      - lambda: id(mww).set_runtime_model_url(x);
+
+  - platform: template
+    id: openwakeword_server_url
+    name: openWakeWord Server URL
+    icon: "mdi:server-network"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: "${openwakeword_server_url}"
+    mode: TEXT
+    max_length: 255
+    set_action:
+      - lambda: |-
+          if (id(wake_engine_select).state == "openwakeword") {
+            id(oww).set_url(x);
+          }
+
+  - platform: template
+    id: nanowakeword_server_url
+    name: NanoWakeWord Server URL
+    icon: "mdi:server-network"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: "${nanowakeword_server_url}"
+    mode: TEXT
+    max_length: 255
+    set_action:
+      - lambda: |-
+          if (id(wake_engine_select).state == "nanowakeword") {
+            id(oww).set_url(x);
+          }
+
+number:
+  - platform: template
+    id: close_miss_threshold
+    name: Close Miss Threshold
+    icon: "mdi:target-variant"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: 0.78
+    min_value: 0.50
+    max_value: 0.95
+    step: 0.01
+    set_action:
+      - lambda: id(mww).set_capture_close_miss_probability_cutoff(x);
+
+  - platform: template
+    id: openwakeword_http_timeout_ms
+    name: Remote Wake Transport Timeout
+    icon: "mdi:timer-outline"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: ${openwakeword_http_timeout_ms}
+    min_value: 250
+    max_value: 10000
+    step: 50
+    unit_of_measurement: ms
+    set_action:
+      - lambda: id(oww).set_http_timeout_ms((uint32_t) x);
+
+  - platform: template
+    id: openwakeword_max_failures
+    name: Remote Wake Max Failures
+    icon: "mdi:alert-circle-outline"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: ${openwakeword_max_failures}
+    min_value: 1
+    max_value: 20
+    step: 1
+    set_action:
+      - lambda: id(oww).set_max_failures((uint8_t) x);
+
+select:
+  - platform: template
+    name: "Wake Engine"
+    id: wake_engine_select
+    icon: "mdi:ear-hearing"
+    entity_category: config
+    optimistic: true
+    initial_option: ${wake_engine}
+    restore_value: true
+    options:
+      - microwakeword
+      - openwakeword
+      - nanowakeword
+    on_value:
+      - script.execute: apply_wake_engine
+
+  - platform: template
+    name: "Wake word sensitivity"
+    id: wake_word_sensitivity
+    optimistic: true
+    initial_option: Slightly sensitive
+    restore_value: true
+    entity_category: config
+    options:
+      - Slightly sensitive
+      - Moderately sensitive
+      - Very sensitive
+    on_value:
+      lambda: |-
+        if (x == "Slightly sensitive") {
+          id(${wake_word_name}).set_probability_cutoff(${wake_cutoff_slight});
+        } else if (x == "Moderately sensitive") {
+          id(${wake_word_name}).set_probability_cutoff(${wake_cutoff_moderate});
+        } else if (x == "Very sensitive") {
+          id(${wake_word_name}).set_probability_cutoff(${wake_cutoff_very});
+        }
+
+  - platform: logger
+    id: logger_select
+    name: Logger Level
+    disabled_by_default: true
+
+  - platform: template
+    optimistic: true
+    name: "Alarm action"
+    id: alarm_action
+    icon: mdi:bell-plus
+    options:
+      - "Play sound"
+      - "Send event"
+      - "Sound and event"
+    initial_option: "Play sound"
+    on_value:
+      then:
+        - lambda: |-
+            id(saved_alarm_action) = x;
+
+voice_assistant:
+  id: va
+  microphone:
+    microphone: i2s_mics
+    channels: 0
+  media_player: external_media_player
+  micro_wake_word: mww
+  use_wake_word: false
+  noise_suppression_level: 0
+  auto_gain: 0 dbfs
+  volume_multiplier: 1
+  on_client_connected:
+    - if:
+        condition:
+          - lambda: return id(init_in_progress);
+          - switch.is_on: mic_mute_switch
+        then:
+          - switch.turn_off: mic_mute_switch
+    - lambda: |-
+        id(init_in_progress) = false;
+        id(openwakeword_wake_detected) = false;
+        id(mww).set_capture_upload_enabled(id(capture_wake_audio).state);
+        id(mww).set_capture_close_misses_enabled(id(capture_close_misses).state);
+        id(mww).set_capture_close_miss_probability_cutoff(id(close_miss_threshold).state);
+        id(mww).set_capture_upload_url(id(trainer_app_url).state);
+        if (id(wake_engine_select).state == "nanowakeword") {
+          id(oww).set_url(id(nanowakeword_server_url).state);
+          id(oww).set_stream_path("/api/nanowakeword/stream");
+        } else {
+          id(oww).set_url(id(openwakeword_server_url).state);
+          id(oww).set_stream_path("/api/openwakeword/stream");
+        }
+    - script.execute: apply_wake_engine
+    - lambda: id(voice_assistant_phase) = ${voice_assist_idle_phase_id};
+    - script.execute: control_leds
+  on_client_disconnected:
+    - voice_assistant.stop:
+    - remote_wake_word.stop:
+    - lambda: |-
+        id(openwakeword_wake_detected) = false;
+        id(voice_assistant_phase) = ${voice_assist_not_ready_phase_id};
+    - script.execute: control_leds
+  on_error:
+    - lambda: |-
+        id(openwakeword_wake_detected) = false;
+        id(push_to_intercom_active) = false;
+        id(push_to_intercom_handoff) = false;
+        id(respeaker).unlock_beam();
+    - if:
+        condition:
+          or:
+            - lambda: return code == "duplicate_wake_up_detected";
+            - lambda: return code == "stt-no-text-recognized";
+        then:
+          - if:
+              condition:
+                voice_assistant.is_running:
+              then:
+                - voice_assistant.stop:
+          - lambda: id(voice_assistant_phase) = ${voice_assist_idle_phase_id};
+          - script.execute: control_leds
+    - if:
+        condition:
+          and:
+            - lambda: return !id(init_in_progress);
+            - lambda: return code != "duplicate_wake_up_detected";
+            - lambda: return code != "stt-no-text-recognized";
+        then:
+          - lambda: id(voice_assistant_phase) = ${voice_assist_error_phase_id};
+          - script.execute: control_leds
+    - if:
+        condition:
+          - lambda: return code == "cloud-auth-failed";
+        then:
+          - script.execute:
+              id: play_sound
+              priority: true
+              sound_file: "error_cloud_expired"
+  on_wake_word_detected:
+    - if:
+        condition:
+          lambda: return id(wake_engine_select).state != "microwakeword";
+        then:
+          - lambda: |-
+              id(openwakeword_wake_detected) = true;
+              id(voice_assistant_phase) = ${voice_assist_waiting_for_command_phase_id};
+          - script.execute: control_leds
+          - if:
+              condition:
+                and:
+                  - switch.is_off: mic_mute_switch
+                  - switch.is_off: timer_ringing
+                  - switch.is_on: wake_sound
+              then:
+                - script.execute:
+                    id: play_sound
+                    priority: false
+                    sound_file: "wake_word_triggered_sound"
+  on_start:
+    - remote_wake_word.stop:
+    - mixer_speaker.apply_ducking:
+        id: media_mixing_input
+        decibel_reduction: 20
+        duration: 0.0s
+    - micro_wake_word.disable_model: ${wake_word_name}
+  on_listening:
+    - if:
+        condition:
+          lambda: return id(wake_engine_select).state == "microwakeword" || id(openwakeword_wake_detected) || id(push_to_intercom_active);
+        then:
+          - lambda: id(voice_assistant_phase) = ${voice_assist_waiting_for_command_phase_id};
+        else:
+          - lambda: id(voice_assistant_phase) = ${voice_assist_idle_phase_id};
+    - script.execute: control_leds
+  on_stt_vad_start:
+    - if:
+        condition:
+          lambda: return id(wake_engine_select).state == "microwakeword" || id(openwakeword_wake_detected) || id(push_to_intercom_active);
+        then:
+          - lambda: id(voice_assistant_phase) = ${voice_assist_listening_for_command_phase_id};
+          - script.execute: control_leds
+  on_stt_vad_end:
+    - if:
+        condition:
+          lambda: return id(wake_engine_select).state == "microwakeword" || id(openwakeword_wake_detected) || id(push_to_intercom_active);
+        then:
+          - lambda: id(voice_assistant_phase) = ${voice_assist_thinking_phase_id};
+          - lambda: id(respeaker).unlock_beam();
+          - script.execute: control_leds
+  on_tool_call_start:
+    - if:
+        condition:
+          lambda: return id(wake_engine_select).state == "microwakeword" || id(openwakeword_wake_detected) || id(push_to_intercom_active);
+        then:
+          - lambda: id(voice_assistant_phase) = ${voice_assist_tool_call_phase_id};
+          - script.execute: control_leds
+  on_intent_progress:
+    - if:
+        condition:
+          and:
+            - lambda: 'return !x.empty();'
+            - lambda: return id(wake_engine_select).state == "microwakeword" || id(openwakeword_wake_detected) || id(push_to_intercom_active);
+        then:
+          - lambda: id(voice_assistant_phase) = ${voice_assist_replying_phase_id};
+          - script.execute: control_leds
+          - script.execute: activate_stop_word_once
+  on_tts_start:
+    - if:
+        condition:
+          and:
+            - lambda: 'return id(voice_assistant_phase) != ${voice_assist_replying_phase_id};'
+            - lambda: return id(wake_engine_select).state == "microwakeword" || id(openwakeword_wake_detected) || id(push_to_intercom_active);
+        then:
+          - lambda: id(voice_assistant_phase) = ${voice_assist_replying_phase_id};
+          - script.execute: control_leds
+          - script.execute: activate_stop_word_once
+  on_tts_end:
+    - script.execute:
+        id: send_tts_uri_event
+        tts_uri: !lambda 'return x;'
+  on_stt_end:
+    - script.execute:
+        id: send_stt_text_event
+        stt_text: !lambda 'return x;'
+  on_end:
+    - lambda: id(respeaker).unlock_beam();
+    - wait_until:
+        not:
+          voice_assistant.is_running:
+    - if:
+        condition:
+          lambda: return id(push_to_intercom_handoff);
+        then:
+          - lambda: id(push_to_intercom_handoff) = false;
+        else:
+          - lambda: id(push_to_intercom_active) = false;
+    - lambda: id(openwakeword_wake_detected) = false;
+    - mixer_speaker.apply_ducking:
+        id: media_mixing_input
+        decibel_reduction: 0
+        duration: 1.0s
+    - if:
+        condition:
+          lambda: return !id(push_to_intercom_active);
+        then:
+          - script.execute: apply_wake_engine
+    - if:
+        condition:
+          lambda: return id(voice_assistant_phase) == ${voice_assist_error_phase_id};
+        then:
+          - delay: 1s
+    - lambda: id(voice_assistant_phase) = ${voice_assist_idle_phase_id};
+    - script.execute: control_leds
+  on_timer_finished:
+    - switch.turn_on: timer_ringing
+    - lambda: |
+        id(next_timer).publish_state(-1);
+        id(next_timer_name).publish_state("-");
+  on_timer_started:
+    - lambda: |
+        id(check_if_timers_active).execute();
+        if (id(is_timer_active)) {
+          id(fetch_first_active_timer).execute();
+          id(next_timer).publish_state(id(first_active_timer).seconds_left);
+          id(next_timer_name).publish_state(id(first_active_timer).name);
+        }
+    - script.execute: control_leds
+  on_timer_cancelled:
+    - lambda: |
+        id(check_if_timers_active).execute();
+        if (id(is_timer_active)) {
+          id(fetch_first_active_timer).execute();
+          id(next_timer).publish_state(id(first_active_timer).seconds_left);
+          id(next_timer_name).publish_state(id(first_active_timer).name);
+        } else {
+          id(next_timer).publish_state(-1);
+          id(next_timer_name).publish_state("-");
+        }
+    - script.execute: control_leds
+  on_timer_updated:
+    - lambda: |
+        id(check_if_timers_active).execute();
+        if (id(is_timer_active)) {
+          id(fetch_first_active_timer).execute();
+          id(next_timer).publish_state(id(first_active_timer).seconds_left);
+          id(next_timer_name).publish_state(id(first_active_timer).name);
+        }
+    - script.execute: control_leds
+  on_timer_tick:
+    - lambda: |
+        id(fetch_first_active_timer).execute();
+        int seconds_left = id(first_active_timer).seconds_left;
+        if (seconds_left % 5 == 0) {
+          id(next_timer).publish_state(seconds_left);
+        }
+        if (id(current_led_effect) == "timer_tick") {
+          id(control_leds_timer_ticking).execute();
+        }

@@ -1,0 +1,53 @@
+globals:
+  - id: init_in_progress
+    type: bool
+    restore_value: no
+    initial_value: 'true'
+  # Global variable storing the state of ImprovBLE. Used to draw different LED animations
+  - id: improv_ble_in_progress
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  # Global variable tracking the phase of the voice assistant (defined above). Initialized to not_ready
+  - id: voice_assistant_phase
+    type: int
+    restore_value: no
+    initial_value: ${voice_assist_not_ready_phase_id}
+  # True after Tater's server-side wake detector has fired for this turn.
+  - id: openwakeword_wake_detected
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  # True while the user button is held for Tater push-to-intercom.
+  - id: push_to_intercom_active
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  # True while pausing the continuous wake listener so push-to-intercom can take over.
+  - id: push_to_intercom_handoff
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  - id: saved_time_zone
+    type: std::string
+    restore_value: yes
+    initial_value: '"UTC0"'
+  - id: saved_alarm_action
+    type: std::string
+    restore_value: yes
+    initial_value: '"Play sound"'
+  # Global variable storing the first active timer
+  - id: first_active_timer
+    type: voice_assistant::Timer
+    restore_value: no
+  # Global variable storing if a timer is active
+  - id: is_timer_active
+    type: bool
+    restore_value: no
+  # Global variable storing if a factory reset was requested. If it is set to true, the device will factory reset once the user button is released
+  - id: factory_reset_requested
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
+# Time sync from Home Assistant
