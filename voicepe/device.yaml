@@ -27,6 +27,15 @@ esp32:
   cpu_frequency: 240MHz
   variant: esp32s3
   flash_size: 16MB
+  partitions:
+    - name: mww_model_a
+      type: data
+      subtype: 0x40
+      size: 0x80000
+    - name: mww_model_b
+      type: data
+      subtype: 0x41
+      size: 0x80000
   framework:
     type: esp-idf
     version: recommended

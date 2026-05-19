@@ -49,6 +49,15 @@ CONF_VAD = "vad"
 TYPE_HTTP = "http"
 RUNTIME_MODEL_PARTITION_SIZE = 0x80000
 
+
+def _add_runtime_model_partition(name: str, subtype: int) -> None:
+    try:
+        esp32.add_partition(name, "data", subtype, RUNTIME_MODEL_PARTITION_SIZE)
+    except ValueError as err:
+        if "already defined" not in str(err):
+            raise
+
+
 micro_wake_word_ns = cg.esphome_ns.namespace("micro_wake_word")
 
 MicroWakeWord = micro_wake_word_ns.class_("MicroWakeWord", cg.Component)
@@ -462,8 +471,8 @@ async def to_code(config):
     cg.add_build_flag("-DESP_NN")
     esp32.include_builtin_idf_component("esp_http_client")
     esp32.add_idf_sdkconfig_option("CONFIG_MBEDTLS_CERTIFICATE_BUNDLE", True)
-    esp32.add_partition("mww_model_a", "data", 0x40, RUNTIME_MODEL_PARTITION_SIZE)
-    esp32.add_partition("mww_model_b", "data", 0x41, RUNTIME_MODEL_PARTITION_SIZE)
+    _add_runtime_model_partition("mww_model_a", 0x40)
+    _add_runtime_model_partition("mww_model_b", 0x41)
 
     if vad_model := config.get(CONF_VAD):
         cg.add_define("USE_MICRO_WAKE_WORD_VAD")

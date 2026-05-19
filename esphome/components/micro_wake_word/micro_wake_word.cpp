@@ -561,7 +561,9 @@ bool MicroWakeWord::init_runtime_model_partitions_() {
       esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, "mww_model_b");
 
   if (this->runtime_model_partitions_[0] == nullptr || this->runtime_model_partitions_[1] == nullptr) {
-    ESP_LOGW(TAG, "Runtime microWakeWord model partitions are unavailable; using compiled model only.");
+    ESP_LOGW(TAG,
+             "Runtime microWakeWord model partitions are unavailable; using compiled model only. OTA updates cannot "
+             "add partitions; install once with a full flash/USB flash to write the updated partition table.");
     return false;
   }
 
