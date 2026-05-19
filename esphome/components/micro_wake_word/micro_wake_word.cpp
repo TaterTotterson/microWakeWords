@@ -48,6 +48,7 @@ static const uint32_t CLOSE_MISS_CONFIRMATION_DELAY_MS = 900;
 static const size_t CAPTURE_UPLOAD_BUFFER_SIZE = 2048;
 static const size_t RUNTIME_MODEL_HTTP_BUFFER_SIZE = 2048;
 static const size_t RUNTIME_MODEL_MANIFEST_MAX_SIZE = 8192;
+static const size_t RUNTIME_MODEL_MAX_REDIRECTS = 5;
 static const uint32_t RUNTIME_MODEL_DOWNLOAD_TIMEOUT_MS = 20000;
 static const uint32_t RUNTIME_MODEL_MAGIC = 0x4457574D;  // MWWD, little-endian in flash.
 static const uint16_t RUNTIME_MODEL_HEADER_VERSION = 1;
@@ -57,6 +58,24 @@ static const uint32_t RUNTIME_MODEL_MIN_TFLITE_SIZE = 1024;
 
 static bool starts_with_http_url(const std::string &value) {
   return value.rfind("http://", 0) == 0 || value.rfind("https://", 0) == 0;
+}
+
+static bool is_http_redirect_status(int status_code) {
+  return status_code == 301 || status_code == 302 || status_code == 303 || status_code == 307 || status_code == 308;
+}
+
+static bool equals_ignore_case(const char *left, const char *right) {
+  if (left == nullptr || right == nullptr) {
+    return false;
+  }
+  while (*left != '\0' && *right != '\0') {
+    if (std::tolower(static_cast<unsigned char>(*left)) != std::tolower(static_cast<unsigned char>(*right))) {
+      return false;
+    }
+    left++;
+    right++;
+  }
+  return *left == '\0' && *right == '\0';
 }
 
 static std::string trim_copy(const std::string &value) {
@@ -71,15 +90,57 @@ static std::string trim_copy(const std::string &value) {
   return value.substr(start, end - start);
 }
 
-static std::string resolve_manifest_relative_url(const std::string &manifest_url, const std::string &model_path) {
-  if (starts_with_http_url(model_path)) {
-    return model_path;
+static std::string resolve_http_relative_url(const std::string &base_url, const std::string &path) {
+  const std::string trimmed_path = trim_copy(path);
+  if (starts_with_http_url(trimmed_path)) {
+    return trimmed_path;
   }
-  const size_t slash = manifest_url.find_last_of('/');
+
+  const size_t scheme_end = base_url.find("://");
+  if (scheme_end == std::string::npos) {
+    return trimmed_path;
+  }
+  if (trimmed_path.rfind("//", 0) == 0) {
+    return base_url.substr(0, scheme_end) + ":" + trimmed_path;
+  }
+
+  const size_t host_start = scheme_end + 3;
+  const size_t path_start = base_url.find('/', host_start);
+  const std::string origin = path_start == std::string::npos ? base_url : base_url.substr(0, path_start);
+
+  if (!trimmed_path.empty() && trimmed_path[0] == '/') {
+    return origin + trimmed_path;
+  }
+
+  const size_t slash = base_url.find_last_of('/');
   if (slash == std::string::npos) {
-    return model_path;
+    return trimmed_path;
   }
-  return manifest_url.substr(0, slash + 1) + model_path;
+  if (slash < host_start) {
+    return origin + "/" + trimmed_path;
+  }
+  return base_url.substr(0, slash + 1) + trimmed_path;
+}
+
+static std::string resolve_manifest_relative_url(const std::string &manifest_url, const std::string &model_path) {
+  return resolve_http_relative_url(manifest_url, model_path);
+}
+
+struct RuntimeModelHttpContext {
+  std::string location;
+};
+
+static esp_err_t runtime_model_http_event_handler(esp_http_client_event_t *event) {
+  if (event == nullptr || event->event_id != HTTP_EVENT_ON_HEADER ||
+      !equals_ignore_case(event->header_key, "Location") || event->header_value == nullptr) {
+    return ESP_OK;
+  }
+
+  auto *context = static_cast<RuntimeModelHttpContext *>(event->user_data);
+  if (context != nullptr) {
+    context->location = event->header_value;
+  }
+  return ESP_OK;
 }
 
 static uint8_t quantize_probability(float probability) {
@@ -830,78 +891,117 @@ bool MicroWakeWord::parse_runtime_model_manifest_(const std::string &manifest_ur
   return true;
 }
 
-bool MicroWakeWord::http_get_to_string_(const std::string &url, std::string &body, size_t max_body_size) const {
+bool MicroWakeWord::http_get_to_string_(const std::string &url, std::string &body, size_t max_body_size,
+                                        std::string *final_url) const {
   if (!network::is_connected()) {
     ESP_LOGW(TAG, "Runtime model download skipped because the device is not connected to the network.");
     return false;
   }
 
-  esp_http_client_config_t config = {};
-  config.url = url.c_str();
-  config.method = HTTP_METHOD_GET;
-  config.timeout_ms = RUNTIME_MODEL_DOWNLOAD_TIMEOUT_MS;
-  config.buffer_size = RUNTIME_MODEL_HTTP_BUFFER_SIZE;
+  std::string current_url = url;
+  size_t redirects_remaining = RUNTIME_MODEL_MAX_REDIRECTS;
+
+  while (true) {
+    RuntimeModelHttpContext http_context;
+    esp_http_client_config_t config = {};
+    config.url = current_url.c_str();
+    config.method = HTTP_METHOD_GET;
+    config.timeout_ms = RUNTIME_MODEL_DOWNLOAD_TIMEOUT_MS;
+    config.buffer_size = RUNTIME_MODEL_HTTP_BUFFER_SIZE;
+    config.disable_auto_redirect = true;
+    config.event_handler = runtime_model_http_event_handler;
+    config.user_data = &http_context;
 
 #if CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
-  if (url.find("https:") != std::string::npos) {
-    config.crt_bundle_attach = esp_crt_bundle_attach;
-  }
+    if (current_url.find("https:") != std::string::npos) {
+      config.crt_bundle_attach = esp_crt_bundle_attach;
+    }
 #endif
 
-  esp_http_client_handle_t client = esp_http_client_init(&config);
-  if (client == nullptr) {
-    ESP_LOGW(TAG, "Runtime model manifest download failed because HTTP client could not be initialized.");
-    return false;
-  }
+    esp_http_client_handle_t client = esp_http_client_init(&config);
+    if (client == nullptr) {
+      ESP_LOGW(TAG, "Runtime model manifest download failed because HTTP client could not be initialized.");
+      return false;
+    }
 
-  esp_err_t err = esp_http_client_open(client, 0);
-  if (err != ESP_OK) {
-    ESP_LOGW(TAG, "Runtime model manifest download failed while opening %s: %s", url.c_str(), esp_err_to_name(err));
-    esp_http_client_cleanup(client);
-    return false;
-  }
+    esp_err_t err = esp_http_client_open(client, 0);
+    if (err != ESP_OK) {
+      ESP_LOGW(TAG, "Runtime model manifest download failed while opening %s: %s", current_url.c_str(),
+               esp_err_to_name(err));
+      esp_http_client_cleanup(client);
+      return false;
+    }
 
-  const int content_length = esp_http_client_fetch_headers(client);
-  const int status_code = esp_http_client_get_status_code(client);
-  if (status_code < 200 || status_code >= 300) {
-    ESP_LOGW(TAG, "Runtime model manifest download failed with HTTP status %d.", status_code);
-    esp_http_client_close(client);
-    esp_http_client_cleanup(client);
-    return false;
-  }
-  if (content_length > static_cast<int>(max_body_size)) {
-    ESP_LOGW(TAG, "Runtime model manifest is too large (%d bytes).", content_length);
-    esp_http_client_close(client);
-    esp_http_client_cleanup(client);
-    return false;
-  }
-
-  body.clear();
-  uint8_t buffer[RUNTIME_MODEL_HTTP_BUFFER_SIZE];
-  while (true) {
-    const int bytes_read = esp_http_client_read(client, reinterpret_cast<char *>(buffer), sizeof(buffer));
-    if (bytes_read > 0) {
-      if (body.size() + bytes_read > max_body_size) {
-        ESP_LOGW(TAG, "Runtime model manifest exceeded maximum size.");
+    const int content_length = esp_http_client_fetch_headers(client);
+    const int status_code = esp_http_client_get_status_code(client);
+    if (is_http_redirect_status(status_code)) {
+      if (http_context.location.empty()) {
+        ESP_LOGW(TAG, "Runtime model manifest redirect did not include a Location header.");
         esp_http_client_close(client);
         esp_http_client_cleanup(client);
         return false;
       }
-      body.append(reinterpret_cast<const char *>(buffer), bytes_read);
+      if (redirects_remaining == 0) {
+        ESP_LOGW(TAG, "Runtime model manifest download exceeded redirect limit.");
+        esp_http_client_close(client);
+        esp_http_client_cleanup(client);
+        return false;
+      }
+      const std::string redirect_url = resolve_http_relative_url(current_url, http_context.location);
+      ESP_LOGD(TAG, "Runtime model manifest redirected to %s.", redirect_url.c_str());
+      esp_http_client_close(client);
+      esp_http_client_cleanup(client);
+      if (!starts_with_http_url(redirect_url)) {
+        ESP_LOGW(TAG, "Runtime model manifest redirect URL must start with http:// or https://.");
+        return false;
+      }
+      current_url = redirect_url;
+      redirects_remaining--;
       continue;
     }
-    if (bytes_read < 0) {
-      ESP_LOGW(TAG, "Runtime model manifest download failed while reading.");
+    if (status_code < 200 || status_code >= 300) {
+      ESP_LOGW(TAG, "Runtime model manifest download failed with HTTP status %d.", status_code);
       esp_http_client_close(client);
       esp_http_client_cleanup(client);
       return false;
     }
-    break;
-  }
+    if (content_length > static_cast<int>(max_body_size)) {
+      ESP_LOGW(TAG, "Runtime model manifest is too large (%d bytes).", content_length);
+      esp_http_client_close(client);
+      esp_http_client_cleanup(client);
+      return false;
+    }
 
-  esp_http_client_close(client);
-  esp_http_client_cleanup(client);
-  return !body.empty();
+    body.clear();
+    uint8_t buffer[RUNTIME_MODEL_HTTP_BUFFER_SIZE];
+    while (true) {
+      const int bytes_read = esp_http_client_read(client, reinterpret_cast<char *>(buffer), sizeof(buffer));
+      if (bytes_read > 0) {
+        if (body.size() + bytes_read > max_body_size) {
+          ESP_LOGW(TAG, "Runtime model manifest exceeded maximum size.");
+          esp_http_client_close(client);
+          esp_http_client_cleanup(client);
+          return false;
+        }
+        body.append(reinterpret_cast<const char *>(buffer), bytes_read);
+        continue;
+      }
+      if (bytes_read < 0) {
+        ESP_LOGW(TAG, "Runtime model manifest download failed while reading.");
+        esp_http_client_close(client);
+        esp_http_client_cleanup(client);
+        return false;
+      }
+      break;
+    }
+
+    esp_http_client_close(client);
+    esp_http_client_cleanup(client);
+    if (final_url != nullptr) {
+      *final_url = current_url;
+    }
+    return !body.empty();
+  }
 }
 
 bool MicroWakeWord::http_download_to_partition_(const std::string &url, const esp_partition_t *partition,
@@ -915,90 +1015,124 @@ bool MicroWakeWord::http_download_to_partition_(const std::string &url, const es
     return false;
   }
 
-  esp_http_client_config_t config = {};
-  config.url = url.c_str();
-  config.method = HTTP_METHOD_GET;
-  config.timeout_ms = RUNTIME_MODEL_DOWNLOAD_TIMEOUT_MS;
-  config.buffer_size = RUNTIME_MODEL_HTTP_BUFFER_SIZE;
+  std::string current_url = url;
+  size_t redirects_remaining = RUNTIME_MODEL_MAX_REDIRECTS;
+
+  while (true) {
+    RuntimeModelHttpContext http_context;
+    esp_http_client_config_t config = {};
+    config.url = current_url.c_str();
+    config.method = HTTP_METHOD_GET;
+    config.timeout_ms = RUNTIME_MODEL_DOWNLOAD_TIMEOUT_MS;
+    config.buffer_size = RUNTIME_MODEL_HTTP_BUFFER_SIZE;
+    config.disable_auto_redirect = true;
+    config.event_handler = runtime_model_http_event_handler;
+    config.user_data = &http_context;
 
 #if CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
-  if (url.find("https:") != std::string::npos) {
-    config.crt_bundle_attach = esp_crt_bundle_attach;
-  }
+    if (current_url.find("https:") != std::string::npos) {
+      config.crt_bundle_attach = esp_crt_bundle_attach;
+    }
 #endif
 
-  esp_http_client_handle_t client = esp_http_client_init(&config);
-  if (client == nullptr) {
-    ESP_LOGW(TAG, "Runtime model download failed because HTTP client could not be initialized.");
-    return false;
-  }
+    esp_http_client_handle_t client = esp_http_client_init(&config);
+    if (client == nullptr) {
+      ESP_LOGW(TAG, "Runtime model download failed because HTTP client could not be initialized.");
+      return false;
+    }
 
-  esp_err_t err = esp_http_client_open(client, 0);
-  if (err != ESP_OK) {
-    ESP_LOGW(TAG, "Runtime model download failed while opening %s: %s", url.c_str(), esp_err_to_name(err));
-    esp_http_client_cleanup(client);
-    return false;
-  }
+    esp_err_t err = esp_http_client_open(client, 0);
+    if (err != ESP_OK) {
+      ESP_LOGW(TAG, "Runtime model download failed while opening %s: %s", current_url.c_str(), esp_err_to_name(err));
+      esp_http_client_cleanup(client);
+      return false;
+    }
 
-  const int content_length = esp_http_client_fetch_headers(client);
-  const int status_code = esp_http_client_get_status_code(client);
-  if (status_code < 200 || status_code >= 300) {
-    ESP_LOGW(TAG, "Runtime model download failed with HTTP status %d.", status_code);
-    esp_http_client_close(client);
-    esp_http_client_cleanup(client);
-    return false;
-  }
-  if (content_length > static_cast<int>(max_size)) {
-    ESP_LOGW(TAG, "Runtime model is too large for the model slot (%d bytes, max %u).", content_length,
-             static_cast<unsigned int>(max_size));
-    esp_http_client_close(client);
-    esp_http_client_cleanup(client);
-    return false;
-  }
-
-  bytes_written = 0;
-  uint32_t crc = 0xFFFFFFFFU;
-  uint8_t buffer[RUNTIME_MODEL_HTTP_BUFFER_SIZE];
-  while (true) {
-    const int bytes_read = esp_http_client_read(client, reinterpret_cast<char *>(buffer), sizeof(buffer));
-    if (bytes_read > 0) {
-      if (bytes_written + bytes_read > max_size) {
-        ESP_LOGW(TAG, "Runtime model exceeded model slot size.");
+    const int content_length = esp_http_client_fetch_headers(client);
+    const int status_code = esp_http_client_get_status_code(client);
+    if (is_http_redirect_status(status_code)) {
+      if (http_context.location.empty()) {
+        ESP_LOGW(TAG, "Runtime model redirect did not include a Location header.");
         esp_http_client_close(client);
         esp_http_client_cleanup(client);
         return false;
       }
-      err = esp_partition_write(partition, offset + bytes_written, buffer, bytes_read);
-      if (err != ESP_OK) {
-        ESP_LOGW(TAG, "Runtime model flash write failed: %s", esp_err_to_name(err));
+      if (redirects_remaining == 0) {
+        ESP_LOGW(TAG, "Runtime model download exceeded redirect limit.");
         esp_http_client_close(client);
         esp_http_client_cleanup(client);
         return false;
       }
-      crc = crc32_update(crc, buffer, bytes_read);
-      bytes_written += bytes_read;
+      const std::string redirect_url = resolve_http_relative_url(current_url, http_context.location);
+      ESP_LOGD(TAG, "Runtime model redirected to %s.", redirect_url.c_str());
+      esp_http_client_close(client);
+      esp_http_client_cleanup(client);
+      if (!starts_with_http_url(redirect_url)) {
+        ESP_LOGW(TAG, "Runtime model redirect URL must start with http:// or https://.");
+        return false;
+      }
+      current_url = redirect_url;
+      redirects_remaining--;
       continue;
     }
-    if (bytes_read < 0) {
-      ESP_LOGW(TAG, "Runtime model download failed while reading.");
+    if (status_code < 200 || status_code >= 300) {
+      ESP_LOGW(TAG, "Runtime model download failed with HTTP status %d.", status_code);
       esp_http_client_close(client);
       esp_http_client_cleanup(client);
       return false;
     }
-    break;
+    if (content_length > static_cast<int>(max_size)) {
+      ESP_LOGW(TAG, "Runtime model is too large for the model slot (%d bytes, max %u).", content_length,
+               static_cast<unsigned int>(max_size));
+      esp_http_client_close(client);
+      esp_http_client_cleanup(client);
+      return false;
+    }
+
+    bytes_written = 0;
+    uint32_t crc = 0xFFFFFFFFU;
+    uint8_t buffer[RUNTIME_MODEL_HTTP_BUFFER_SIZE];
+    while (true) {
+      const int bytes_read = esp_http_client_read(client, reinterpret_cast<char *>(buffer), sizeof(buffer));
+      if (bytes_read > 0) {
+        if (bytes_written + bytes_read > max_size) {
+          ESP_LOGW(TAG, "Runtime model exceeded model slot size.");
+          esp_http_client_close(client);
+          esp_http_client_cleanup(client);
+          return false;
+        }
+        err = esp_partition_write(partition, offset + bytes_written, buffer, bytes_read);
+        if (err != ESP_OK) {
+          ESP_LOGW(TAG, "Runtime model flash write failed: %s", esp_err_to_name(err));
+          esp_http_client_close(client);
+          esp_http_client_cleanup(client);
+          return false;
+        }
+        crc = crc32_update(crc, buffer, bytes_read);
+        bytes_written += bytes_read;
+        continue;
+      }
+      if (bytes_read < 0) {
+        ESP_LOGW(TAG, "Runtime model download failed while reading.");
+        esp_http_client_close(client);
+        esp_http_client_cleanup(client);
+        return false;
+      }
+      break;
+    }
+
+    esp_http_client_close(client);
+    esp_http_client_cleanup(client);
+
+    if (bytes_written < RUNTIME_MODEL_MIN_TFLITE_SIZE) {
+      ESP_LOGW(TAG, "Runtime model download is too small to be a valid TFLite model (%u bytes).",
+               static_cast<unsigned int>(bytes_written));
+      return false;
+    }
+
+    crc32 = ~crc;
+    return true;
   }
-
-  esp_http_client_close(client);
-  esp_http_client_cleanup(client);
-
-  if (bytes_written < RUNTIME_MODEL_MIN_TFLITE_SIZE) {
-    ESP_LOGW(TAG, "Runtime model download is too small to be a valid TFLite model (%u bytes).",
-             static_cast<unsigned int>(bytes_written));
-    return false;
-  }
-
-  crc32 = ~crc;
-  return true;
 }
 
 bool MicroWakeWord::write_runtime_model_from_url_(const std::string &url) {
@@ -1040,13 +1174,14 @@ bool MicroWakeWord::write_runtime_model_from_url_(const std::string &url) {
   }
 
   std::string manifest_json;
-  if (!this->http_get_to_string_(requested_url, manifest_json, RUNTIME_MODEL_MANIFEST_MAX_SIZE)) {
+  std::string manifest_url = requested_url;
+  if (!this->http_get_to_string_(requested_url, manifest_json, RUNTIME_MODEL_MANIFEST_MAX_SIZE, &manifest_url)) {
     restart_if_needed();
     return false;
   }
 
   RuntimeModelManifest manifest = {};
-  if (!this->parse_runtime_model_manifest_(requested_url, manifest_json, manifest)) {
+  if (!this->parse_runtime_model_manifest_(manifest_url, manifest_json, manifest)) {
     restart_if_needed();
     return false;
   }
