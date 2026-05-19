@@ -205,7 +205,8 @@ class MicroWakeWord : public Component
   bool restore_compiled_runtime_model_(bool erase_slots);
   bool parse_runtime_model_manifest_(const std::string &manifest_url, const std::string &manifest_json,
                                      RuntimeModelManifest &manifest) const;
-  bool http_get_to_string_(const std::string &url, std::string &body, size_t max_body_size) const;
+  bool http_get_to_string_(const std::string &url, std::string &body, size_t max_body_size,
+                           std::string *final_url) const;
   bool http_download_to_partition_(const std::string &url, const esp_partition_t *partition, uint32_t offset,
                                    uint32_t max_size, uint32_t &bytes_written, uint32_t &crc32) const;
   bool read_runtime_model_header_(const esp_partition_t *partition, RuntimeModelHeader &header) const;
