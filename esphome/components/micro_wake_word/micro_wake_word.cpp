@@ -615,14 +615,14 @@ bool MicroWakeWord::validate_runtime_model_header_(const RuntimeModelHeader &hea
 }
 
 bool MicroWakeWord::map_runtime_model_(const esp_partition_t *partition, const RuntimeModelHeader &header,
-                                       const uint8_t **data, spi_flash_mmap_handle_t *handle) const {
+                                       const uint8_t **data, esp_partition_mmap_handle_t *handle) const {
   if (partition == nullptr || data == nullptr || handle == nullptr) {
     return false;
   }
 
   const void *mapped_data = nullptr;
   const esp_err_t err =
-      esp_partition_mmap(partition, header.model_offset, header.model_size, SPI_FLASH_MMAP_DATA, &mapped_data,
+      esp_partition_mmap(partition, header.model_offset, header.model_size, ESP_PARTITION_MMAP_DATA, &mapped_data,
                          handle);
   if (err != ESP_OK) {
     ESP_LOGW(TAG, "Failed to memory-map runtime model from %s: %s", partition->label, esp_err_to_name(err));
@@ -644,7 +644,7 @@ bool MicroWakeWord::activate_runtime_model_partition_(const esp_partition_t *par
   }
 
   const uint8_t *mapped_data = nullptr;
-  spi_flash_mmap_handle_t mmap_handle = 0;
+  esp_partition_mmap_handle_t mmap_handle = 0;
   if (!this->map_runtime_model_(partition, header, &mapped_data, &mmap_handle)) {
     return false;
   }
@@ -672,7 +672,7 @@ bool MicroWakeWord::activate_runtime_model_partition_(const esp_partition_t *par
   }
 
   const esp_partition_t *previous_partition = this->active_runtime_model_partition_;
-  const spi_flash_mmap_handle_t previous_handle = this->active_runtime_model_mmap_handle_;
+  const esp_partition_mmap_handle_t previous_handle = this->active_runtime_model_mmap_handle_;
 
   this->active_runtime_model_partition_ = partition;
   this->active_runtime_model_mmap_handle_ = mmap_handle;
