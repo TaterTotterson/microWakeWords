@@ -13,7 +13,6 @@
 #include "esphome/core/ring_buffer.h"
 
 #include <esp_partition.h>
-#include <spi_flash_mmap.h>
 #ifdef USE_OTA_STATE_LISTENER
 #include "esphome/components/ota/ota_backend.h"
 #endif
@@ -195,7 +194,7 @@ class MicroWakeWord : public Component
   std::atomic<bool> runtime_model_update_in_progress_{false};
   const esp_partition_t *runtime_model_partitions_[2]{nullptr, nullptr};
   const esp_partition_t *active_runtime_model_partition_{nullptr};
-  spi_flash_mmap_handle_t active_runtime_model_mmap_handle_{0};
+  esp_partition_mmap_handle_t active_runtime_model_mmap_handle_{0};
   const uint8_t *active_runtime_model_data_{nullptr};
   uint32_t runtime_model_sequence_{0};
 
@@ -212,7 +211,7 @@ class MicroWakeWord : public Component
   bool read_runtime_model_header_(const esp_partition_t *partition, RuntimeModelHeader &header) const;
   bool validate_runtime_model_header_(const RuntimeModelHeader &header, const esp_partition_t *partition) const;
   bool map_runtime_model_(const esp_partition_t *partition, const RuntimeModelHeader &header, const uint8_t **data,
-                          spi_flash_mmap_handle_t *handle) const;
+                          esp_partition_mmap_handle_t *handle) const;
   void unmap_active_runtime_model_();
   static void runtime_model_update_task(void *params);
 
