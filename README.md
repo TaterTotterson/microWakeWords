@@ -85,6 +85,10 @@ wake_word_model_url: https://raw.githubusercontent.com/TaterTotterson/microWakeW
 ```
 The `wake_word_name` **must match** the model ID used internally.
 
+After flashing the Tater firmware with runtime model support, you can also change the local microWakeWord model from Home Assistant by editing the **microWakeWord Model URL** entity. Paste a compatible model `.json` URL and the device will download, validate, store, and reload it without another firmware rebuild. Clear the entity, or set it to `compiled`/`default`, to return to the model compiled into the firmware.
+
+Note: devices need one full flash with the new partition table before runtime model storage is available.
+
 ---
 
 ### 🎚️ Wake Word Sensitivity

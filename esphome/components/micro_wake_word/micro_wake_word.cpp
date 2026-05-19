@@ -20,7 +20,11 @@
 
 #include <esp_http_client.h>
 
+#include <cJSON.h>
 #include <algorithm>
+#include <cctype>
+#include <cstdio>
+#include <cstring>
 
 namespace esphome {
 namespace micro_wake_word {
@@ -42,6 +46,100 @@ static const uint32_t CAPTURE_UPLOAD_TIMEOUT_MS = 8000;
 static const uint32_t CLOSE_MISS_UPLOAD_COOLDOWN_MS = 10000;
 static const uint32_t CLOSE_MISS_CONFIRMATION_DELAY_MS = 900;
 static const size_t CAPTURE_UPLOAD_BUFFER_SIZE = 2048;
+static const size_t RUNTIME_MODEL_HTTP_BUFFER_SIZE = 2048;
+static const size_t RUNTIME_MODEL_MANIFEST_MAX_SIZE = 8192;
+static const uint32_t RUNTIME_MODEL_DOWNLOAD_TIMEOUT_MS = 20000;
+static const uint32_t RUNTIME_MODEL_MAGIC = 0x4457574D;  // MWWD, little-endian in flash.
+static const uint16_t RUNTIME_MODEL_HEADER_VERSION = 1;
+static const uint32_t RUNTIME_MODEL_HEADER_SIZE = 512;
+static const uint32_t RUNTIME_MODEL_OFFSET = RUNTIME_MODEL_HEADER_SIZE;
+static const uint32_t RUNTIME_MODEL_MIN_TFLITE_SIZE = 1024;
+
+static bool starts_with_http_url(const std::string &value) {
+  return value.rfind("http://", 0) == 0 || value.rfind("https://", 0) == 0;
+}
+
+static std::string trim_copy(const std::string &value) {
+  size_t start = 0;
+  while (start < value.size() && std::isspace(static_cast<unsigned char>(value[start]))) {
+    start++;
+  }
+  size_t end = value.size();
+  while (end > start && std::isspace(static_cast<unsigned char>(value[end - 1]))) {
+    end--;
+  }
+  return value.substr(start, end - start);
+}
+
+static std::string resolve_manifest_relative_url(const std::string &manifest_url, const std::string &model_path) {
+  if (starts_with_http_url(model_path)) {
+    return model_path;
+  }
+  const size_t slash = manifest_url.find_last_of('/');
+  if (slash == std::string::npos) {
+    return model_path;
+  }
+  return manifest_url.substr(0, slash + 1) + model_path;
+}
+
+static uint8_t quantize_probability(float probability) {
+  if (probability < 0.0f) {
+    probability = 0.0f;
+  } else if (probability > 1.0f) {
+    probability = 1.0f;
+  }
+  return static_cast<uint8_t>(probability * 255.0f);
+}
+
+static uint32_t crc32_update(uint32_t crc, const uint8_t *data, size_t len) {
+  for (size_t i = 0; i < len; i++) {
+    crc ^= data[i];
+    for (uint8_t bit = 0; bit < 8; bit++) {
+      crc = (crc >> 1) ^ (0xEDB88320U & (0U - (crc & 1U)));
+    }
+  }
+  return crc;
+}
+
+static void copy_string_to_header(char *target, size_t target_size, const std::string &value) {
+  if (target_size == 0) {
+    return;
+  }
+  std::memset(target, 0, target_size);
+  std::strncpy(target, value.c_str(), target_size - 1);
+}
+
+static std::string join_languages(const std::vector<std::string> &languages) {
+  std::string joined;
+  for (const auto &language : languages) {
+    if (!joined.empty()) {
+      joined += ",";
+    }
+    joined += language;
+  }
+  return joined;
+}
+
+static std::vector<std::string> split_languages(const char *languages) {
+  std::vector<std::string> out;
+  if (languages == nullptr || languages[0] == '\0') {
+    return out;
+  }
+  std::string value(languages);
+  size_t start = 0;
+  while (start <= value.size()) {
+    const size_t comma = value.find(',', start);
+    const std::string item = value.substr(start, comma == std::string::npos ? std::string::npos : comma - start);
+    if (!item.empty()) {
+      out.push_back(item);
+    }
+    if (comma == std::string::npos) {
+      break;
+    }
+    start = comma + 1;
+  }
+  return out;
+}
 
 static const char *detection_event_type_to_header(DetectionEventType event_type) {
   switch (event_type) {
@@ -103,12 +201,16 @@ void MicroWakeWord::dump_config() {
   const std::string capture_upload_url = this->build_capture_upload_url_();
   ESP_LOGCONFIG(TAG, "  trainer capture endpoint: %s",
                 capture_upload_url.empty() ? "not configured" : capture_upload_url.c_str());
+  ESP_LOGCONFIG(TAG, "  runtime model: %s",
+                this->active_runtime_wake_word_.empty() ? "compiled" : this->active_runtime_wake_word_.c_str());
 #ifdef USE_MICRO_WAKE_WORD_VAD
   this->vad_model_->log_model_config();
 #endif
 }
 
 void MicroWakeWord::setup() {
+  static_assert(sizeof(RuntimeModelHeader) == RUNTIME_MODEL_HEADER_SIZE,
+                "Runtime model header must stay one 512-byte block.");
   this->frontend_config_.window.size_ms = FEATURE_DURATION_MS;
   this->frontend_config_.window.step_size_ms = this->features_step_size_;
   this->frontend_config_.filterbank.num_channels = PREPROCESSOR_FEATURE_SIZE;
@@ -138,6 +240,9 @@ void MicroWakeWord::setup() {
     this->mark_failed();
     return;
   }
+
+  this->init_runtime_model_partitions_();
+  this->load_runtime_model_from_flash_();
 
   this->microphone_source_->add_data_callback([this](const std::vector<uint8_t> &data) {
     if (this->state_ == State::STOPPED) {
@@ -270,7 +375,12 @@ std::vector<WakeWordModel *> MicroWakeWord::get_wake_words() {
   return external_wake_word_models;
 }
 
-void MicroWakeWord::add_wake_word_model(WakeWordModel *model) { this->wake_word_models_.push_back(model); }
+void MicroWakeWord::add_wake_word_model(WakeWordModel *model) {
+  this->wake_word_models_.push_back(model);
+  if (this->runtime_wake_word_model_ == nullptr && !model->get_internal_only()) {
+    this->runtime_wake_word_model_ = model;
+  }
+}
 
 #ifdef USE_MICRO_WAKE_WORD_VAD
 void MicroWakeWord::add_vad_model(const uint8_t *model_start, uint8_t probability_cutoff, size_t sliding_window_size,
@@ -438,6 +548,597 @@ void MicroWakeWord::set_state_(State state) {
              LOG_STR_ARG(micro_wake_word_state_to_string(state)));
     this->state_ = state;
   }
+}
+
+bool MicroWakeWord::init_runtime_model_partitions_() {
+  if (this->runtime_model_partitions_[0] != nullptr && this->runtime_model_partitions_[1] != nullptr) {
+    return true;
+  }
+
+  this->runtime_model_partitions_[0] =
+      esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, "mww_model_a");
+  this->runtime_model_partitions_[1] =
+      esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, "mww_model_b");
+
+  if (this->runtime_model_partitions_[0] == nullptr || this->runtime_model_partitions_[1] == nullptr) {
+    ESP_LOGW(TAG, "Runtime microWakeWord model partitions are unavailable; using compiled model only.");
+    return false;
+  }
+
+  return true;
+}
+
+bool MicroWakeWord::read_runtime_model_header_(const esp_partition_t *partition, RuntimeModelHeader &header) const {
+  if (partition == nullptr) {
+    return false;
+  }
+
+  std::memset(&header, 0, sizeof(header));
+  const esp_err_t err = esp_partition_read(partition, 0, &header, sizeof(header));
+  if (err != ESP_OK) {
+    ESP_LOGW(TAG, "Failed to read runtime model header from %s: %s", partition->label, esp_err_to_name(err));
+    return false;
+  }
+  return true;
+}
+
+bool MicroWakeWord::validate_runtime_model_header_(const RuntimeModelHeader &header,
+                                                   const esp_partition_t *partition) const {
+  if (partition == nullptr) {
+    return false;
+  }
+  if (header.magic != RUNTIME_MODEL_MAGIC || header.version != RUNTIME_MODEL_HEADER_VERSION ||
+      header.header_size != RUNTIME_MODEL_HEADER_SIZE) {
+    return false;
+  }
+  if (header.model_offset < RUNTIME_MODEL_HEADER_SIZE || header.model_size < RUNTIME_MODEL_MIN_TFLITE_SIZE) {
+    return false;
+  }
+  if (header.model_offset + header.model_size > partition->size) {
+    return false;
+  }
+  if (header.feature_step_size != this->features_step_size_) {
+    ESP_LOGW(TAG, "Stored runtime model '%s' uses feature_step_size=%u; firmware expects %u.", header.wake_word,
+             static_cast<unsigned int>(header.feature_step_size),
+             static_cast<unsigned int>(this->features_step_size_));
+    return false;
+  }
+  if (header.sliding_window_size == 0 || header.tensor_arena_size == 0 || header.wake_word[0] == '\0') {
+    return false;
+  }
+  if (header.wake_word[sizeof(header.wake_word) - 1] != '\0' ||
+      header.trained_languages[sizeof(header.trained_languages) - 1] != '\0' ||
+      header.source_url[sizeof(header.source_url) - 1] != '\0') {
+    return false;
+  }
+  return true;
+}
+
+bool MicroWakeWord::map_runtime_model_(const esp_partition_t *partition, const RuntimeModelHeader &header,
+                                       const uint8_t **data, spi_flash_mmap_handle_t *handle) const {
+  if (partition == nullptr || data == nullptr || handle == nullptr) {
+    return false;
+  }
+
+  const void *mapped_data = nullptr;
+  const esp_err_t err =
+      esp_partition_mmap(partition, header.model_offset, header.model_size, SPI_FLASH_MMAP_DATA, &mapped_data,
+                         handle);
+  if (err != ESP_OK) {
+    ESP_LOGW(TAG, "Failed to memory-map runtime model from %s: %s", partition->label, esp_err_to_name(err));
+    return false;
+  }
+
+  *data = static_cast<const uint8_t *>(mapped_data);
+  return true;
+}
+
+bool MicroWakeWord::activate_runtime_model_partition_(const esp_partition_t *partition,
+                                                      const RuntimeModelHeader &header) {
+  if (this->runtime_wake_word_model_ == nullptr) {
+    ESP_LOGW(TAG, "Runtime model update skipped because no external wake word model is configured.");
+    return false;
+  }
+  if (!this->validate_runtime_model_header_(header, partition)) {
+    return false;
+  }
+
+  const uint8_t *mapped_data = nullptr;
+  spi_flash_mmap_handle_t mmap_handle = 0;
+  if (!this->map_runtime_model_(partition, header, &mapped_data, &mmap_handle)) {
+    return false;
+  }
+
+  uint32_t crc = 0xFFFFFFFFU;
+  crc = crc32_update(crc, mapped_data, header.model_size);
+  crc = ~crc;
+  if (crc != header.model_crc32) {
+    ESP_LOGW(TAG, "Runtime model CRC mismatch for '%s' in %s.", header.wake_word, partition->label);
+    esp_partition_munmap(mmap_handle);
+    return false;
+  }
+
+  std::vector<std::string> languages = split_languages(header.trained_languages);
+  if (languages.empty()) {
+    languages.push_back("en");
+  }
+
+  if (!this->runtime_wake_word_model_->replace_model(mapped_data, header.probability_cutoff,
+                                                     header.sliding_window_size, header.wake_word,
+                                                     header.tensor_arena_size, languages)) {
+    ESP_LOGW(TAG, "Runtime model '%s' failed TensorFlow validation; keeping previous model.", header.wake_word);
+    esp_partition_munmap(mmap_handle);
+    return false;
+  }
+
+  const esp_partition_t *previous_partition = this->active_runtime_model_partition_;
+  const spi_flash_mmap_handle_t previous_handle = this->active_runtime_model_mmap_handle_;
+
+  this->active_runtime_model_partition_ = partition;
+  this->active_runtime_model_mmap_handle_ = mmap_handle;
+  this->active_runtime_model_data_ = mapped_data;
+  this->runtime_model_sequence_ = header.sequence;
+  this->runtime_model_url_ = header.source_url;
+  this->active_runtime_wake_word_ = header.wake_word;
+
+  if (previous_handle != 0 && previous_partition != partition) {
+    esp_partition_munmap(previous_handle);
+  }
+
+  ESP_LOGI(TAG, "Runtime microWakeWord model active: '%s' from %s.", header.wake_word, partition->label);
+  return true;
+}
+
+bool MicroWakeWord::load_runtime_model_from_flash_() {
+  if (!this->init_runtime_model_partitions_() || this->runtime_wake_word_model_ == nullptr) {
+    return false;
+  }
+
+  RuntimeModelHeader best_header = {};
+  const esp_partition_t *best_partition = nullptr;
+
+  for (const esp_partition_t *partition : this->runtime_model_partitions_) {
+    RuntimeModelHeader header = {};
+    if (!this->read_runtime_model_header_(partition, header)) {
+      continue;
+    }
+    if (!this->validate_runtime_model_header_(header, partition)) {
+      continue;
+    }
+    if (best_partition == nullptr || header.sequence > best_header.sequence) {
+      best_header = header;
+      best_partition = partition;
+    }
+  }
+
+  if (best_partition == nullptr) {
+    ESP_LOGD(TAG, "No stored runtime microWakeWord model found; using compiled model.");
+    return false;
+  }
+
+  if (!this->activate_runtime_model_partition_(best_partition, best_header)) {
+    ESP_LOGW(TAG, "Stored runtime microWakeWord model could not be loaded; using compiled model.");
+    this->restore_compiled_runtime_model_(false);
+    return false;
+  }
+
+  return true;
+}
+
+void MicroWakeWord::unmap_active_runtime_model_() {
+  if (this->active_runtime_model_mmap_handle_ != 0) {
+    esp_partition_munmap(this->active_runtime_model_mmap_handle_);
+  }
+  this->active_runtime_model_mmap_handle_ = 0;
+  this->active_runtime_model_partition_ = nullptr;
+  this->active_runtime_model_data_ = nullptr;
+}
+
+bool MicroWakeWord::restore_compiled_runtime_model_(bool erase_slots) {
+  if (this->runtime_wake_word_model_ == nullptr) {
+    return false;
+  }
+
+  this->runtime_wake_word_model_->restore_compiled_model();
+  this->unmap_active_runtime_model_();
+  this->runtime_model_url_.clear();
+  this->active_runtime_wake_word_ = "compiled";
+
+  if (erase_slots && this->init_runtime_model_partitions_()) {
+    for (const esp_partition_t *partition : this->runtime_model_partitions_) {
+      const esp_err_t err = esp_partition_erase_range(partition, 0, 0x1000);
+      if (err != ESP_OK) {
+        ESP_LOGW(TAG, "Failed to clear runtime model header in %s: %s", partition->label, esp_err_to_name(err));
+      }
+    }
+  }
+
+  ESP_LOGI(TAG, "Runtime microWakeWord model cleared; using compiled model.");
+  return true;
+}
+
+bool MicroWakeWord::parse_runtime_model_manifest_(const std::string &manifest_url, const std::string &manifest_json,
+                                                  RuntimeModelManifest &manifest) const {
+  cJSON *root = cJSON_ParseWithLength(manifest_json.c_str(), manifest_json.size());
+  if (root == nullptr || !cJSON_IsObject(root)) {
+    if (root != nullptr) {
+      cJSON_Delete(root);
+    }
+    ESP_LOGW(TAG, "Runtime model manifest is not valid JSON.");
+    return false;
+  }
+
+  cJSON *type = cJSON_GetObjectItemCaseSensitive(root, "type");
+  cJSON *version = cJSON_GetObjectItemCaseSensitive(root, "version");
+  cJSON *wake_word = cJSON_GetObjectItemCaseSensitive(root, "wake_word");
+  cJSON *model = cJSON_GetObjectItemCaseSensitive(root, "model");
+  cJSON *micro = cJSON_GetObjectItemCaseSensitive(root, "micro");
+  if (!cJSON_IsString(type) || std::strcmp(type->valuestring, "micro") != 0 || !cJSON_IsNumber(version) ||
+      version->valueint != 2 || !cJSON_IsString(wake_word) || !cJSON_IsString(model) || !cJSON_IsObject(micro)) {
+    ESP_LOGW(TAG, "Runtime model manifest is missing required microWakeWord fields.");
+    cJSON_Delete(root);
+    return false;
+  }
+
+  cJSON *probability_cutoff = cJSON_GetObjectItemCaseSensitive(micro, "probability_cutoff");
+  cJSON *sliding_window_size = cJSON_GetObjectItemCaseSensitive(micro, "sliding_window_size");
+  cJSON *feature_step_size = cJSON_GetObjectItemCaseSensitive(micro, "feature_step_size");
+  cJSON *tensor_arena_size = cJSON_GetObjectItemCaseSensitive(micro, "tensor_arena_size");
+  if (!cJSON_IsNumber(probability_cutoff) || !cJSON_IsNumber(sliding_window_size) ||
+      !cJSON_IsNumber(feature_step_size) || !cJSON_IsNumber(tensor_arena_size)) {
+    ESP_LOGW(TAG, "Runtime model manifest has incomplete microWakeWord model settings.");
+    cJSON_Delete(root);
+    return false;
+  }
+
+  if (feature_step_size->valueint != this->features_step_size_) {
+    ESP_LOGW(TAG, "Runtime model '%s' uses feature_step_size=%d; firmware expects %u.", wake_word->valuestring,
+             feature_step_size->valueint, static_cast<unsigned int>(this->features_step_size_));
+    cJSON_Delete(root);
+    return false;
+  }
+  if (sliding_window_size->valueint <= 0 || sliding_window_size->valueint > 255 ||
+      tensor_arena_size->valuedouble <= 0) {
+    ESP_LOGW(TAG, "Runtime model manifest has invalid window or arena sizing.");
+    cJSON_Delete(root);
+    return false;
+  }
+
+  manifest.wake_word = wake_word->valuestring;
+  manifest.model_url = resolve_manifest_relative_url(manifest_url, model->valuestring);
+  manifest.probability_cutoff = quantize_probability(static_cast<float>(probability_cutoff->valuedouble));
+  manifest.sliding_window_size = static_cast<uint16_t>(sliding_window_size->valueint);
+  manifest.feature_step_size = static_cast<uint8_t>(feature_step_size->valueint);
+  manifest.tensor_arena_size = static_cast<uint32_t>(tensor_arena_size->valuedouble);
+
+  cJSON *trained_languages = cJSON_GetObjectItemCaseSensitive(root, "trained_languages");
+  if (cJSON_IsArray(trained_languages)) {
+    cJSON *language = nullptr;
+    cJSON_ArrayForEach(language, trained_languages) {
+      if (cJSON_IsString(language) && language->valuestring != nullptr) {
+        manifest.trained_languages.emplace_back(language->valuestring);
+      }
+    }
+  }
+  if (manifest.trained_languages.empty()) {
+    manifest.trained_languages.push_back("en");
+  }
+
+  cJSON_Delete(root);
+  return true;
+}
+
+bool MicroWakeWord::http_get_to_string_(const std::string &url, std::string &body, size_t max_body_size) const {
+  if (!network::is_connected()) {
+    ESP_LOGW(TAG, "Runtime model download skipped because the device is not connected to the network.");
+    return false;
+  }
+
+  esp_http_client_config_t config = {};
+  config.url = url.c_str();
+  config.method = HTTP_METHOD_GET;
+  config.timeout_ms = RUNTIME_MODEL_DOWNLOAD_TIMEOUT_MS;
+  config.buffer_size = RUNTIME_MODEL_HTTP_BUFFER_SIZE;
+
+#if CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
+  if (url.find("https:") != std::string::npos) {
+    config.crt_bundle_attach = esp_crt_bundle_attach;
+  }
+#endif
+
+  esp_http_client_handle_t client = esp_http_client_init(&config);
+  if (client == nullptr) {
+    ESP_LOGW(TAG, "Runtime model manifest download failed because HTTP client could not be initialized.");
+    return false;
+  }
+
+  esp_err_t err = esp_http_client_open(client, 0);
+  if (err != ESP_OK) {
+    ESP_LOGW(TAG, "Runtime model manifest download failed while opening %s: %s", url.c_str(), esp_err_to_name(err));
+    esp_http_client_cleanup(client);
+    return false;
+  }
+
+  const int content_length = esp_http_client_fetch_headers(client);
+  const int status_code = esp_http_client_get_status_code(client);
+  if (status_code < 200 || status_code >= 300) {
+    ESP_LOGW(TAG, "Runtime model manifest download failed with HTTP status %d.", status_code);
+    esp_http_client_close(client);
+    esp_http_client_cleanup(client);
+    return false;
+  }
+  if (content_length > static_cast<int>(max_body_size)) {
+    ESP_LOGW(TAG, "Runtime model manifest is too large (%d bytes).", content_length);
+    esp_http_client_close(client);
+    esp_http_client_cleanup(client);
+    return false;
+  }
+
+  body.clear();
+  uint8_t buffer[RUNTIME_MODEL_HTTP_BUFFER_SIZE];
+  while (true) {
+    const int bytes_read = esp_http_client_read(client, reinterpret_cast<char *>(buffer), sizeof(buffer));
+    if (bytes_read > 0) {
+      if (body.size() + bytes_read > max_body_size) {
+        ESP_LOGW(TAG, "Runtime model manifest exceeded maximum size.");
+        esp_http_client_close(client);
+        esp_http_client_cleanup(client);
+        return false;
+      }
+      body.append(reinterpret_cast<const char *>(buffer), bytes_read);
+      continue;
+    }
+    if (bytes_read < 0) {
+      ESP_LOGW(TAG, "Runtime model manifest download failed while reading.");
+      esp_http_client_close(client);
+      esp_http_client_cleanup(client);
+      return false;
+    }
+    break;
+  }
+
+  esp_http_client_close(client);
+  esp_http_client_cleanup(client);
+  return !body.empty();
+}
+
+bool MicroWakeWord::http_download_to_partition_(const std::string &url, const esp_partition_t *partition,
+                                                uint32_t offset, uint32_t max_size, uint32_t &bytes_written,
+                                                uint32_t &crc32) const {
+  if (!network::is_connected()) {
+    ESP_LOGW(TAG, "Runtime model download skipped because the device is not connected to the network.");
+    return false;
+  }
+  if (partition == nullptr) {
+    return false;
+  }
+
+  esp_http_client_config_t config = {};
+  config.url = url.c_str();
+  config.method = HTTP_METHOD_GET;
+  config.timeout_ms = RUNTIME_MODEL_DOWNLOAD_TIMEOUT_MS;
+  config.buffer_size = RUNTIME_MODEL_HTTP_BUFFER_SIZE;
+
+#if CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
+  if (url.find("https:") != std::string::npos) {
+    config.crt_bundle_attach = esp_crt_bundle_attach;
+  }
+#endif
+
+  esp_http_client_handle_t client = esp_http_client_init(&config);
+  if (client == nullptr) {
+    ESP_LOGW(TAG, "Runtime model download failed because HTTP client could not be initialized.");
+    return false;
+  }
+
+  esp_err_t err = esp_http_client_open(client, 0);
+  if (err != ESP_OK) {
+    ESP_LOGW(TAG, "Runtime model download failed while opening %s: %s", url.c_str(), esp_err_to_name(err));
+    esp_http_client_cleanup(client);
+    return false;
+  }
+
+  const int content_length = esp_http_client_fetch_headers(client);
+  const int status_code = esp_http_client_get_status_code(client);
+  if (status_code < 200 || status_code >= 300) {
+    ESP_LOGW(TAG, "Runtime model download failed with HTTP status %d.", status_code);
+    esp_http_client_close(client);
+    esp_http_client_cleanup(client);
+    return false;
+  }
+  if (content_length > static_cast<int>(max_size)) {
+    ESP_LOGW(TAG, "Runtime model is too large for the model slot (%d bytes, max %u).", content_length,
+             static_cast<unsigned int>(max_size));
+    esp_http_client_close(client);
+    esp_http_client_cleanup(client);
+    return false;
+  }
+
+  bytes_written = 0;
+  uint32_t crc = 0xFFFFFFFFU;
+  uint8_t buffer[RUNTIME_MODEL_HTTP_BUFFER_SIZE];
+  while (true) {
+    const int bytes_read = esp_http_client_read(client, reinterpret_cast<char *>(buffer), sizeof(buffer));
+    if (bytes_read > 0) {
+      if (bytes_written + bytes_read > max_size) {
+        ESP_LOGW(TAG, "Runtime model exceeded model slot size.");
+        esp_http_client_close(client);
+        esp_http_client_cleanup(client);
+        return false;
+      }
+      err = esp_partition_write(partition, offset + bytes_written, buffer, bytes_read);
+      if (err != ESP_OK) {
+        ESP_LOGW(TAG, "Runtime model flash write failed: %s", esp_err_to_name(err));
+        esp_http_client_close(client);
+        esp_http_client_cleanup(client);
+        return false;
+      }
+      crc = crc32_update(crc, buffer, bytes_read);
+      bytes_written += bytes_read;
+      continue;
+    }
+    if (bytes_read < 0) {
+      ESP_LOGW(TAG, "Runtime model download failed while reading.");
+      esp_http_client_close(client);
+      esp_http_client_cleanup(client);
+      return false;
+    }
+    break;
+  }
+
+  esp_http_client_close(client);
+  esp_http_client_cleanup(client);
+
+  if (bytes_written < RUNTIME_MODEL_MIN_TFLITE_SIZE) {
+    ESP_LOGW(TAG, "Runtime model download is too small to be a valid TFLite model (%u bytes).",
+             static_cast<unsigned int>(bytes_written));
+    return false;
+  }
+
+  crc32 = ~crc;
+  return true;
+}
+
+bool MicroWakeWord::write_runtime_model_from_url_(const std::string &url) {
+  const std::string requested_url = trim_copy(url);
+  const bool was_running = this->is_running();
+
+  if (was_running) {
+    this->stop();
+    const uint32_t stop_started = millis();
+    while (this->is_running() && (millis() - stop_started) < 10000) {
+      delay(25);
+    }
+    if (this->is_running()) {
+      ESP_LOGW(TAG, "Runtime model update timed out waiting for microWakeWord to stop.");
+      return false;
+    }
+  }
+
+  auto restart_if_needed = [this, was_running]() {
+    if (was_running) {
+      this->start();
+    }
+  };
+
+  if (requested_url.empty() || requested_url == "compiled" || requested_url == "default") {
+    const bool restored = this->restore_compiled_runtime_model_(true);
+    restart_if_needed();
+    return restored;
+  }
+
+  if (!starts_with_http_url(requested_url)) {
+    ESP_LOGW(TAG, "Runtime model URL must start with http:// or https://.");
+    restart_if_needed();
+    return false;
+  }
+  if (!this->init_runtime_model_partitions_() || this->runtime_wake_word_model_ == nullptr) {
+    restart_if_needed();
+    return false;
+  }
+
+  std::string manifest_json;
+  if (!this->http_get_to_string_(requested_url, manifest_json, RUNTIME_MODEL_MANIFEST_MAX_SIZE)) {
+    restart_if_needed();
+    return false;
+  }
+
+  RuntimeModelManifest manifest = {};
+  if (!this->parse_runtime_model_manifest_(requested_url, manifest_json, manifest)) {
+    restart_if_needed();
+    return false;
+  }
+
+  const esp_partition_t *target_partition =
+      this->active_runtime_model_partition_ == this->runtime_model_partitions_[0] ? this->runtime_model_partitions_[1]
+                                                                                 : this->runtime_model_partitions_[0];
+
+  ESP_LOGI(TAG, "Downloading runtime microWakeWord model '%s' to %s.", manifest.wake_word.c_str(),
+           target_partition->label);
+  esp_err_t err = esp_partition_erase_range(target_partition, 0, target_partition->size);
+  if (err != ESP_OK) {
+    ESP_LOGW(TAG, "Failed to erase runtime model slot %s: %s", target_partition->label, esp_err_to_name(err));
+    restart_if_needed();
+    return false;
+  }
+
+  uint32_t model_size = 0;
+  uint32_t model_crc32 = 0;
+  if (!this->http_download_to_partition_(manifest.model_url, target_partition, RUNTIME_MODEL_OFFSET,
+                                         target_partition->size - RUNTIME_MODEL_OFFSET, model_size, model_crc32)) {
+    restart_if_needed();
+    return false;
+  }
+
+  RuntimeModelHeader header = {};
+  header.magic = RUNTIME_MODEL_MAGIC;
+  header.version = RUNTIME_MODEL_HEADER_VERSION;
+  header.header_size = RUNTIME_MODEL_HEADER_SIZE;
+  header.sequence = this->runtime_model_sequence_ + 1;
+  if (header.sequence == 0) {
+    header.sequence = 1;
+  }
+  header.model_offset = RUNTIME_MODEL_OFFSET;
+  header.model_size = model_size;
+  header.model_crc32 = model_crc32;
+  header.tensor_arena_size = manifest.tensor_arena_size;
+  header.sliding_window_size = manifest.sliding_window_size;
+  header.probability_cutoff = manifest.probability_cutoff;
+  header.feature_step_size = manifest.feature_step_size;
+  copy_string_to_header(header.wake_word, sizeof(header.wake_word), manifest.wake_word);
+  copy_string_to_header(header.trained_languages, sizeof(header.trained_languages),
+                        join_languages(manifest.trained_languages));
+  copy_string_to_header(header.source_url, sizeof(header.source_url), requested_url);
+
+  err = esp_partition_write(target_partition, 0, &header, sizeof(header));
+  if (err != ESP_OK) {
+    ESP_LOGW(TAG, "Failed to write runtime model header: %s", esp_err_to_name(err));
+    restart_if_needed();
+    return false;
+  }
+
+  if (!this->activate_runtime_model_partition_(target_partition, header)) {
+    (void) esp_partition_erase_range(target_partition, 0, 0x1000);
+    restart_if_needed();
+    return false;
+  }
+
+  restart_if_needed();
+  return true;
+}
+
+void MicroWakeWord::set_runtime_model_url(const std::string &runtime_model_url) {
+  if (this->runtime_model_update_in_progress_.exchange(true)) {
+    ESP_LOGW(TAG, "Runtime microWakeWord model update is already in progress.");
+    return;
+  }
+
+  auto *request = new RuntimeModelUpdateRequest();
+  request->parent = this;
+  request->url = runtime_model_url;
+
+  BaseType_t task_created =
+      xTaskCreate(MicroWakeWord::runtime_model_update_task, "mww_model_update", 12288, request, 2, nullptr);
+  if (task_created != pdPASS) {
+    this->runtime_model_update_in_progress_.store(false);
+    delete request;
+    ESP_LOGW(TAG, "Failed to start runtime microWakeWord model update task.");
+  }
+}
+
+void MicroWakeWord::runtime_model_update_task(void *params) {
+  auto *request = static_cast<RuntimeModelUpdateRequest *>(params);
+  if (request == nullptr) {
+    vTaskDelete(nullptr);
+    return;
+  }
+
+  const bool success = request->parent->write_runtime_model_from_url_(request->url);
+  ESP_LOGI(TAG, "Runtime microWakeWord model update %s.", success ? "finished" : "failed");
+  request->parent->runtime_model_update_in_progress_.store(false);
+  delete request;
+
+  vTaskDelete(nullptr);
 }
 
 size_t MicroWakeWord::generate_features_(int16_t *audio_buffer, size_t samples_available,

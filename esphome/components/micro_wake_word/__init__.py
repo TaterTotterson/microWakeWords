@@ -31,7 +31,7 @@ from esphome.core import CORE, HexInt
 _LOGGER = logging.getLogger(__name__)
 
 CODEOWNERS = ["@kahrendt", "@jesserockz"]
-DEPENDENCIES = ["microphone"]
+DEPENDENCIES = ["microphone", "network"]
 
 DOMAIN = "micro_wake_word"
 
@@ -47,6 +47,7 @@ CONF_TENSOR_ARENA_SIZE = "tensor_arena_size"
 CONF_VAD = "vad"
 
 TYPE_HTTP = "http"
+RUNTIME_MODEL_PARTITION_SIZE = 0x80000
 
 micro_wake_word_ns = cg.esphome_ns.namespace("micro_wake_word")
 
@@ -459,6 +460,10 @@ async def to_code(config):
     cg.add_build_flag("-DTF_LITE_STATIC_MEMORY")
     cg.add_build_flag("-DTF_LITE_DISABLE_X86_NEON")
     cg.add_build_flag("-DESP_NN")
+    esp32.include_builtin_idf_component("esp_http_client")
+    esp32.add_idf_sdkconfig_option("CONFIG_MBEDTLS_CERTIFICATE_BUNDLE", True)
+    esp32.add_partition("mww_model_a", "data", 0x40, RUNTIME_MODEL_PARTITION_SIZE)
+    esp32.add_partition("mww_model_b", "data", 0x41, RUNTIME_MODEL_PARTITION_SIZE)
 
     if vad_model := config.get(CONF_VAD):
         cg.add_define("USE_MICRO_WAKE_WORD_VAD")

@@ -258,6 +258,11 @@ WakeWordModel::WakeWordModel(const std::string &id, const uint8_t *model_start, 
   this->register_streaming_ops_(this->streaming_op_resolver_);
   this->current_stride_step_ = 0;
   this->internal_only_ = internal_only;
+  this->compiled_model_start_ = model_start;
+  this->compiled_default_probability_cutoff_ = default_probability_cutoff;
+  this->compiled_sliding_window_size_ = sliding_window_average_size;
+  this->compiled_wake_word_ = wake_word;
+  this->compiled_tensor_arena_size_ = tensor_arena_size;
 
   this->pref_ = global_preferences->make_preference<bool>(fnv1_hash(id));
   bool enabled;
@@ -269,6 +274,63 @@ WakeWordModel::WakeWordModel(const std::string &id, const uint8_t *model_start, 
     this->enabled_ = default_enabled;
   }
 };
+
+bool WakeWordModel::replace_model(const uint8_t *model_start, uint8_t default_probability_cutoff,
+                                  size_t sliding_window_average_size, const std::string &wake_word,
+                                  size_t tensor_arena_size, const std::vector<std::string> &trained_languages) {
+  const uint8_t *previous_model_start = this->model_start_;
+  const uint8_t previous_default_probability_cutoff = this->default_probability_cutoff_;
+  const uint8_t previous_probability_cutoff = this->probability_cutoff_;
+  const size_t previous_sliding_window_size = this->sliding_window_size_;
+  const std::string previous_wake_word = this->wake_word_;
+  const size_t previous_tensor_arena_size = this->tensor_arena_size_;
+  const std::vector<std::string> previous_trained_languages = this->trained_languages_;
+  const bool previous_tensor_arena_size_probed = this->tensor_arena_size_probed_;
+
+  this->unload_model();
+  this->model_start_ = model_start;
+  this->default_probability_cutoff_ = default_probability_cutoff;
+  this->probability_cutoff_ = default_probability_cutoff;
+  this->sliding_window_size_ = sliding_window_average_size;
+  this->recent_streaming_probabilities_.assign(sliding_window_average_size, 0);
+  this->wake_word_ = wake_word;
+  this->tensor_arena_size_ = tensor_arena_size;
+  this->trained_languages_ = trained_languages;
+  this->tensor_arena_size_probed_ = false;
+  this->current_stride_step_ = 0;
+
+  if (!this->load_model_()) {
+    this->unload_model();
+    this->model_start_ = previous_model_start;
+    this->default_probability_cutoff_ = previous_default_probability_cutoff;
+    this->probability_cutoff_ = previous_probability_cutoff;
+    this->sliding_window_size_ = previous_sliding_window_size;
+    this->recent_streaming_probabilities_.assign(previous_sliding_window_size, 0);
+    this->wake_word_ = previous_wake_word;
+    this->tensor_arena_size_ = previous_tensor_arena_size;
+    this->trained_languages_ = previous_trained_languages;
+    this->tensor_arena_size_probed_ = previous_tensor_arena_size_probed;
+    this->current_stride_step_ = 0;
+    return false;
+  }
+
+  this->unload_model();
+  return true;
+}
+
+void WakeWordModel::restore_compiled_model() {
+  this->unload_model();
+  this->model_start_ = this->compiled_model_start_;
+  this->default_probability_cutoff_ = this->compiled_default_probability_cutoff_;
+  this->probability_cutoff_ = this->compiled_default_probability_cutoff_;
+  this->sliding_window_size_ = this->compiled_sliding_window_size_;
+  this->recent_streaming_probabilities_.assign(this->compiled_sliding_window_size_, 0);
+  this->wake_word_ = this->compiled_wake_word_;
+  this->tensor_arena_size_ = this->compiled_tensor_arena_size_;
+  this->trained_languages_ = this->compiled_trained_languages_;
+  this->tensor_arena_size_probed_ = false;
+  this->current_stride_step_ = 0;
+}
 
 void WakeWordModel::enable() {
   this->enabled_ = true;
