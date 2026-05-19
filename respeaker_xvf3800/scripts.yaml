@@ -1,0 +1,997 @@
+script:
+  - id: apply_wake_engine
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: return !id(init_in_progress) && !id(push_to_intercom_active);
+          then:
+            - if:
+                condition:
+                  lambda: return id(wake_engine_select).state != "microwakeword";
+                then:
+                  - micro_wake_word.stop:
+                  - wait_until:
+                      condition:
+                        lambda: return !id(mww).is_running();
+                  - if:
+                      condition:
+                        voice_assistant.is_running:
+                      then:
+                        - voice_assistant.stop:
+                        - delay: 150ms
+                  - remote_wake_word.stop:
+                  - wait_until:
+                      condition:
+                        lambda: return !id(oww).is_running();
+                  - lambda: |-
+                      id(openwakeword_wake_detected) = false;
+                      id(voice_assistant_phase) = ${voice_assist_idle_phase_id};
+                      id(va).set_use_wake_word(false);
+                      if (id(wake_engine_select).state == "nanowakeword") {
+                        id(oww).set_url(id(nanowakeword_server_url).state);
+                        id(oww).set_stream_path("/api/nanowakeword/stream");
+                      } else {
+                        id(oww).set_url(id(openwakeword_server_url).state);
+                        id(oww).set_stream_path("/api/openwakeword/stream");
+                      }
+                  - logger.log:
+                      level: INFO
+                      tag: tater.voice
+                      format: "Using remote wake endpoint (%s)."
+                      args: [ '(id(wake_engine_select).state == "nanowakeword" ? id(nanowakeword_server_url).state : id(openwakeword_server_url).state).c_str()' ]
+                  - remote_wake_word.start:
+                  - script.execute: control_leds
+                else:
+                  - if:
+                      condition:
+                        voice_assistant.is_running:
+                      then:
+                        - voice_assistant.stop:
+                  - delay: 150ms
+                  - remote_wake_word.stop:
+                  - wait_until:
+                      condition:
+                        lambda: return !id(oww).is_running();
+                  - lambda: |-
+                      id(openwakeword_wake_detected) = false;
+                      id(va).set_use_wake_word(false);
+                  - if:
+                      condition:
+                        switch.is_off: timer_ringing
+                      then:
+                        - micro_wake_word.disable_model: stop
+                  - micro_wake_word.start:
+                  - micro_wake_word.enable_model: ${wake_word_name}
+                  - script.execute: control_leds
+
+  - id: recover_openwakeword_after_fallback
+    mode: restart
+    then:
+      - lambda: |-
+          id(openwakeword_wake_detected) = false;
+          id(voice_assistant_phase) = ${voice_assist_idle_phase_id};
+          id(va).set_use_wake_word(false);
+      - remote_wake_word.stop:
+      - wait_until:
+          condition:
+            lambda: return !id(oww).is_running();
+      - if:
+          condition:
+            lambda: return id(wake_engine_select).state != "microwakeword" && !id(push_to_intercom_active);
+          then:
+            - if:
+                condition:
+                  switch.is_off: timer_ringing
+                then:
+                  - micro_wake_word.disable_model: stop
+            - micro_wake_word.start:
+            - micro_wake_word.enable_model: ${wake_word_name}
+            - script.execute: control_leds
+            - delay: 60s
+            - if:
+                condition:
+                  lambda: return id(wake_engine_select).state != "microwakeword" && !id(push_to_intercom_active);
+                then:
+                  - logger.log:
+                      level: INFO
+                      tag: tater.voice
+                      format: "Retrying remote wake endpoint (%s)."
+                      args: [ '(id(wake_engine_select).state == "nanowakeword" ? id(nanowakeword_server_url).state : id(openwakeword_server_url).state).c_str()' ]
+                  - script.execute: apply_wake_engine
+
+  - id: start_push_to_intercom
+    mode: restart
+    then:
+      - if:
+          condition:
+            and:
+              - lambda: return !id(init_in_progress);
+              - switch.is_off: mic_mute_switch
+          then:
+            - if:
+                condition:
+                  media_player.is_announcing:
+                    id: external_media_player
+                then:
+                  - media_player.stop:
+                      announcement: true
+                      id: external_media_player
+            - lambda: |-
+                id(push_to_intercom_active) = true;
+                id(voice_assistant_phase) = ${voice_assist_listening_for_command_phase_id};
+            - script.execute: control_leds
+            - if:
+                condition:
+                  voice_assistant.is_running:
+                then:
+                  - lambda: id(push_to_intercom_handoff) = true;
+                  - voice_assistant.stop:
+                  - wait_until:
+                      not:
+                        voice_assistant.is_running
+                  - delay: 50ms
+            - script.execute:
+                id: play_sound
+                priority: true
+                sound_file: "center_button_long_press_sound"
+            - delay: 300ms
+            - if:
+                condition:
+                  lambda: return id(push_to_intercom_active);
+                then:
+                  - lambda: id(va).set_use_wake_word(false);
+                  - voice_assistant.start:
+                      wake_word: "Tater intercom broadcast"
+                      silence_detection: false
+                  - event.trigger:
+                      id: button_press_event
+                      event_type: "push_to_intercom"
+
+  - id: stop_push_to_intercom
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: return id(push_to_intercom_active);
+          then:
+            - lambda: id(push_to_intercom_active) = false;
+            - if:
+                condition:
+                  voice_assistant.is_running:
+                then:
+                  - voice_assistant.stop:
+            - script.execute: control_leds
+  # =========================================================================
+  # == Centralized script to control all LED effects ==
+  # =========================================================================
+  - id: led_set_effect
+    mode: restart
+    parameters:
+      effect: std::string
+      r: float
+      g: float
+      b: float
+      speed: float
+      brightness: float
+    then:
+      - lambda: |-
+          // Update global variables with the new parameters
+          id(effect_color_r) = r;
+          id(effect_color_g) = g;
+          id(effect_color_b) = b;
+          id(effect_speed) = speed;
+          id(effect_brightness) = brightness;
+          id(current_led_effect) = effect;
+
+          // Handle the two types of effects: Off and Animated
+          if (effect == "off") {
+            uint32_t colors[12] = {0};
+            id(respeaker).set_led_ring(colors);
+          } else {
+            id(last_led_update_time) = millis(); // Reset timer for smooth animation start
+          }
+
+  # Individual update scripts for each animated effect
+  - id: update_breathe_effect
+    then:
+      - lambda: |-
+          static float phase = 0.0f;
+          uint32_t now = millis();
+          float dt = (now - id(last_led_update_time)) / 1000.0f;
+          id(last_led_update_time) = now;
+
+          phase += dt * id(effect_speed);
+          while (phase >= 1.0f) phase -= 1.0f;
+
+          float master_brightness = id(user_led_ring_brightness).state * id(effect_brightness);
+          float breath_brightness = 0.5f * (1.0f + sinf(phase * 2.0f * M_PI)) * master_brightness;
+
+          uint8_t r = (uint8_t)(id(effect_color_r) * breath_brightness);
+          uint8_t g = (uint8_t)(id(effect_color_g) * breath_brightness);
+          uint8_t b = (uint8_t)(id(effect_color_b) * breath_brightness);
+          uint32_t current_color = (r << 16) | (g << 8) | b;
+
+          uint32_t colors[12];
+          for (int i = 0; i < 12; i++) colors[i] = current_color;
+          id(respeaker).set_led_ring(colors);
+
+  - id: update_rainbow_effect
+    then:
+      - lambda: |-
+          static float hue_offset = 0.0f;
+          uint32_t now = millis();
+          float dt = (now - id(last_led_update_time)) / 1000.0f;
+          id(last_led_update_time) = now;
+
+          hue_offset += dt * id(effect_speed);
+          if (hue_offset >= 1.0f) hue_offset -= 1.0f;
+
+          constexpr int NUM_LEDS = 12;
+          constexpr float HUE_STEP = 1.0f / NUM_LEDS;
+          uint32_t colors[NUM_LEDS];
+          float brightness = id(user_led_ring_brightness).state * id(effect_brightness);
+
+          float current_hue = hue_offset;
+          for (int i = 0; i < NUM_LEDS; i++) {
+            float r, g, b;
+            if (current_hue >= 1.0f) current_hue -= 1.0f;
+            hsv_to_rgb((int)(current_hue * 360.0f), 1.0f, brightness, r, g, b);
+            colors[i] = ((uint8_t)(r * 255.0f) << 16) | ((uint8_t)(g * 255.0f) << 8) | ((uint8_t)(b * 255.0f));
+            current_hue += HUE_STEP;
+          }
+          id(respeaker).set_led_ring(colors);
+
+  - id: update_comet_cw_effect
+    then:
+      - lambda: |-
+          static float comet_pos = 0.0f;
+          uint32_t now = millis();
+          float dt = (now - id(last_led_update_time)) / 1000.0f;
+          id(last_led_update_time) = now;
+
+          constexpr int NUM_LEDS = 12;
+          constexpr int BASE_TAIL = 3;
+
+          float leds_per_sec = id(effect_speed) * NUM_LEDS;
+          comet_pos += dt * leds_per_sec;
+          while (comet_pos >= NUM_LEDS) comet_pos -= NUM_LEDS;
+
+          int head_index = (int)comet_pos;
+          int tail_length = BASE_TAIL + (int)(id(effect_speed));
+          if (tail_length > NUM_LEDS - 1) tail_length = NUM_LEDS - 1;
+
+          uint32_t colors[NUM_LEDS] = {0};
+          float brightness = id(user_led_ring_brightness).state * id(effect_brightness);
+
+          uint8_t head_r = (uint8_t)(id(effect_color_r) * brightness);
+          uint8_t head_g = (uint8_t)(id(effect_color_g) * brightness);
+          uint8_t head_b = (uint8_t)(id(effect_color_b) * brightness);
+
+          colors[head_index % NUM_LEDS] = (head_r << 16) | (head_g << 8) | head_b;
+
+          for (int i = 1; i <= tail_length; i++) {
+            float tail_factor = (float)i / (tail_length + 1);
+            float tail_brightness = (1.0f - tail_factor) * brightness;
+            uint8_t r = (uint8_t)(id(effect_color_r) * tail_brightness);
+            uint8_t g = (uint8_t)(id(effect_color_g) * tail_brightness);
+            uint8_t b = (uint8_t)(id(effect_color_b) * tail_brightness);
+            int tail_index = (head_index - i + NUM_LEDS) % NUM_LEDS;
+            colors[tail_index] = (r << 16) | (g << 8) | b;
+          }
+          id(respeaker).set_led_ring(colors);
+
+  - id: update_comet_ccw_effect
+    then:
+      - lambda: |-
+          static float comet_pos = 0.0f;
+          uint32_t now = millis();
+          float dt = (now - id(last_led_update_time)) / 1000.0f;
+          id(last_led_update_time) = now;
+
+          constexpr int NUM_LEDS = 12;
+          constexpr int BASE_TAIL = 3;
+
+          float leds_per_sec = id(effect_speed) * NUM_LEDS;
+          comet_pos -= dt * leds_per_sec;
+          while (comet_pos < 0.0f) comet_pos += NUM_LEDS;
+
+          int head_index = (int)comet_pos;
+          int tail_length = BASE_TAIL + (int)(id(effect_speed));
+          if (tail_length > NUM_LEDS - 1) tail_length = NUM_LEDS - 1;
+
+          uint32_t colors[NUM_LEDS] = {0};
+          float brightness = id(user_led_ring_brightness).state * id(effect_brightness);
+
+          uint8_t head_r = (uint8_t)(id(effect_color_r) * brightness);
+          uint8_t head_g = (uint8_t)(id(effect_color_g) * brightness);
+          uint8_t head_b = (uint8_t)(id(effect_color_b) * brightness);
+
+          colors[head_index % NUM_LEDS] = (head_r << 16) | (head_g << 8) | head_b;
+
+          for (int i = 1; i <= tail_length; i++) {
+            float tail_factor = (float)i / (tail_length + 1);
+            float tail_brightness = (1.0f - tail_factor) * brightness;
+            uint8_t r = (uint8_t)(id(effect_color_r) * tail_brightness);
+            uint8_t g = (uint8_t)(id(effect_color_g) * tail_brightness);
+            uint8_t b = (uint8_t)(id(effect_color_b) * tail_brightness);
+            int tail_index = (head_index + i) % NUM_LEDS;
+            colors[tail_index] = (r << 16) | (g << 8) | b;
+          }
+          id(respeaker).set_led_ring(colors);
+
+  - id: update_twinkle_effect
+    then:
+      - lambda: |-
+          constexpr int NUM_LEDS = 12;
+          static float led_brightness[NUM_LEDS] = {0.0f};
+          static float led_fade_speed[NUM_LEDS] = {0.0f};
+
+          uint32_t now = millis();
+          float dt = (now - id(last_led_update_time)) / 1000.0f;
+          id(last_led_update_time) = now;
+
+          // Update existing twinkles
+          for (int i = 0; i < NUM_LEDS; i++) {
+            if (led_fade_speed[i] != 0.0f) {
+              led_brightness[i] += led_fade_speed[i] * dt;
+              if (led_fade_speed[i] > 0.0f && led_brightness[i] >= 1.0f) {
+                led_brightness[i] = 1.0f;
+                led_fade_speed[i] *= -1.0f;
+              } else if (led_fade_speed[i] < 0.0f && led_brightness[i] <= 0.0f) {
+                led_brightness[i] = 0.0f;
+                led_fade_speed[i] = 0.0f;
+              }
+            }
+          }
+
+          // Start new twinkles
+          float twinkle_chance = dt * id(effect_speed);
+          if (random_float() < twinkle_chance) {
+            int led_to_start = (int)(random_float() * NUM_LEDS);
+            if (led_fade_speed[led_to_start] == 0.0f) {
+              led_brightness[led_to_start] = 0.0f;
+              float min_speed = 1.5f, max_speed = 3.0f;
+              led_fade_speed[led_to_start] = min_speed + (random_float() * (max_speed - min_speed));
+            }
+          }
+
+          // Render colors
+          uint32_t colors[NUM_LEDS];
+          float master_brightness = id(user_led_ring_brightness).state * id(effect_brightness);
+
+          for (int i = 0; i < NUM_LEDS; i++) {
+            float current_led_brightness = led_brightness[i] * master_brightness;
+            uint8_t r = (uint8_t)(id(effect_color_r) * current_led_brightness);
+            uint8_t g = (uint8_t)(id(effect_color_g) * current_led_brightness);
+            uint8_t b = (uint8_t)(id(effect_color_b) * current_led_brightness);
+            colors[i] = (r << 16) | (g << 8) | b;
+          }
+          id(respeaker).set_led_ring(colors);
+
+  - id: update_timer_tick_effect
+    then:
+      - lambda: |-
+          constexpr int NUM_LEDS = 12;
+          static int tick_index = 0;
+
+          uint32_t now = millis();
+          // Only update tick position every 100ms to reduce I2C traffic
+          static uint32_t last_tick_update = 0;
+          if (now - last_tick_update >= 100) {
+            tick_index = (tick_index - 1 + NUM_LEDS) % NUM_LEDS;
+            last_tick_update = now;
+          }
+
+          uint32_t colors[NUM_LEDS] = {0};
+          uint32_t seconds_left = id(remote_timer_running)
+              ? std::max(id(remote_timer_remaining_seconds), 0)
+              : id(first_active_timer).seconds_left;
+          uint32_t total_seconds = id(remote_timer_running)
+              ? std::max(id(remote_timer_total_seconds), 1)
+              : id(first_active_timer).total_seconds;
+
+          float timer_ratio = (float)NUM_LEDS * seconds_left / std::max(total_seconds, (uint32_t)1);
+
+          float master_brightness = id(user_led_ring_brightness).state * id(effect_brightness);
+
+          for (int i = 0; i < NUM_LEDS; i++) {
+            float bar_brightness = clamp(timer_ratio - i, 0.0f, 1.0f);
+            if (bar_brightness > 0.0f) {
+              float tick_dip = (i == tick_index) ? 0.9f : 1.0f;
+              float final_brightness = bar_brightness * tick_dip * master_brightness;
+              uint8_t r = (uint8_t)(id(effect_color_r) * final_brightness);
+              uint8_t g = (uint8_t)(id(effect_color_g) * final_brightness);
+              uint8_t b = (uint8_t)(id(effect_color_b) * final_brightness);
+              colors[i] = (r << 16) | (g << 8) | b;
+            }
+          }
+          id(respeaker).set_led_ring(colors);
+
+  - id: update_volume_display_effect
+    then:
+      - lambda: |-
+          constexpr int NUM_LEDS = 12;
+          uint32_t colors[NUM_LEDS] = {0};
+
+          if (id(external_media_player).is_ready()) {
+            bool is_muted = id(external_media_player).is_muted();
+            float volume = id(external_media_player).volume;
+
+            if (is_muted || volume == 0.0f) {
+              uint32_t mute_color = (255 << 16); // Red
+              colors[0] = mute_color;
+              colors[6] = mute_color;
+            } else {
+              float num_leds_on = volume * NUM_LEDS;
+              float master_brightness = id(user_led_ring_brightness).state;
+
+              for (int i = 0; i < NUM_LEDS; i++) {
+                float brightness = clamp(num_leds_on - i, 0.0f, 1.0f);
+                if (brightness > 0.0f) {
+                  uint8_t r = (uint8_t)(id(user_led_ring_color_r) * brightness * master_brightness);
+                  uint8_t g = (uint8_t)(id(user_led_ring_color_g) * brightness * master_brightness);
+                  uint8_t b = (uint8_t)(id(user_led_ring_color_b) * brightness * master_brightness);
+                  colors[i] = (r << 16) | (g << 8) | b;
+                }
+              }
+            }
+          }
+          id(respeaker).set_led_ring(colors);
+
+  - id: update_led_beam_effect
+    then:
+      - lambda: |-
+          constexpr int NUM_LEDS = 12;
+          constexpr int FADE_LEDS = 3;
+          constexpr float TRANSITION_DURATION = 0.5f; // Duration of the smooth transition
+          uint32_t colors[NUM_LEDS] = {0};
+
+          uint32_t now = millis();
+          float dt = (now - id(last_led_update_time)) / 1000.0f;
+          id(last_led_update_time) = now;
+
+          if (id(beam_direction).has_state()) {
+            // CORRECTING THE OFFSET: add 5 from the sensor reading
+            float target_pos = ((int)id(beam_direction).state + 5) % NUM_LEDS;
+            float current_pos = id(animated_beam_position);
+
+            // Calculate the shortest path around the circle
+            float diff = target_pos - current_pos;
+            if (diff > NUM_LEDS / 2.0f) {
+              diff -= NUM_LEDS;
+            } else if (diff < -NUM_LEDS / 2.0f) {
+              diff += NUM_LEDS;
+            }
+
+            // Move current position towards target
+            if (abs(diff) > 0.01f) {
+              float move_speed = diff / TRANSITION_DURATION;
+              current_pos += move_speed * dt;
+            } else {
+              current_pos = target_pos;
+            }
+
+            // Handle wrap-around for the animated position
+            if (current_pos >= NUM_LEDS) current_pos -= NUM_LEDS;
+            if (current_pos < 0.0f) current_pos += NUM_LEDS;
+
+            id(animated_beam_position) = current_pos;
+
+            // Render the smoothed beam
+            float master_brightness = id(user_led_ring_brightness).state * id(effect_brightness);
+
+            for (int i = 0; i < NUM_LEDS; i++) {
+              // Calculate circular distance from current LED to the animated position
+              float dist = abs(i - current_pos);
+              if (dist > NUM_LEDS / 2.0f) {
+                dist = NUM_LEDS - dist;
+              }
+
+              // Calculate brightness based on distance (linear falloff)
+              float brightness_factor = 1.0f - (dist / (FADE_LEDS + 1.0f));
+              brightness_factor = std::max(0.0f, brightness_factor);
+
+              if (brightness_factor > 0.0f) {
+                float final_brightness = brightness_factor * master_brightness;
+                uint8_t r = (uint8_t)(id(effect_color_r) * final_brightness);
+                uint8_t g = (uint8_t)(id(effect_color_g) * final_brightness);
+                uint8_t b = (uint8_t)(id(effect_color_b) * final_brightness);
+                colors[i] = (r << 16) | (g << 8) | b;
+              }
+            }
+          }
+          id(respeaker).set_led_ring(colors);
+
+  # Master script controlling the LEDs, based on different conditions : initialization in progress, wifi and api connected and voice assistant phase.
+  # For the sake of simplicity and re-usability, the script calls child scripts defined below.
+  # This script will be called every time one of these conditions is changing.
+  - id: control_leds
+    mode: single  # Prevent multiple simultaneous executions
+    then:
+      - lambda: |
+          // Cache expensive component checks
+          static bool last_respeaker_failed = false;
+          static bool last_wifi_connected = false;
+          static bool last_api_connected = false;
+          static int last_voice_phase = -1;
+          static bool last_timer_ringing = false;
+          static bool last_timer_active = false;
+          static bool last_improv_ble = false;
+          static bool last_init_progress = false;
+          static bool last_push_to_intercom_active = false;
+          static bool last_remote_timer_running = false;
+
+          bool respeaker_failed = id(respeaker).is_failed();
+          bool wifi_connected = id(wifi_id).is_connected();
+          bool api_connected = id(api_id).is_connected();
+          int voice_phase = id(voice_assistant_phase);
+          bool new_timer_ringing = id(timer_ringing).state;
+          bool improv_ble = id(improv_ble_in_progress);
+          bool init_progress = id(init_in_progress);
+          bool push_to_intercom_active = id(push_to_intercom_active);
+          bool remote_timer_running = id(remote_timer_running);
+
+          // Only update if something actually changed
+          bool needs_update = (
+            respeaker_failed != last_respeaker_failed ||
+            wifi_connected != last_wifi_connected ||
+            api_connected != last_api_connected ||
+            voice_phase != last_voice_phase ||
+            new_timer_ringing != last_timer_ringing ||
+            improv_ble != last_improv_ble ||
+            init_progress != last_init_progress ||
+            push_to_intercom_active != last_push_to_intercom_active ||
+            remote_timer_running != last_remote_timer_running
+          );
+
+          if (!needs_update) return;
+
+          // Update cache
+          last_respeaker_failed = respeaker_failed;
+          last_wifi_connected = wifi_connected;
+          last_api_connected = api_connected;
+          last_voice_phase = voice_phase;
+          last_timer_ringing = new_timer_ringing;
+          last_improv_ble = improv_ble;
+          last_init_progress = init_progress;
+          last_push_to_intercom_active = push_to_intercom_active;
+          last_remote_timer_running = remote_timer_running;
+
+          if (respeaker_failed) {
+            id(control_leds_respeaker_startup_failed).execute();
+            return;
+          }
+
+          // Only check timers if we need to
+          id(check_if_timers_active).execute();
+          if (id(is_timer_active)){
+            id(fetch_first_active_timer).execute();
+          }
+
+          // Continue with existing logic...
+          if (improv_ble) {
+            id(control_leds_improv_ble_state).execute();
+          } else if (init_progress) {
+            id(control_leds_init_state).execute();
+          } else if (!wifi_connected || !api_connected){
+            id(control_leds_no_ha_connection_state).execute();
+          } else if (push_to_intercom_active) {
+            id(control_leds_push_to_intercom_phase).execute();
+          } else if (new_timer_ringing) {
+            id(control_leds_timer_ringing).execute();
+          } else if (remote_timer_running) {
+            id(control_leds_remote_timer_ticking).execute();
+          } else if (voice_phase == ${voice_assist_waiting_for_command_phase_id}) {
+            id(control_leds_voice_assistant_waiting_for_command_phase).execute();
+          } else if (voice_phase == ${voice_assist_listening_for_command_phase_id}) {
+            id(control_leds_voice_assistant_listening_for_command_phase).execute();
+          } else if (voice_phase == ${voice_assist_thinking_phase_id}) {
+            id(control_leds_voice_assistant_thinking_phase).execute();
+          } else if (voice_phase == ${voice_assist_tool_call_phase_id}) {
+            id(control_leds_voice_assistant_tool_call_phase).execute();
+          } else if (voice_phase == ${voice_assist_replying_phase_id}) {
+            id(control_leds_voice_assistant_replying_phase).execute();
+          } else if (voice_phase == ${voice_assist_error_phase_id}) {
+            id(control_leds_voice_assistant_error_phase).execute();
+          } else if (voice_phase == ${voice_assist_not_ready_phase_id}) {
+            id(control_leds_voice_assistant_not_ready_phase).execute();
+          } else if (id(is_timer_active)) {
+            id(control_leds_timer_ticking).execute();
+          } else if (voice_phase == ${voice_assist_idle_phase_id}) {
+            id(control_leds_voice_assistant_idle_phase).execute();
+          }
+
+  # Script executed if respeaker startup failed
+  - id: control_leds_respeaker_startup_failed
+    then:
+      - script.execute:
+          id: led_set_effect
+          effect: "breathe"
+          r: 200.0
+          g: 0.0
+          b: 0.0
+          speed: 0.5
+          brightness: 0.6
+
+  # Script executed during Improv BLE
+  - id: control_leds_improv_ble_state
+    then:
+      - script.execute:
+          id: led_set_effect
+          effect: "twinkle"
+          r: 255.0
+          g: 200.0
+          b: 160.0
+          speed: 10.0
+          brightness: 0.8
+
+  # Script executed during initialization
+  - id: control_leds_init_state
+    then:
+      - if:
+          condition:
+            wifi.connected:
+          then:
+            - script.execute:
+                id: led_set_effect
+                effect: "twinkle"
+                r: 20.0
+                g: 200.0
+                b: 250.0
+                speed: 20.0
+                brightness: 1.0
+          else:
+            - script.execute:
+                id: led_set_effect
+                effect: "twinkle"
+                r: 20.0
+                g: 200.0
+                b: 250.0
+                speed: 4.0
+                brightness: 0.6
+
+  # Script executed when the device has no connection to Home Assistant
+  - id: control_leds_no_ha_connection_state
+    then:
+      - script.execute:
+          id: led_set_effect
+          effect: "twinkle"
+          r: 255.0
+          g: 0.0
+          b: 0.0
+          speed: 10.0
+          brightness: 0.4
+
+  # Script executed when the voice assistant is waiting for a command (After the wake word)
+  - id: control_leds_voice_assistant_waiting_for_command_phase
+    then:
+      - lambda: |
+          id(animated_beam_position) = id(beam_direction).state;
+      - script.execute:
+          id: led_set_effect
+          effect: "led_beam"
+          r: !lambda return id(user_led_ring_color_r);
+          g: !lambda return id(user_led_ring_color_g);
+          b: !lambda return id(user_led_ring_color_b);
+          speed: 0.0
+          brightness: 0.8
+
+  # Script executed when the voice assistant is listening to a command
+  - id: control_leds_voice_assistant_listening_for_command_phase
+    then:
+      - script.execute:
+          id: led_set_effect
+          effect: "led_beam"
+          r: !lambda return id(user_led_ring_color_r);
+          g: !lambda return id(user_led_ring_color_g);
+          b: !lambda return id(user_led_ring_color_b);
+          speed: 0.0
+          brightness: 1.0
+
+  # Script executed when the voice assistant is thinking to a command
+  - id: control_leds_voice_assistant_thinking_phase
+    then:
+      - script.execute:
+          id: led_set_effect
+          effect: "breathe"
+          r: !lambda return id(user_led_ring_color_r);
+          g: !lambda return id(user_led_ring_color_g);
+          b: !lambda return id(user_led_ring_color_b);
+          speed: 1.0
+          brightness: 0.6
+
+  # Script executed when the voice assistant is replying to a command
+  - id: control_leds_voice_assistant_replying_phase
+    then:
+      - script.execute:
+          id: led_set_effect
+          effect: "comet_ccw"
+          r: !lambda return id(user_led_ring_color_r);
+          g: !lambda return id(user_led_ring_color_g);
+          b: !lambda return id(user_led_ring_color_b);
+          speed: 1.0
+          brightness: 0.8
+
+  # Script executed when the voice assistant is in error
+  - id: control_leds_voice_assistant_error_phase
+    then:
+      - script.execute:
+          id: led_set_effect
+          effect: "breathe"
+          r: 255.0
+          g: 0.0
+          b: 0.0
+          speed: 3.0
+          brightness: 0.8
+
+  # Script executed when the voice assistant is not ready
+  - id: control_leds_voice_assistant_not_ready_phase
+    then:
+      - script.execute:
+          id: led_set_effect
+          effect: "twinkle"
+          r: 255.0
+          g: 0.0
+          b: 0.0
+          speed: 5.0
+          brightness: 0.8
+
+  # Script executed when the volume is changed
+  - id: control_leds_volume_changed
+    mode: restart
+    then:
+      - lambda: |-
+          id(volume_display_active) = true;
+      - delay: 2s
+      - lambda: |-
+          id(volume_display_active) = false;
+          // Turn off LEDs - any active effect will take over on next interval tick
+          uint32_t colors[12] = {0};
+          id(respeaker).set_led_ring(colors);
+
+  # Script executed when the timer is ringing, to control the LEDs
+  - id: control_leds_timer_ringing
+    then:
+      - script.execute:
+          id: led_set_effect
+          effect: "breathe"
+          r: !lambda return id(user_led_ring_color_r);
+          g: !lambda return id(user_led_ring_color_g);
+          b: !lambda return id(user_led_ring_color_b);
+          speed: 5.0
+          brightness: 1.0
+
+  # Script executed when the timer is ticking, to control the LEDs
+  - id: control_leds_timer_ticking
+    then:
+      - script.execute:
+          id: led_set_effect
+          effect: "timer_tick"
+          r: !lambda return id(user_led_ring_color_r);
+          g: !lambda return id(user_led_ring_color_g);
+          b: !lambda return id(user_led_ring_color_b);
+          speed: 1.0
+          brightness: 0.7
+
+  # Script executed when the voice assistant is idle (waiting for a wake word)
+  - id: control_leds_voice_assistant_idle_phase
+    then:
+      - script.execute:
+          id: led_set_effect
+          effect: "off"
+          r: 0.0
+          g: 0.0
+          b: 0.0
+          speed: 0.0
+          brightness: 0.0
+
+
+  # Script executed while Tater is running a tool call.
+  - id: control_leds_voice_assistant_tool_call_phase
+    then:
+      - script.execute:
+          id: led_set_effect
+          effect: "breathe"
+          r: !lambda return id(user_led_ring_color_r);
+          g: !lambda return id(user_led_ring_color_g);
+          b: !lambda return id(user_led_ring_color_b);
+          speed: 2.0
+          brightness: 0.8
+
+  # Script executed while push-to-intercom is active.
+  - id: control_leds_push_to_intercom_phase
+    then:
+      - script.execute:
+          id: led_set_effect
+          effect: "led_beam"
+          r: !lambda return id(user_led_ring_color_r);
+          g: !lambda return id(user_led_ring_color_g);
+          b: !lambda return id(user_led_ring_color_b);
+          speed: 0.0
+          brightness: 1.0
+
+  # Script executed when the device-local remote timer is ticking.
+  - id: control_leds_remote_timer_ticking
+    then:
+      - script.execute:
+          id: led_set_effect
+          effect: "timer_tick"
+          r: !lambda return id(user_led_ring_color_r);
+          g: !lambda return id(user_led_ring_color_g);
+          b: !lambda return id(user_led_ring_color_b);
+          speed: 1.0
+          brightness: 0.7
+
+  # Script executed when the timer is ringing, to playback sounds.
+  - id: ring_timer
+    then:
+      - script.execute: enable_repeat_one
+      - script.execute:
+          id: play_sound
+          priority: true
+          sound_file: "timer_finished_sound"
+
+  # Script executed when the timer is ringing, to repeat the timer finished sound.
+  - id: enable_repeat_one
+    then:
+      # Turn on the repeat mode and pause for 500 ms between playlist items/repeats
+      - media_player.repeat_one:
+          id: external_media_player
+          announcement: true
+      - speaker_source.set_playlist_delay:
+          id: external_media_player
+          pipeline: announcement
+          delay: 500ms
+
+  # Script execute when the timer is done ringing, to disable repeat mode.
+  - id: disable_repeat
+    then:
+      # Turn off the repeat mode and pause for 0 ms between playlist items/repeats
+      - media_player.repeat_off:
+          id: external_media_player
+          announcement: true
+      - speaker_source.set_playlist_delay:
+          id: external_media_player
+          pipeline: announcement
+          delay: 0ms
+
+  # Script executed when we want to play sounds on the device.
+  - id: play_sound
+    parameters:
+      priority: bool
+      # sound_file: "audio::AudioFile*"
+      sound_file: string
+    then:
+      - if:
+          condition:
+            lambda: return priority;
+          then:
+            - media_player.stop:
+                id: external_media_player
+                announcement: true
+      - lambda: |-
+          if ( (id(external_media_player).state != media_player::MediaPlayerState::MEDIA_PLAYER_STATE_ANNOUNCING ) || priority) {
+            id(external_media_player)
+              ->make_call()
+              .set_media_url("audio-file://" + sound_file)
+              .set_announcement(true)
+              .perform();
+          }
+
+  # Script used to fetch the first active timer (Stored in global first_active_timer)
+  - id: fetch_first_active_timer
+    then:
+      - lambda: |
+          const auto &timers = id(va).get_timers();
+          auto output_timer = *timers.begin();
+          for (const auto &timer : timers) {
+            if (timer.is_active && timer.seconds_left <= output_timer.seconds_left) {
+              output_timer = timer;
+            }
+          }
+          id(first_active_timer) = output_timer;
+
+  # Script used to check if a timer is active (Stored in global is_timer_active)
+  - id: check_if_timers_active
+    then:
+      - lambda: |
+          const auto &timers = id(va).get_timers();
+          bool output = false;
+          for (const auto &timer : timers) {
+            if (timer.is_active) {
+              output = true;
+            }
+          }
+          id(is_timer_active) = output;
+
+  # Script used activate the stop word if the TTS step is long.
+  # Why is this wrapped on a script?
+  #   Becasue we want to stop the sequence if the TTS step is faster than that.
+  #   This allows us to prevent having the deactivation of the stop word before its own activation.
+  - id: activate_stop_word_once
+    then:
+      - wait_until:
+          condition:
+            media_player.is_announcing:
+              id: external_media_player
+      - delay: 1s
+      # Enable stop wake word
+      - if:
+          condition:
+            switch.is_off: timer_ringing
+          then:
+            - micro_wake_word.enable_model: stop
+            - wait_until:
+                not:
+                  media_player.is_announcing:
+                    id: external_media_player
+            - if:
+                condition:
+                  switch.is_off: timer_ringing
+                then:
+                  - micro_wake_word.disable_model: stop
+
+  - id: check_alarm
+    then:
+      - lambda: |-
+          id(publish_current_time).execute();
+          // Check alarm
+          if (id(alarm_on).state) {
+            auto alarm_dt = id(alarm_time).state_as_esptime();
+            auto time_now = id(homeassistant_time).now();
+
+            if (time_now.hour == alarm_dt.hour && time_now.minute == alarm_dt.minute) {
+              auto action = id(alarm_action).current_option();
+              if (action == "Play sound") {
+                id(timer_ringing).turn_on();
+              } else if (action == "Send event") {
+                id(send_alarm_event).execute();
+              } else if (action == "Sound and event") {
+                id(timer_ringing).turn_on();
+                id(send_alarm_event).execute();
+              }
+            }
+          }
+
+  - id: send_wake_word_event
+    parameters:
+      wake_word: string
+    then:
+      - homeassistant.event:
+          event: esphome.wake_word_detected
+          data:
+            wake_word: !lambda return wake_word;
+  - id: send_alarm_event
+    then:
+      - homeassistant.event:
+          event: esphome.alarm_ringing
+  - id: send_tts_uri_event
+    parameters:
+      tts_uri: string
+    then:
+      - homeassistant.event:
+          event: esphome.tts_uri
+          data:
+            uri: !lambda return tts_uri;
+  - id: send_stt_text_event
+    parameters:
+      stt_text: string
+    then:
+      - homeassistant.event:
+          event: esphome.stt_text
+          data:
+            text: !lambda return stt_text;
+  - id: publish_current_time
+    mode: single
+    then:
+      - lambda: |-
+          static std::string last_time_string = "";
+          auto time_now = id(homeassistant_time).now();
+          std::string current_time_string = time_now.strftime("%H:%M");
+
+          // Only publish if time actually changed
+          if (current_time_string != last_time_string) {
+            id(current_time).publish_state(current_time_string);
+            last_time_string = current_time_string;
+          }
