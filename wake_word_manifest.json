@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 112
+      "count": 113
     }
   ],
-  "count": 514,
+  "count": 515,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -7789,6 +7789,24 @@
       "model_path": "microWakeWordsV3/hey_atlas.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_atlas.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_atlas.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:hey_aurora",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "hey_aurora",
+      "name": "hey_aurora",
+      "label": "Hey Aurora",
+      "path": "microWakeWordsV3/hey_aurora.json",
+      "model_path": "microWakeWordsV3/hey_aurora.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_aurora.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_aurora.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
