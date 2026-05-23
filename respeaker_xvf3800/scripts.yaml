@@ -450,6 +450,17 @@ script:
           uint32_t now = millis();
           float dt = (now - id(last_led_update_time)) / 1000.0f;
           id(last_led_update_time) = now;
+          float master_brightness = id(user_led_ring_brightness).state * id(effect_brightness);
+
+          // Stock XVF3800 DoA mode uses a base color plus a distinct direction color.
+          // Keep a low base glow so the ring has shape even between beam updates.
+          float base_level = master_brightness * 0.06f;
+          for (int i = 0; i < NUM_LEDS; i++) {
+            uint8_t r = (uint8_t)std::min(255.0f, id(effect_color_r) * base_level);
+            uint8_t g = (uint8_t)std::min(255.0f, id(effect_color_g) * base_level);
+            uint8_t b = (uint8_t)std::min(255.0f, id(effect_color_b) * base_level);
+            colors[i] = (r << 16) | (g << 8) | b;
+          }
 
           if (id(beam_direction).has_state()) {
             // CORRECTING THE OFFSET: add 5 from the sensor reading
@@ -478,9 +489,6 @@ script:
 
             id(animated_beam_position) = current_pos;
 
-            // Render the smoothed beam
-            float master_brightness = id(user_led_ring_brightness).state * id(effect_brightness);
-
             for (int i = 0; i < NUM_LEDS; i++) {
               // Calculate circular distance from current LED to the animated position
               float dist = abs(i - current_pos);
@@ -488,17 +496,16 @@ script:
                 dist = NUM_LEDS - dist;
               }
 
-              // Calculate brightness based on distance (linear falloff)
-              float brightness_factor = 1.0f - (dist / (FADE_LEDS + 1.0f));
-              brightness_factor = std::max(0.0f, brightness_factor);
+              float beam_level = std::max(0.0f, 1.0f - (dist / (FADE_LEDS + 1.0f))) * master_brightness * 0.65f;
+              float center_level = std::max(0.0f, 1.0f - (dist / 1.20f)) * master_brightness;
 
-              if (brightness_factor > 0.0f) {
-                float final_brightness = brightness_factor * master_brightness;
-                uint8_t r = (uint8_t)(id(effect_color_r) * final_brightness);
-                uint8_t g = (uint8_t)(id(effect_color_g) * final_brightness);
-                uint8_t b = (uint8_t)(id(effect_color_b) * final_brightness);
-                colors[i] = (r << 16) | (g << 8) | b;
-              }
+              float r = id(effect_color_r) * (base_level + beam_level) + 255.0f * center_level;
+              float g = id(effect_color_g) * (base_level + beam_level) + 240.0f * center_level;
+              float b = id(effect_color_b) * (base_level + beam_level) + 170.0f * center_level;
+
+              colors[i] = ((uint8_t)std::min(255.0f, r) << 16) |
+                          ((uint8_t)std::min(255.0f, g) << 8) |
+                          (uint8_t)std::min(255.0f, b);
             }
           }
           id(respeaker).set_led_ring(colors);
@@ -667,7 +674,9 @@ script:
   - id: control_leds_voice_assistant_waiting_for_command_phase
     then:
       - lambda: |
-          id(animated_beam_position) = id(beam_direction).state;
+          if (id(beam_direction).has_state()) {
+            id(animated_beam_position) = ((int)id(beam_direction).state + 5) % 12;
+          }
       - script.execute:
           id: led_set_effect
           effect: "led_beam"
