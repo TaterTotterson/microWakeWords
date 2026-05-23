@@ -62,6 +62,21 @@ light:
             static bool on = false;
             on = !on;
             it[0].set_rgb(on ? 255 : 0, 0, 0);
+      - addressable_lambda:
+          name: "Tool Call"
+          update_interval: 80ms
+          lambda: |-
+            static uint8_t phase = 0;
+            if (initial_run) phase = 0;
+
+            auto values = id(led_internal)->current_values;
+            Color color(values.get_red() * 255, values.get_green() * 255, values.get_blue() * 255);
+            float bounce = phase <= 4 ? phase / 4.0f : (8 - phase) / 4.0f;
+            if (bounce < 0.15f) bounce = 0.15f;
+            it[0].set_rgb(color.red * bounce,
+                          color.green * bounce,
+                          color.blue * bounce);
+            phase = (phase + 1) % 9;
   # User facing LED.
   # Exposed to be used by the user.
   - platform: partition

@@ -191,6 +191,10 @@ script:
           } else {
             id(last_led_update_time) = millis(); // Reset timer for smooth animation start
           }
+          if (effect == "tool_call") {
+            id(tool_call_led_index) = 0;
+            id(tool_call_moving_forward) = true;
+          }
 
   # Individual update scripts for each animated effect
   - id: update_breathe_effect
@@ -438,6 +442,58 @@ script:
             }
           }
           id(respeaker).set_led_ring(colors);
+
+  - id: update_tool_call_effect
+    then:
+      - lambda: |-
+          constexpr int NUM_LEDS = 12;
+          constexpr int HALF_LEDS = 6;
+          uint32_t colors[NUM_LEDS] = {0};
+          float master_brightness = id(user_led_ring_brightness).state * id(effect_brightness);
+
+          auto pack_color = [&](float level) -> uint32_t {
+            float brightness = std::min(1.0f, std::max(0.0f, level));
+            uint8_t r = (uint8_t)std::min(255.0f, id(effect_color_r) * brightness);
+            uint8_t g = (uint8_t)std::min(255.0f, id(effect_color_g) * brightness);
+            uint8_t b = (uint8_t)std::min(255.0f, id(effect_color_b) * brightness);
+            return (r << 16) | (g << 8) | b;
+          };
+
+          int lead_a = id(tool_call_led_index) % HALF_LEDS;
+          int lead_b = (NUM_LEDS - 1 - lead_a) % NUM_LEDS;
+          int trail_a = id(tool_call_moving_forward) ? (NUM_LEDS + lead_a - 1) % NUM_LEDS : (lead_a + 1) % NUM_LEDS;
+          int trail_b = id(tool_call_moving_forward) ? (lead_b + 1) % NUM_LEDS : (NUM_LEDS + lead_b - 1) % NUM_LEDS;
+          int tail_a = id(tool_call_moving_forward) ? (NUM_LEDS + lead_a - 2) % NUM_LEDS : (lead_a + 2) % NUM_LEDS;
+          int tail_b = id(tool_call_moving_forward) ? (lead_b + 2) % NUM_LEDS : (NUM_LEDS + lead_b - 2) % NUM_LEDS;
+
+          uint32_t lead_color = pack_color(master_brightness);
+          uint32_t trail_color = pack_color(master_brightness * 0.75f);
+          uint32_t tail_color = pack_color(master_brightness * 0.50f);
+
+          colors[tail_a] = tail_color;
+          colors[tail_b] = tail_color;
+          colors[trail_a] = trail_color;
+          colors[trail_b] = trail_color;
+          colors[lead_a] = lead_color;
+          colors[lead_b] = lead_color;
+
+          id(respeaker).set_led_ring(colors);
+
+          if (id(tool_call_moving_forward)) {
+            if (id(tool_call_led_index) >= HALF_LEDS - 1) {
+              id(tool_call_led_index) = HALF_LEDS - 2;
+              id(tool_call_moving_forward) = false;
+            } else {
+              id(tool_call_led_index) += 1;
+            }
+          } else {
+            if (id(tool_call_led_index) <= 0) {
+              id(tool_call_led_index) = 1;
+              id(tool_call_moving_forward) = true;
+            } else {
+              id(tool_call_led_index) -= 1;
+            }
+          }
 
   - id: update_led_beam_effect
     then:
@@ -801,11 +857,11 @@ script:
     then:
       - script.execute:
           id: led_set_effect
-          effect: "breathe"
+          effect: "tool_call"
           r: !lambda return id(user_led_ring_color_r);
           g: !lambda return id(user_led_ring_color_g);
           b: !lambda return id(user_led_ring_color_b);
-          speed: 2.0
+          speed: 1.0
           brightness: 0.8
 
   # Script executed while push-to-intercom is active.

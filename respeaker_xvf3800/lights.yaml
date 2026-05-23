@@ -97,4 +97,6 @@ interval:
             id(update_timer_tick_effect).execute();
           } else if (effect == "led_beam") {
             id(update_led_beam_effect).execute();
+          } else if (effect == "tool_call") {
+            id(update_tool_call_effect).execute();
           }

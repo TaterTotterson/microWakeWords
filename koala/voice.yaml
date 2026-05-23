@@ -202,7 +202,7 @@ text:
     max_length: 255
     set_action:
       - lambda: |-
-          if (id(wake_engine_select).state == "openwakeword") {
+          if (id(wake_engine_select).current_option() == "openwakeword") {
             id(oww).set_url(x);
           }
 
@@ -218,7 +218,7 @@ text:
     max_length: 255
     set_action:
       - lambda: |-
-          if (id(wake_engine_select).state == "nanowakeword") {
+          if (id(wake_engine_select).current_option() == "nanowakeword") {
             id(oww).set_url(x);
           }
 
@@ -348,7 +348,7 @@ voice_assistant:
         id(mww).set_capture_close_misses_enabled(id(capture_close_misses).state);
         id(mww).set_capture_close_miss_probability_cutoff(id(close_miss_threshold).state);
         id(mww).set_capture_upload_url(id(trainer_app_url).state);
-        if (id(wake_engine_select).state == "nanowakeword") {
+        if (id(wake_engine_select).current_option() == "nanowakeword") {
           id(oww).set_url(id(nanowakeword_server_url).state);
           id(oww).set_stream_path("/api/nanowakeword/stream");
         } else {
@@ -403,7 +403,7 @@ voice_assistant:
   on_wake_word_detected:
     - if:
         condition:
-          lambda: return id(wake_engine_select).state != "microwakeword";
+          lambda: return id(wake_engine_select).current_option() != "microwakeword";
         then:
           - lambda: |-
               id(openwakeword_wake_detected) = true;
@@ -430,7 +430,7 @@ voice_assistant:
   on_listening:
     - if:
         condition:
-          lambda: return id(wake_engine_select).state == "microwakeword" || id(openwakeword_wake_detected) || id(push_to_intercom_active);
+          lambda: return id(wake_engine_select).current_option() == "microwakeword" || id(openwakeword_wake_detected) || id(push_to_intercom_active);
         then:
           - lambda: id(voice_assistant_phase) = ${voice_assist_waiting_for_command_phase_id};
         else:
@@ -439,21 +439,21 @@ voice_assistant:
   on_stt_vad_start:
     - if:
         condition:
-          lambda: return id(wake_engine_select).state == "microwakeword" || id(openwakeword_wake_detected) || id(push_to_intercom_active);
+          lambda: return id(wake_engine_select).current_option() == "microwakeword" || id(openwakeword_wake_detected) || id(push_to_intercom_active);
         then:
           - lambda: id(voice_assistant_phase) = ${voice_assist_listening_for_command_phase_id};
           - script.execute: control_leds
   on_stt_vad_end:
     - if:
         condition:
-          lambda: return id(wake_engine_select).state == "microwakeword" || id(openwakeword_wake_detected) || id(push_to_intercom_active);
+          lambda: return id(wake_engine_select).current_option() == "microwakeword" || id(openwakeword_wake_detected) || id(push_to_intercom_active);
         then:
           - lambda: id(voice_assistant_phase) = ${voice_assist_thinking_phase_id};
           - script.execute: control_leds
   on_tool_call_start:
     - if:
         condition:
-          lambda: return id(wake_engine_select).state == "microwakeword" || id(openwakeword_wake_detected) || id(push_to_intercom_active);
+          lambda: return id(wake_engine_select).current_option() == "microwakeword" || id(openwakeword_wake_detected) || id(push_to_intercom_active);
         then:
           - lambda: id(voice_assistant_phase) = ${voice_assist_tool_call_phase_id};
           - script.execute: control_leds
@@ -462,7 +462,7 @@ voice_assistant:
         condition:
           and:
             - lambda: 'return !x.empty();'
-            - lambda: return id(wake_engine_select).state == "microwakeword" || id(openwakeword_wake_detected) || id(push_to_intercom_active);
+            - lambda: return id(wake_engine_select).current_option() == "microwakeword" || id(openwakeword_wake_detected) || id(push_to_intercom_active);
         then:
           - lambda: id(voice_assistant_phase) = ${voice_assist_replying_phase_id};
           - script.execute: control_leds
@@ -472,7 +472,7 @@ voice_assistant:
         condition:
           and:
             - lambda: 'return id(voice_assistant_phase) != ${voice_assist_replying_phase_id};'
-            - lambda: return id(wake_engine_select).state == "microwakeword" || id(openwakeword_wake_detected) || id(push_to_intercom_active);
+            - lambda: return id(wake_engine_select).current_option() == "microwakeword" || id(openwakeword_wake_detected) || id(push_to_intercom_active);
         then:
           - lambda: id(voice_assistant_phase) = ${voice_assist_replying_phase_id};
           - script.execute: control_leds
