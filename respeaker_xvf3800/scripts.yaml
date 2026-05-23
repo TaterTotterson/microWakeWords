@@ -8,7 +8,7 @@ script:
           then:
             - if:
                 condition:
-                  lambda: return id(wake_engine_select).state != "microwakeword";
+                  lambda: return id(wake_engine_select).current_option() != "microwakeword";
                 then:
                   - micro_wake_word.stop:
                   - wait_until:
@@ -28,7 +28,7 @@ script:
                       id(openwakeword_wake_detected) = false;
                       id(voice_assistant_phase) = ${voice_assist_idle_phase_id};
                       id(va).set_use_wake_word(false);
-                      if (id(wake_engine_select).state == "nanowakeword") {
+                      if (id(wake_engine_select).current_option() == "nanowakeword") {
                         id(oww).set_url(id(nanowakeword_server_url).state);
                         id(oww).set_stream_path("/api/nanowakeword/stream");
                       } else {
@@ -39,7 +39,7 @@ script:
                       level: INFO
                       tag: tater.voice
                       format: "Using remote wake endpoint (%s)."
-                      args: [ '(id(wake_engine_select).state == "nanowakeword" ? id(nanowakeword_server_url).state : id(openwakeword_server_url).state).c_str()' ]
+                      args: [ '(id(wake_engine_select).current_option() == "nanowakeword" ? id(nanowakeword_server_url).state : id(openwakeword_server_url).state).c_str()' ]
                   - remote_wake_word.start:
                   - script.execute: control_leds
                 else:
@@ -78,7 +78,7 @@ script:
             lambda: return !id(oww).is_running();
       - if:
           condition:
-            lambda: return id(wake_engine_select).state != "microwakeword" && !id(push_to_intercom_active);
+            lambda: return id(wake_engine_select).current_option() != "microwakeword" && !id(push_to_intercom_active);
           then:
             - if:
                 condition:
@@ -91,13 +91,13 @@ script:
             - delay: 60s
             - if:
                 condition:
-                  lambda: return id(wake_engine_select).state != "microwakeword" && !id(push_to_intercom_active);
+                  lambda: return id(wake_engine_select).current_option() != "microwakeword" && !id(push_to_intercom_active);
                 then:
                   - logger.log:
                       level: INFO
                       tag: tater.voice
                       format: "Retrying remote wake endpoint (%s)."
-                      args: [ '(id(wake_engine_select).state == "nanowakeword" ? id(nanowakeword_server_url).state : id(openwakeword_server_url).state).c_str()' ]
+                      args: [ '(id(wake_engine_select).current_option() == "nanowakeword" ? id(nanowakeword_server_url).state : id(openwakeword_server_url).state).c_str()' ]
                   - script.execute: apply_wake_engine
 
   - id: start_push_to_intercom
@@ -529,8 +529,8 @@ script:
           bool new_timer_ringing = id(timer_ringing).state;
           bool improv_ble = id(improv_ble_in_progress);
           bool init_progress = id(init_in_progress);
-          bool push_to_intercom_active = id(push_to_intercom_active);
-          bool remote_timer_running = id(remote_timer_running);
+          bool push_to_intercom_is_active = id(push_to_intercom_active);
+          bool remote_timer_is_running = id(remote_timer_running);
 
           // Only update if something actually changed
           bool needs_update = (
@@ -541,8 +541,8 @@ script:
             new_timer_ringing != last_timer_ringing ||
             improv_ble != last_improv_ble ||
             init_progress != last_init_progress ||
-            push_to_intercom_active != last_push_to_intercom_active ||
-            remote_timer_running != last_remote_timer_running
+            push_to_intercom_is_active != last_push_to_intercom_active ||
+            remote_timer_is_running != last_remote_timer_running
           );
 
           if (!needs_update) return;
@@ -555,8 +555,8 @@ script:
           last_timer_ringing = new_timer_ringing;
           last_improv_ble = improv_ble;
           last_init_progress = init_progress;
-          last_push_to_intercom_active = push_to_intercom_active;
-          last_remote_timer_running = remote_timer_running;
+          last_push_to_intercom_active = push_to_intercom_is_active;
+          last_remote_timer_running = remote_timer_is_running;
 
           if (respeaker_failed) {
             id(control_leds_respeaker_startup_failed).execute();
@@ -576,11 +576,11 @@ script:
             id(control_leds_init_state).execute();
           } else if (!wifi_connected || !api_connected){
             id(control_leds_no_ha_connection_state).execute();
-          } else if (push_to_intercom_active) {
+          } else if (push_to_intercom_is_active) {
             id(control_leds_push_to_intercom_phase).execute();
           } else if (new_timer_ringing) {
             id(control_leds_timer_ringing).execute();
-          } else if (remote_timer_running) {
+          } else if (remote_timer_is_running) {
             id(control_leds_remote_timer_ticking).execute();
           } else if (voice_phase == ${voice_assist_waiting_for_command_phase_id}) {
             id(control_leds_voice_assistant_waiting_for_command_phase).execute();
