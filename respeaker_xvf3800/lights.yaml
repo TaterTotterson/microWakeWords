@@ -70,3 +70,31 @@ text_sensor:
     id: current_time
     name: "Current device time"
     icon: mdi:clock
+
+interval:
+  - interval: 50ms
+    id: led_animation_interval
+    then:
+      - lambda: |-
+          if (id(volume_display_active)) {
+            id(update_volume_display_effect).execute();
+            return;
+          }
+          std::string effect = id(current_led_effect);
+          if (effect == "off") {
+            return;
+          } else if (effect == "breathe") {
+            id(update_breathe_effect).execute();
+          } else if (effect == "rainbow") {
+            id(update_rainbow_effect).execute();
+          } else if (effect == "comet_cw") {
+            id(update_comet_cw_effect).execute();
+          } else if (effect == "comet_ccw") {
+            id(update_comet_ccw_effect).execute();
+          } else if (effect == "twinkle") {
+            id(update_twinkle_effect).execute();
+          } else if (effect == "timer_tick") {
+            id(update_timer_tick_effect).execute();
+          } else if (effect == "led_beam") {
+            id(update_led_beam_effect).execute();
+          }
