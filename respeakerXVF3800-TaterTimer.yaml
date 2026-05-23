@@ -56,6 +56,7 @@ packages:
       - respeaker_xvf3800/voice_assistant_phase_ids.yaml
       - respeaker_xvf3800/device.yaml
       - respeaker_xvf3800/globals.yaml
+      - respeaker_xvf3800/lights.yaml
       - respeaker_xvf3800/controls.yaml
       - respeaker_xvf3800/scripts.yaml
       - respeaker_xvf3800/timer.yaml
