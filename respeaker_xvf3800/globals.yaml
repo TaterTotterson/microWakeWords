@@ -83,6 +83,14 @@ globals:
     type: float
     restore_value: no
     initial_value: '0.0'
+  - id: tool_call_led_index
+    type: int
+    restore_value: no
+    initial_value: '0'
+  - id: tool_call_moving_forward
+    type: bool
+    restore_value: no
+    initial_value: 'true'
 
 # Time sync from Home Assistant
   - id: openwakeword_wake_detected
