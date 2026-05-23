@@ -10,16 +10,6 @@ substitutions:
   ha_voice_ip: "127.0.0.1"
   hidden_ssid: "false"
 
-  # VOICE ASSISTANT PHASE IDS
-  voice_assist_idle_phase_id: "1"
-  voice_assist_waiting_for_command_phase_id: "2"
-  voice_assist_listening_for_command_phase_id: "3"
-  voice_assist_thinking_phase_id: "4"
-  voice_assist_replying_phase_id: "5"
-  voice_assist_tool_call_phase_id: "6"
-  voice_assist_not_ready_phase_id: "10"
-  voice_assist_error_phase_id: "11"
-
   # WAKE WORD CONFIG
   wake_engine: openwakeword
   openwakeword_server_url: ws://tater.local:8501
@@ -63,6 +53,7 @@ packages:
     url: https://github.com/TaterTotterson/microWakeWords
     ref: main
     files:
+      - respeaker_lite/voice_assistant_phase_ids.yaml
       - respeaker_lite/device.yaml
       - respeaker_lite/globals.yaml
       - respeaker_lite/controls.yaml
