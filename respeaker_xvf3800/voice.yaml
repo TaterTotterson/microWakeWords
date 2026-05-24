@@ -64,7 +64,6 @@ micro_wake_word:
                                       id: play_sound
                                       priority: true
                                       sound_file: "wake_word_triggered_sound"
-                                  - delay: 300ms
                             - voice_assistant.start:
                                 wake_word: !lambda return wake_word;
                             - if:
@@ -130,7 +129,6 @@ remote_wake_word:
                                 id: play_sound
                                 priority: true
                                 sound_file: "wake_word_triggered_sound"
-                            - delay: 300ms
                       - voice_assistant.start:
                           wake_word: !lambda return wake_word;
                       - if:

@@ -729,6 +729,7 @@ script:
   # Script executed when the voice assistant is waiting for a command (After the wake word)
   - id: control_leds_voice_assistant_waiting_for_command_phase
     then:
+      - component.update: beam_direction
       - lambda: |
           if (id(beam_direction).has_state()) {
             id(animated_beam_position) = ((int)id(beam_direction).state + 5) % 12;
@@ -745,6 +746,11 @@ script:
   # Script executed when the voice assistant is listening to a command
   - id: control_leds_voice_assistant_listening_for_command_phase
     then:
+      - component.update: beam_direction
+      - lambda: |
+          if (id(beam_direction).has_state()) {
+            id(animated_beam_position) = ((int)id(beam_direction).state + 5) % 12;
+          }
       - script.execute:
           id: led_set_effect
           effect: "led_beam"
@@ -867,6 +873,11 @@ script:
   # Script executed while push-to-intercom is active.
   - id: control_leds_push_to_intercom_phase
     then:
+      - component.update: beam_direction
+      - lambda: |
+          if (id(beam_direction).has_state()) {
+            id(animated_beam_position) = ((int)id(beam_direction).state + 5) % 12;
+          }
       - script.execute:
           id: led_set_effect
           effect: "led_beam"
