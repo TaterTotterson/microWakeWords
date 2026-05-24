@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 117
+      "count": 118
     }
   ],
-  "count": 519,
+  "count": 520,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -8833,6 +8833,24 @@
       "model_path": "microWakeWordsV3/mochi.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/mochi.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/mochi.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:mum",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "mum",
+      "name": "mum",
+      "label": "Mum",
+      "path": "microWakeWordsV3/mum.json",
+      "model_path": "microWakeWordsV3/mum.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/mum.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/mum.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
