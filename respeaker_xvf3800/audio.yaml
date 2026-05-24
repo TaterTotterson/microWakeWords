@@ -188,8 +188,9 @@ external_components:
     refresh: 0s
   - source:
       type: git
-      url: https://github.com/TaterTotterson/Respeaker-XVF3800-ESPHome-integration
+      url: https://github.com/TaterTotterson/microWakeWords
       ref: main
+      path: respeaker_xvf3800/components
     components:
       - respeaker_xvf3800
       - aic3104
