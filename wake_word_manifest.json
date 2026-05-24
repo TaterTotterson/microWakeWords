@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 120
+      "count": 121
     }
   ],
-  "count": 522,
+  "count": 523,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -7465,6 +7465,24 @@
       "model_path": "microWakeWordsV3/dad.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/dad.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/dad.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:daddy",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "daddy",
+      "name": "daddy",
+      "label": "Daddy",
+      "path": "microWakeWordsV3/daddy.json",
+      "model_path": "microWakeWordsV3/daddy.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/daddy.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/daddy.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
