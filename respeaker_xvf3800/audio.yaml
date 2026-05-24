@@ -244,6 +244,7 @@ respeaker_xvf3800:
     name: "Voice Beam Direction"
     id: beam_direction
     internal: true
+    update_interval: 100ms
   firmware:
     url: https://github.com/TaterTotterson/Respeaker-XVF3800-ESPHome-integration/raw/refs/heads/main/application_xvf3800_inthost-lr48-sqr-i2c-v1.0.7-release.bin
     version: "1.0.7"
