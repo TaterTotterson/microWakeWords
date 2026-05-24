@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 116
+      "count": 117
     }
   ],
-  "count": 518,
+  "count": 519,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -7303,6 +7303,24 @@
       "model_path": "microWakeWordsV3/artamis.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/artamis.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/artamis.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:ass_truh",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "ass_truh",
+      "name": "ass_truh",
+      "label": "Ass Truh",
+      "path": "microWakeWordsV3/ass_truh.json",
+      "model_path": "microWakeWordsV3/ass_truh.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/ass_truh.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/ass_truh.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
