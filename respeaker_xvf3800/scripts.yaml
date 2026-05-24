@@ -500,7 +500,7 @@ script:
       - lambda: |-
           constexpr int NUM_LEDS = 12;
           constexpr int FADE_LEDS = 3;
-          constexpr float TRANSITION_DURATION = 0.5f; // Duration of the smooth transition
+          constexpr float TRANSITION_DURATION = 0.25f; // Duration of the smooth transition
           uint32_t colors[NUM_LEDS] = {0};
 
           uint32_t now = millis();
@@ -763,7 +763,7 @@ script:
           r: !lambda return id(user_led_ring_color_r);
           g: !lambda return id(user_led_ring_color_g);
           b: !lambda return id(user_led_ring_color_b);
-          speed: 1.0
+          speed: 3.0
           brightness: 0.6
 
   # Script executed when the voice assistant is replying to a command
@@ -775,7 +775,7 @@ script:
           r: !lambda return id(user_led_ring_color_r);
           g: !lambda return id(user_led_ring_color_g);
           b: !lambda return id(user_led_ring_color_b);
-          speed: 1.0
+          speed: 3.0
           brightness: 0.8
 
   # Script executed when the voice assistant is in error

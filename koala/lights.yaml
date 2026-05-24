@@ -29,7 +29,7 @@ light:
     effects:
       - addressable_lambda:
           name: "Waiting for Command"
-          update_interval: 60ms
+          update_interval: 30ms
           lambda: |-
             auto light_color = id(led_ring).current_values;
             Color color(light_color.get_red() * 255, light_color.get_green() * 255, light_color.get_blue() * 255);
@@ -40,7 +40,7 @@ light:
             id(global_led_animation_index) = (id(global_led_animation_index) + 1) % 43;
       - addressable_lambda:
           name: "Listening For Command"
-          update_interval: 30ms
+          update_interval: 20ms
           lambda: |-
             auto light_color = id(led_ring).current_values;
             Color color(light_color.get_red() * 255, light_color.get_green() * 255, light_color.get_blue() * 255);
@@ -51,7 +51,7 @@ light:
             id(global_led_animation_index) = (id(global_led_animation_index) + 1) % 43;
       - addressable_lambda:
           name: "Thinking"
-          update_interval: 30ms
+          update_interval: 15ms
           lambda: |-
             static uint8_t brightness_step = 0;
             static bool brightness_decreasing = true;
@@ -123,7 +123,7 @@ light:
             }
       - addressable_lambda:
           name: "Replying"
-          update_interval: 30ms
+          update_interval: 20ms
           lambda: |-
             id(global_led_animation_index) = (43 + id(global_led_animation_index) - 1) % 43;
             auto light_color = id(led_ring).current_values;

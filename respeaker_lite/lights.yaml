@@ -34,7 +34,7 @@ light:
 
       - addressable_lambda:
           name: "Slow Pulse"
-          update_interval: 30ms
+          update_interval: 20ms
           lambda: |-
             static float fraction = 0.0;
             static float step = 0.05;
@@ -124,7 +124,7 @@ light:
 
       - addressable_lambda:
           name: "Slow Pulse"
-          update_interval: 30ms
+          update_interval: 20ms
           lambda: |-
             static float fraction = 0.0;
             static float step = 0.05;
