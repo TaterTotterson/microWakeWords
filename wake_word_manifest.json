@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 125
+      "count": 126
     }
   ],
-  "count": 527,
+  "count": 528,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -9427,6 +9427,24 @@
       "model_path": "microWakeWordsV3/someone_help_me.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/someone_help_me.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/someone_help_me.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:spiritus_domi",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "spiritus_domi",
+      "name": "spiritus_domi",
+      "label": "Spiritus Domi",
+      "path": "microWakeWordsV3/spiritus_domi.json",
+      "model_path": "microWakeWordsV3/spiritus_domi.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/spiritus_domi.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/spiritus_domi.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
