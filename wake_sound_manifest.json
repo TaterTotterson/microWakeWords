@@ -5,10 +5,10 @@
     {
       "key": "wakeSounds",
       "label": "wakeSounds",
-      "count": 36
+      "count": 37
     }
   ],
-  "count": 36,
+  "count": 37,
   "entries": [
     {
       "id": "wakeSounds:14",
@@ -415,6 +415,20 @@
       "extension": "flac",
       "media_type": "audio/flac",
       "size_bytes": 30319
+    },
+    {
+      "id": "wakeSounds:stuart_bell-yes",
+      "source": "wakeSounds",
+      "source_label": "wakeSounds",
+      "slug": "stuart_bell-yes",
+      "name": "stuart_bell-yes",
+      "label": "Stuart Bell Yes",
+      "path": "wakeSounds/stuart_bell-yes.flac",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/stuart_bell-yes.flac",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/stuart_bell-yes.flac",
+      "extension": "flac",
+      "media_type": "audio/flac",
+      "size_bytes": 30049
     },
     {
       "id": "wakeSounds:tater_notify_digital_blip",
