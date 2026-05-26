@@ -51,7 +51,8 @@ jobs:
 
       - name: Commit generated wake assets
         run: |
-          find wakeSounds -maxdepth 1 -type f -name '*.flac' -exec git add -- {} +
+          git add -u wakeSounds
+          find wakeSounds -maxdepth 1 -type f -name '*.wav' -exec git add -- {} +
           git add wake_word_manifest.json wake_sound_manifest.json
           if git diff --cached --quiet; then
             echo 'No generated wake asset changes to commit.'
