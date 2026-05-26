@@ -18,11 +18,11 @@ SOURCE_SPECS = (
 )
 
 AUDIO_EXTENSIONS = {
-    '.flac',
+    '.wav',
 }
 
 MEDIA_TYPES = {
-    '.flac': 'audio/flac',
+    '.wav': 'audio/wav',
 }
 
 

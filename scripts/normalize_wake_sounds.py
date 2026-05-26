@@ -5,7 +5,6 @@ import argparse
 import json
 import subprocess
 import tempfile
-from collections import Counter
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -16,10 +15,11 @@ SOURCE_EXTENSIONS = {
     '.ogg',
     '.wav',
 }
-TARGET_EXTENSION = '.flac'
-TARGET_SAMPLE_RATE = '48000'
+TARGET_EXTENSION = '.wav'
+TARGET_SAMPLE_RATE = '16000'
 TARGET_CHANNELS = 1
 TARGET_SAMPLE_FMT = 's16'
+TARGET_CODEC = 'pcm_s16le'
 
 
 def audio_files() -> list[Path]:
@@ -64,19 +64,14 @@ def is_target_format(path: Path) -> bool:
         return False
     stream = probe(path)
     return (
-        stream.get('codec_name') == 'flac'
+        stream.get('codec_name') == TARGET_CODEC
         and stream.get('sample_rate') == TARGET_SAMPLE_RATE
         and stream.get('channels') == str(TARGET_CHANNELS)
         and stream.get('sample_fmt') == TARGET_SAMPLE_FMT
     )
 
 
-def target_path(path: Path, duplicate_stems: set[str]) -> Path:
-    suffix = path.suffix.lower()
-    if suffix == TARGET_EXTENSION:
-        return path
-    if path.stem in duplicate_stems:
-        return path.with_name(f'{path.stem}-{suffix.lstrip(".")}{TARGET_EXTENSION}')
+def target_path(path: Path) -> Path:
     return path.with_suffix(TARGET_EXTENSION)
 
 
@@ -108,8 +103,8 @@ def convert(source: Path, target: Path) -> None:
                 TARGET_SAMPLE_RATE,
                 '-sample_fmt',
                 TARGET_SAMPLE_FMT,
-                '-compression_level',
-                '5',
+                '-acodec',
+                TARGET_CODEC,
                 str(tmp_path),
             ],
             check=True,
@@ -122,7 +117,7 @@ def convert(source: Path, target: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description='Normalize wakeSounds audio to 48 kHz mono 16-bit FLAC for satellite firmware.'
+        description='Normalize wakeSounds audio to 16 kHz mono 16-bit WAV.'
     )
     parser.add_argument(
         '--dry-run',
@@ -132,24 +127,17 @@ def main() -> None:
     parser.add_argument(
         '--force',
         action='store_true',
-        help='Regenerate converted FLAC files even when an up-to-date target already exists.',
+        help='Regenerate converted WAV files even when an up-to-date target already exists.',
     )
     args = parser.parse_args()
 
     sources = audio_files()
-    duplicate_stems = {
-        stem
-        for stem, count in Counter(
-            path.stem for path in sources if path.suffix.lower() != TARGET_EXTENSION
-        ).items()
-        if count > 1
-    }
 
     converted = 0
     skipped = 0
     for source in sources:
-        target = target_path(source, duplicate_stems)
-        if source == target and is_target_format(source):
+        target = target_path(source)
+        if not args.force and source == target and is_target_format(source):
             skipped += 1
             print(f'skip      {source.relative_to(REPO_ROOT)}')
             continue
@@ -165,10 +153,14 @@ def main() -> None:
                 f'skip      {source.relative_to(REPO_ROOT)} -> '
                 f'{target.relative_to(REPO_ROOT)}'
             )
+            if not args.dry_run:
+                source.unlink()
             continue
         print(f'convert   {source.relative_to(REPO_ROOT)} -> {target.relative_to(REPO_ROOT)}')
         if not args.dry_run:
             convert(source, target)
+            if source != target and source.exists():
+                source.unlink()
         converted += 1
 
     mode = 'Would convert' if args.dry_run else 'Converted'
