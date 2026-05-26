@@ -414,7 +414,7 @@
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/stuart_bell-yes.wav",
       "extension": "wav",
       "media_type": "audio/wav",
-      "size_bytes": 28238
+      "size_bytes": 30798
     },
     {
       "id": "wakeSounds:tater_notify_digital_blip",
