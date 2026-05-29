@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 129
+      "count": 130
     }
   ],
-  "count": 531,
+  "count": 532,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -8203,6 +8203,24 @@
       "model_path": "microWakeWordsV3/hey_glados.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_glados.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_glados.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:hey_gort",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "hey_gort",
+      "name": "hey_gort",
+      "label": "Hey Gort",
+      "path": "microWakeWordsV3/hey_gort.json",
+      "model_path": "microWakeWordsV3/hey_gort.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_gort.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_gort.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
