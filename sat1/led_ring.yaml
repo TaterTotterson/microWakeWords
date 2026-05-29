@@ -106,6 +106,98 @@ light:
             }
             id(global_led_animation_index) = (id(global_led_animation_index) + 1) % 24;
       - addressable_lambda:
+          name: "Sat1 DoA Beam"
+          update_interval: 50ms
+          lambda: |-
+            constexpr int NUM_LEDS = 24;
+            constexpr int FADE_LEDS = 4;
+            constexpr float MAX_ABS_DELAY = 4.0f;
+            constexpr float LED_ZERO_OFFSET = 0.0f;
+            constexpr float LED_SPAN = 6.0f;
+            constexpr float TRANSITION_DURATION = 0.20f;
+            constexpr uint32_t HOLD_DIRECTION_MS = 700;
+
+            static float current_pos = LED_ZERO_OFFSET;
+            static float target_pos = LED_ZERO_OFFSET;
+            static float confidence = 0.0f;
+            static uint32_t last_update_ms = 0;
+            static uint32_t last_good_ms = 0;
+
+            uint32_t now = millis();
+            if (initial_run) {
+              current_pos = LED_ZERO_OFFSET;
+              target_pos = LED_ZERO_OFFSET;
+              confidence = 0.0f;
+              last_update_ms = now;
+              last_good_ms = 0;
+            }
+
+            auto wrap_pos = [=](float pos) -> float {
+              while (pos >= NUM_LEDS) pos -= NUM_LEDS;
+              while (pos < 0.0f) pos += NUM_LEDS;
+              return pos;
+            };
+            auto circular_dist = [=](float a, float b) -> float {
+              float dist = std::abs(a - b);
+              if (dist > NUM_LEDS / 2.0f) dist = NUM_LEDS - dist;
+              return dist;
+            };
+
+            esphome::satellite1::DoAState doa{};
+            if (id(satellite1_id).read_doa_state(doa) && (doa.flags & 0x01) && doa.confidence >= 20) {
+              float normalized_delay = doa.sample_delay / MAX_ABS_DELAY;
+              if (normalized_delay > 1.0f) normalized_delay = 1.0f;
+              if (normalized_delay < -1.0f) normalized_delay = -1.0f;
+
+              target_pos = wrap_pos(LED_ZERO_OFFSET + normalized_delay * LED_SPAN);
+              confidence = doa.confidence / 255.0f;
+              last_good_ms = now;
+            }
+
+            float dt = (now - last_update_ms) / 1000.0f;
+            last_update_ms = now;
+            bool has_direction = last_good_ms != 0 && (now - last_good_ms) < HOLD_DIRECTION_MS;
+
+            if (has_direction) {
+              float diff = target_pos - current_pos;
+              if (diff > NUM_LEDS / 2.0f) {
+                diff -= NUM_LEDS;
+              } else if (diff < -NUM_LEDS / 2.0f) {
+                diff += NUM_LEDS;
+              }
+
+              float step = TRANSITION_DURATION > 0.0f ? std::min(1.0f, dt / TRANSITION_DURATION) : 1.0f;
+              current_pos = wrap_pos(current_pos + diff * step);
+            }
+
+            auto light_color = id(led_ring).current_values;
+            float base_r = light_color.get_red() * 255.0f;
+            float base_g = light_color.get_green() * 255.0f;
+            float base_b = light_color.get_blue() * 255.0f;
+
+            for (int i = 0; i < NUM_LEDS; i++) {
+              float r = base_r * 0.06f;
+              float g = base_g * 0.06f;
+              float b = base_b * 0.06f;
+
+              if (has_direction) {
+                // Sat1 has a two-mic axis, so render mirrored highlights for the unresolved front/back side.
+                float mirror_pos = wrap_pos(current_pos + NUM_LEDS / 2.0f);
+                float dist = std::min(circular_dist(i, current_pos), circular_dist(i, mirror_pos));
+                float confidence_scale = std::max(0.35f, confidence);
+                float beam_level = std::max(0.0f, 1.0f - (dist / (FADE_LEDS + 1.0f))) * 0.65f * confidence_scale;
+                float center_level = std::max(0.0f, 1.0f - (dist / 1.20f)) * confidence_scale;
+
+                r += base_r * beam_level + 255.0f * center_level;
+                g += base_g * beam_level + 240.0f * center_level;
+                b += base_b * beam_level + 170.0f * center_level;
+              }
+
+              it[i] = Color((uint8_t)std::min(255.0f, r),
+                            (uint8_t)std::min(255.0f, g),
+                            (uint8_t)std::min(255.0f, b));
+            }
+      - addressable_lambda:
           name: "Thinking"
           update_interval: 10ms
           lambda: |-
@@ -670,16 +762,16 @@ script:
       - light.turn_on:
           brightness: !lambda return max( id(led_ring).current_values.get_brightness() , 0.2f );
           id: voice_assistant_leds
-          effect: "Waiting for Command"
+          effect: "Sat1 DoA Beam"
 
   # Script executed when the voice assistant is listening to a command
-  # Fast clockwise spin of the LED ring.
+  # Directional DoA beam using the Sat1 XMOS two-mic delay estimate.
   - id: control_leds_voice_assistant_listening_for_command_phase
     then:
       - light.turn_on:
           brightness: !lambda return max( id(led_ring).current_values.get_brightness() , 0.2f );
           id: voice_assistant_leds
-          effect: "Listening For Command"
+          effect: "Sat1 DoA Beam"
 
   # Script executed while the action button is held for push-to-intercom.
   # Tater orange listening animation so it reads differently from a normal touch.
