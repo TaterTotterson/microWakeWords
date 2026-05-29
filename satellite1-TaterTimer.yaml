@@ -26,7 +26,9 @@ substitutions:
   # FIRMWARE VERSIONS
   # -----------------------------
   esp32_fw_version: "3.0.3"
-  xmos_fw_version: "v1.0.3"
+  xmos_fw_version: "v1.0.4-dev"
+  xmos_firmware_image_file: sat1/firmware/xmos/satellite1_firmware_fixed_delay-v1.0.4-dev.factory.bin
+  xmos_firmware_md5: "f03477603ebab6f2a96b2728e18735b0"
 
   # -----------------------------
   # WAKE WORD CONFIG
@@ -301,8 +303,8 @@ memory_flasher:
     id: xflash
     embed_flash_image:
       image_version: ${xmos_fw_version}
-      image_file: https://raw.githubusercontent.com/FutureProofHomes/Documentation/refs/heads/main/assets/firmware/xmos/${xmos_fw_version}/satellite1_firmware_fixed_delay.factory.bin
-      md5_file: https://raw.githubusercontent.com/FutureProofHomes/Documentation/refs/heads/main/assets/firmware/xmos/${xmos_fw_version}/satellite1_firmware_fixed_delay.factory.md5
+      image_file: ${xmos_firmware_image_file}
+      md5: ${xmos_firmware_md5}
 
     on_flashing_start:
       then:

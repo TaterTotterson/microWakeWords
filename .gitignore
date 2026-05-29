@@ -1,3 +1,6 @@
 .DS_Store
 __pycache__/
 *.pyc
+
+# Local XMOS firmware source/build workspace
+sat1/xmos_firmware/
