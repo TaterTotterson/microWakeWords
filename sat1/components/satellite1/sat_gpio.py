@@ -33,9 +33,9 @@ XMOS_PORT = {
 }
 
 XMOS_PORT_NUMBER_BASE = {
-    XMOSPort.INPUT_A: 1000,
-    XMOSPort.INPUT_B: 1010,
-    XMOSPort.OUTPUT_A: 1020,
+    "INPUT_A": 1000,
+    "INPUT_B": 1010,
+    "OUTPUT_A": 1020,
 }
 
 
@@ -49,11 +49,19 @@ def _validate_pin_mode(value):
 
 def _set_pin_number(value):
     if CONF_NUMBER not in value:
-        value[CONF_NUMBER] = XMOS_PORT_NUMBER_BASE[value[CONF_PORT]] + value[CONF_PIN]
+        base = XMOS_PORT_NUMBER_BASE.get(value.get(CONF_PORT))
+        try:
+            pin = int(value[CONF_PIN])
+        except (KeyError, TypeError, ValueError):
+            pin = None
+        if base is not None and pin is not None:
+            value = value.copy()
+            value[CONF_NUMBER] = base + pin
     return value
 
 
 PIN_SCHEMA = cv.All(
+    _set_pin_number,
     {
         cv.GenerateID(): cv.declare_id(Satellite1GPIOPin),
         cv.Required(sat.CONF_SATELLITE1): cv.use_id(sat.Satellite1),
@@ -69,7 +77,6 @@ PIN_SCHEMA = cv.All(
         ),
         cv.Optional(CONF_INVERTED, default=False): cv.boolean,
     },
-    _set_pin_number,
 )
 
 
