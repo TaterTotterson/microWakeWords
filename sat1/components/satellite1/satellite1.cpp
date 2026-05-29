@@ -88,6 +88,27 @@ bool Satellite1::request_status_register_update() {
   return ret;
 }
 
+static uint16_t read_u16_le(const uint8_t *data) { return (uint16_t) data[0] | ((uint16_t) data[1] << 8); }
+
+static uint32_t read_u32_le(const uint8_t *data) {
+  return (uint32_t) data[0] | ((uint32_t) data[1] << 8) | ((uint32_t) data[2] << 16) |
+         ((uint32_t) data[3] << 24);
+}
+
+bool Satellite1::read_doa_state(DoAState &state) {
+  uint8_t payload[12] = {0};
+  if (!this->transfer(DC_RESOURCE::DOA, DC_DOA_CMD::READ_STATE, payload, sizeof(payload))) {
+    return false;
+  }
+
+  state.sample_delay = (int16_t) read_u16_le(&payload[0]);
+  state.confidence = payload[2];
+  state.flags = payload[3];
+  state.energy = read_u32_le(&payload[4]);
+  state.frame_counter = read_u32_le(&payload[8]);
+  return true;
+}
+
 bool Satellite1::transfer(uint8_t resource_id, uint8_t command, uint8_t *payload, uint8_t payload_len) {
   if (this->spi_flash_direct_access_enabled_) {
     return false;
