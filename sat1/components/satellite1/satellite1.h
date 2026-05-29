@@ -18,6 +18,8 @@ static const uint8_t GPIO_SERVICER_RESID_PORT_IN_A = 211;
 static const uint8_t GPIO_SERVICER_RESID_PORT_IN_B = 212;
 static const uint8_t GPIO_SERVICER_RESID_PORT_OUT_A = 221;
 
+static const uint8_t DOA_SERVICER_RESID = 231;
+
 static const uint8_t DFU_CONTROLLER_SERVICER_RESID = 240;
 
 static const uint8_t MAX_CONNECTION_ATTEMPTS = 3;
@@ -28,7 +30,8 @@ enum dc_resource_enum {
   DFU_CONTROLLER = DFU_CONTROLLER_SERVICER_RESID,
   GPIO_PORT_IN_A = GPIO_SERVICER_RESID_PORT_IN_A,
   GPIO_PORT_IN_B = GPIO_SERVICER_RESID_PORT_IN_B,
-  GPIO_PORT_OUT_A = GPIO_SERVICER_RESID_PORT_OUT_A
+  GPIO_PORT_OUT_A = GPIO_SERVICER_RESID_PORT_OUT_A,
+  DOA = DOA_SERVICER_RESID
 };
 }
 
@@ -52,6 +55,21 @@ enum dc_dfu_cmd_id {
   GET_VERSION = (88 | CONTROL_CMD_READ_BIT),
 };
 }
+
+namespace DC_DOA_CMD {
+enum dc_doa_cmd_id {
+  READ_STATE = (0 | CONTROL_CMD_READ_BIT),
+};
+}
+
+struct DoAState {
+  // Positive values mean XMOS mic1 best matches a later sample than mic0.
+  int16_t sample_delay;
+  uint8_t confidence;
+  uint8_t flags;
+  uint32_t energy;
+  uint32_t frame_counter;
+};
 
 enum Satellite1State : uint8_t {
   SAT_DETACHED_STATE,
@@ -125,6 +143,7 @@ class Satellite1 : public Component,
    *                       issues or ignored commands.
    */
   bool request_status_register_update();
+  bool read_doa_state(DoAState &state);
 
   /**
    * @brief Retrieves the cached value of a specific status register.
