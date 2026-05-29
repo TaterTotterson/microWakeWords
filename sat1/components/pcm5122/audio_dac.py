@@ -47,12 +47,18 @@ def _validate_pin_mode(value):
     return value
 
 
+def _set_pin_number(value):
+    if CONF_NUMBER not in value:
+        value[CONF_NUMBER] = 1100 + value[CONF_PIN]
+    return value
+
+
 PIN_SCHEMA = cv.All(
     {
         cv.GenerateID(): cv.declare_id(PCMGPIOPin),
         cv.Required(CONF_PCM5122): cv.use_id(PCM5122),
         cv.Required(CONF_PIN): cv.int_range(min=3, max=6),
-        cv.Optional(CONF_NUMBER, default=-1): cv.int_,
+        cv.Optional(CONF_NUMBER): cv.int_,
         cv.Optional(CONF_MODE, default=CONF_OUTPUT): cv.All(
             {
                 cv.Optional(CONF_INPUT, default=False): cv.boolean,
@@ -61,7 +67,8 @@ PIN_SCHEMA = cv.All(
             _validate_pin_mode,
         ),
         cv.Optional(CONF_INVERTED, default=False): cv.boolean,
-    }
+    },
+    _set_pin_number,
 )
 
 

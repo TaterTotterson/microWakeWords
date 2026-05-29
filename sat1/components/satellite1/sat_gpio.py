@@ -32,11 +32,24 @@ XMOS_PORT = {
 "OUTPUT_A" : XMOSPort.OUTPUT_A      
 }
 
+XMOS_PORT_NUMBER_BASE = {
+    XMOSPort.INPUT_A: 1000,
+    XMOSPort.INPUT_B: 1010,
+    XMOSPort.OUTPUT_A: 1020,
+}
+
+
 def _validate_pin_mode(value):
     if not (value[CONF_INPUT] or value[CONF_OUTPUT]):
         raise cv.Invalid("Mode must be either input or output")
     if value[CONF_INPUT] and value[CONF_OUTPUT]:
         raise cv.Invalid("Mode must be either input or output")
+    return value
+
+
+def _set_pin_number(value):
+    if CONF_NUMBER not in value:
+        value[CONF_NUMBER] = XMOS_PORT_NUMBER_BASE[value[CONF_PORT]] + value[CONF_PIN]
     return value
 
 
@@ -46,7 +59,7 @@ PIN_SCHEMA = cv.All(
         cv.Required(sat.CONF_SATELLITE1): cv.use_id(sat.Satellite1),
         cv.Required(CONF_PORT): cv.enum(XMOS_PORT),
         cv.Required(CONF_PIN): cv.int_range(min=0, max=7),
-        cv.Optional(CONF_NUMBER, default=-1): cv.int_,
+        cv.Optional(CONF_NUMBER): cv.int_,
         cv.Optional(CONF_MODE, default=CONF_OUTPUT): cv.All(
             {
                 cv.Optional(CONF_INPUT, default=False): cv.boolean,
@@ -55,7 +68,8 @@ PIN_SCHEMA = cv.All(
             _validate_pin_mode,
         ),
         cv.Optional(CONF_INVERTED, default=False): cv.boolean,
-    }
+    },
+    _set_pin_number,
 )
 
 
