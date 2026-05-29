@@ -49,11 +49,18 @@ def _validate_pin_mode(value):
 
 def _set_pin_number(value):
     if CONF_NUMBER not in value:
-        value[CONF_NUMBER] = 1100 + value[CONF_PIN]
+        try:
+            pin = int(value[CONF_PIN])
+        except (KeyError, TypeError, ValueError):
+            pin = None
+        if pin is not None:
+            value = value.copy()
+            value[CONF_NUMBER] = 1100 + pin
     return value
 
 
 PIN_SCHEMA = cv.All(
+    _set_pin_number,
     {
         cv.GenerateID(): cv.declare_id(PCMGPIOPin),
         cv.Required(CONF_PCM5122): cv.use_id(PCM5122),
@@ -68,7 +75,6 @@ PIN_SCHEMA = cv.All(
         ),
         cv.Optional(CONF_INVERTED, default=False): cv.boolean,
     },
-    _set_pin_number,
 )
 
 
