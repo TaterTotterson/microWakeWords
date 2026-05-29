@@ -5,6 +5,7 @@ from esphome import pins
 from esphome.const import (
     CONF_ID,
     CONF_MODE,
+    CONF_NUMBER,
     CONF_PIN,
     CONF_PORT,
     CONF_OUTPUT,
@@ -45,6 +46,7 @@ PIN_SCHEMA = cv.All(
         cv.Required(sat.CONF_SATELLITE1): cv.use_id(sat.Satellite1),
         cv.Required(CONF_PORT): cv.enum(XMOS_PORT),
         cv.Required(CONF_PIN): cv.int_range(min=0, max=7),
+        cv.Optional(CONF_NUMBER, default=-1): cv.int_,
         cv.Optional(CONF_MODE, default=CONF_OUTPUT): cv.All(
             {
                 cv.Optional(CONF_INPUT, default=False): cv.boolean,
