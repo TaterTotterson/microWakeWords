@@ -5,7 +5,6 @@ from esphome import pins
 from esphome.const import (
     CONF_ID,
     CONF_MODE,
-    CONF_NUMBER,
     CONF_PIN,
     CONF_PORT,
     CONF_OUTPUT,
@@ -32,13 +31,6 @@ XMOS_PORT = {
 "OUTPUT_A" : XMOSPort.OUTPUT_A      
 }
 
-XMOS_PORT_NUMBER_BASE = {
-    "INPUT_A": 1000,
-    "INPUT_B": 1010,
-    "OUTPUT_A": 1020,
-}
-
-
 def _validate_pin_mode(value):
     if not (value[CONF_INPUT] or value[CONF_OUTPUT]):
         raise cv.Invalid("Mode must be either input or output")
@@ -47,27 +39,12 @@ def _validate_pin_mode(value):
     return value
 
 
-def _set_pin_number(value):
-    if CONF_NUMBER not in value:
-        base = XMOS_PORT_NUMBER_BASE.get(value.get(CONF_PORT))
-        try:
-            pin = int(value[CONF_PIN])
-        except (KeyError, TypeError, ValueError):
-            pin = None
-        if base is not None and pin is not None:
-            value = value.copy()
-            value[CONF_NUMBER] = base + pin
-    return value
-
-
 PIN_SCHEMA = cv.All(
-    _set_pin_number,
     {
         cv.GenerateID(): cv.declare_id(Satellite1GPIOPin),
         cv.Required(sat.CONF_SATELLITE1): cv.use_id(sat.Satellite1),
         cv.Required(CONF_PORT): cv.enum(XMOS_PORT),
         cv.Required(CONF_PIN): cv.int_range(min=0, max=7),
-        cv.Optional(CONF_NUMBER): cv.int_,
         cv.Optional(CONF_MODE, default=CONF_OUTPUT): cv.All(
             {
                 cv.Optional(CONF_INPUT, default=False): cv.boolean,
@@ -76,7 +53,7 @@ PIN_SCHEMA = cv.All(
             _validate_pin_mode,
         ),
         cv.Optional(CONF_INVERTED, default=False): cv.boolean,
-    },
+    }
 )
 
 
