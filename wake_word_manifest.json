@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 128
+      "count": 129
     }
   ],
-  "count": 530,
+  "count": 531,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -8869,6 +8869,24 @@
       "model_path": "microWakeWordsV3/lorelai.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/lorelai.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/lorelai.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:lulu_oi",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "lulu_oi",
+      "name": "lulu_oi",
+      "label": "Lulu Oi",
+      "path": "microWakeWordsV3/lulu_oi.json",
+      "model_path": "microWakeWordsV3/lulu_oi.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/lulu_oi.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/lulu_oi.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
