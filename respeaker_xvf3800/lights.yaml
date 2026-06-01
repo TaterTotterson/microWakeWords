@@ -93,6 +93,10 @@ interval:
             id(update_comet_ccw_effect).execute();
           } else if (effect == "twinkle") {
             id(update_twinkle_effect).execute();
+          } else if (effect == "thinking") {
+            id(update_thinking_effect).execute();
+          } else if (effect == "replying") {
+            id(update_replying_effect).execute();
           } else if (effect == "timer_tick") {
             id(update_timer_tick_effect).execute();
           } else if (effect == "led_beam") {

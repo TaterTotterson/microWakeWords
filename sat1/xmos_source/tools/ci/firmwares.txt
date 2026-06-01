@@ -1,0 +1,2 @@
+satellite1_fixed  satellite1_firmware_fixed_delay No  SATELLITE1   xmos_cmake_toolchain/xs3a.cmake
+usb_ns_only satellite1_usb_firmware_ns  No  SATELLITE1   xmos_cmake_toolchain/xs3a.cmake

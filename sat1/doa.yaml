@@ -1,0 +1,4 @@
+satellite1_doa:
+  id: xmos_doa
+  satellite1: satellite1_id
+  update_interval: 100ms

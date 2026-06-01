@@ -1,0 +1,41 @@
+diff --git a/etc/vanilla/mic_array_vanilla.cpp b/etc/vanilla/mic_array_vanilla.cpp
+index 4f13955..700e0de 100644
+--- a/etc/vanilla/mic_array_vanilla.cpp
++++ b/etc/vanilla/mic_array_vanilla.cpp
+@@ -9,6 +9,7 @@
+ #include "mic_array/cpp/Prefab.hpp"
+ #include "mic_array.h"
+ #include "mic_array/etc/filters_default.h"
++#include "platform/driver_instances.h"
+ 
+ 
+ ////// Check that all the required config macros have been defined. 
+@@ -74,6 +75,19 @@
+ ////// Any Additional correctness checks
+ 
+ 
++#if defined(THIS_XCORE_TILE) && defined(MICARRAY_TILE_NO) && (THIS_XCORE_TILE != MICARRAY_TILE_NO)
++
++void ma_vanilla_init()
++{
++}
++
++void ma_vanilla_task(
++    chanend_t c_frames_out)
++{
++  (void) c_frames_out;
++}
++
++#else
+ 
+ ////// Allocate needed objects
+ 
+@@ -120,4 +134,6 @@ void ma_vanilla_task(
+   mics.UnmaskPdmRxISR();
+ 
+   mics.ThreadEntry();
+-}
+\ No newline at end of file
++}
++
++#endif

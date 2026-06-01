@@ -1,0 +1,8 @@
+ffva_ua_adec_altarch    example_ffva_ua_adec_altarch    Yes  XK_VOICE_L71        xmos_cmake_toolchain/xs3a.cmake
+ffva_int_fixed_delay    example_ffva_int_fixed_delay    Yes  XK_VOICE_L71        xmos_cmake_toolchain/xs3a.cmake
+low_lower_ffd_sensory   example_low_power_ffd_sensory   Yes  XK_VOICE_L71        xmos_cmake_toolchain/xs3a.cmake
+ffd_sensory             example_ffd_sensory             Yes  XK_VOICE_L71        xmos_cmake_toolchain/xs3a.cmake
+ffd_cyberon             example_ffd_cyberon             Yes  XK_VOICE_L71        xmos_cmake_toolchain/xs3a.cmake
+mic_aggregator_TDM      example_mic_aggregator_tdm      No   XCORE-AI-EXPLORER   xmos_cmake_toolchain/xs3a.cmake
+mic_aggregator_USB      example_mic_aggregator_usb      No   XCORE-AI-EXPLORER   xmos_cmake_toolchain/xs3a.cmake
+asrc                    example_asrc_demo               No   XK_VOICE_L71        xmos_cmake_toolchain/xs3a.cmake

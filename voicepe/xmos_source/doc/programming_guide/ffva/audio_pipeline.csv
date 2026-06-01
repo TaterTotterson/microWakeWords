@@ -1,0 +1,5 @@
+Stage , Description                                            , Input Channel Count, Output Channel Count
+1     , Acoustic Echo Cancellation                             , 2                  , 2
+2     , Interference Canceller and Voice Noise Ratio           , 2                  , 1   
+3     , Noise Suppression                                      , 1                  , 1   
+4     , Automatic Gain Control                                 , 1                  , 1   

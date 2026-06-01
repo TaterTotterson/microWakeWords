@@ -1,0 +1,4 @@
+add_subdirectory(i2s_sync)
+add_subdirectory(rtos_mic_array)
+add_subdirectory(rtos_ws2812)
+add_subdirectory(rtos_device_control)

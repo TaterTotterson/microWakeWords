@@ -1,0 +1,26 @@
+diff --git a/modules/rtos_support/src/rtos_interrupt_impl.h b/modules/rtos_support/src/rtos_interrupt_impl.h
+index 37e25014..3bb21cef 100644
+--- a/modules/rtos_support/src/rtos_interrupt_impl.h
++++ b/modules/rtos_support/src/rtos_interrupt_impl.h
+@@ -13,6 +13,12 @@
+ #include "rtos_support_rtos_config.h"
+ #include <xcore/interrupt_wrappers.h>
+ 
++#ifdef _XCORE_HAS_DUAL_ISSUE
++#define RTOS_ENTSP(__n) ENTSP_lu6 __n
++#else
++#define RTOS_ENTSP(__n) entsp __n
++#endif
++
+ #define _DEFINE_RTOS_KERNEL_ENTRY_DEF(root_function) \
+     .weak  _fptrgroup.rtos_isr.nstackwords.group; \
+     .max_reduce _fptrgroup.rtos_isr.nstackwords, _fptrgroup.rtos_isr.nstackwords.group, 0; \
+@@ -24,7 +30,7 @@
+     .issue_mode single; \
+     .cc_top _XCORE_INTERRUPT_PERMITTED(root_function).function,_XCORE_INTERRUPT_PERMITTED(root_function); \
+     _XCORE_INTERRUPT_PERMITTED(root_function):; \
+-      _XCORE_ENTSP(_XCORE_STACK_ALIGN(5)); \
++      RTOS_ENTSP(_XCORE_STACK_ALIGN(5)); \
+       /* Save CP into SP[4] */ \
+       ldaw r11, cp[0]; \
+       stw r11, sp[4];  \

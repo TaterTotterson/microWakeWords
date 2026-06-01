@@ -1,0 +1,4 @@
+voicepe_doa:
+  id: xmos_doa
+  i2c_id: internal_i2c
+  update_interval: 100ms

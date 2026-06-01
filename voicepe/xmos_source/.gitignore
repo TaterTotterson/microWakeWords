@@ -1,0 +1,74 @@
+# Editor cruft
+**/.vscode/
+
+# Python cruft
+**/*.pyc
+**/__pycache__/*
+**/*.egg-info/*
+**/*.eggs/*
+**/.ipynb_checkpoints/*
+
+# Build & debug cruft
+**/.build*/*
+**/bin/*
+*.o
+*.so*
+*.dylib
+*.xe
+*.vcd
+*.s
+*.xi
+*.i
+*.xmt
+**/_build/
+**/build_*/
+**/dist*/
+**/dist_host*/
+!doc/tutorials/build_system/
+**/run_*.log
+**/_doxygen/*
+**/_templates/*
+**/pdf/*
+**/html/*
+**/.settings/*
+.metadata
+**/test_results.csv
+**/test_results.xml
+**/.venv/**
+.metadata
+*.gtkw
+*.swmem
+*.bin
+*.fs
+*.swp
+
+# Test cruft
+**/.pytest_cache/*
+**/*_junit.xml
+**/testing/*
+
+# waf build cruft
+.lock-waf_*
+.waf-*/
+build/
+
+# filesystem cruft
+**/fat.fs
+**/flash_bin_node0
+**/fw-*
+**/spanning-xn-*
+**/target-xn-*
+
+# wifi cruft
+**/networks.dat
+
+# systemview debug cruft
+*.SVDAT
+
+# macOS cruft
+.DS_Store
+
+# ai_tools
+tools/ai/ai_tools
+*xcore_sdk_venv/*
+examples/mic_aggregator/src/par_decimator

@@ -4,7 +4,13 @@ script:
     then:
       - if:
           condition:
-            lambda: return !id(init_in_progress) && !id(push_to_intercom_active);
+            and:
+              - lambda: return !id(init_in_progress) && !id(push_to_intercom_active);
+              - not:
+                  voice_assistant.is_running:
+              - not:
+                  media_player.is_announcing:
+                    id: external_media_player
           then:
             - if:
                 condition:
@@ -67,6 +73,14 @@ script:
   - id: recover_openwakeword_after_fallback
     mode: restart
     then:
+      - wait_until:
+          condition:
+            and:
+              - not:
+                  voice_assistant.is_running:
+              - not:
+                  media_player.is_announcing:
+                    id: external_media_player
       - lambda: |-
           id(openwakeword_wake_detected) = false;
           id(voice_assistant_phase) = 1;
@@ -90,7 +104,13 @@ script:
             - delay: 60s
             - if:
                 condition:
-                  lambda: return id(wake_engine_select).state != "microwakeword" && !id(push_to_intercom_active);
+                  and:
+                    - lambda: return id(wake_engine_select).state != "microwakeword" && !id(push_to_intercom_active);
+                    - not:
+                        voice_assistant.is_running:
+                    - not:
+                        media_player.is_announcing:
+                          id: external_media_player
                 then:
                   - logger.log:
                       level: INFO
@@ -113,7 +133,9 @@ script:
           if (id(is_timer_active)){
             id(fetch_first_active_timer).execute();
           }
-          if (id(improv_ble_in_progress)) {
+          if (id(xmos_flashing_state) > 0) {
+            id(control_leds_xmos_flasher_state_update).execute();
+          } else if (id(improv_ble_in_progress)) {
             id(control_leds_improv_ble_state).execute();
           } else if (id(init_in_progress)) {
             id(control_leds_init_state).execute();
@@ -235,7 +257,7 @@ script:
       - light.turn_on:
           brightness: !lambda return max( id(led_ring).current_values.get_brightness() , 0.2f );
           id: voice_assistant_leds
-          effect: "Waiting for Command"
+          effect: "VoD Listening"
 
   # Script executed when the voice assistant is listening to a command
   # Fast clockwise spin of the LED ring.
@@ -244,7 +266,7 @@ script:
       - light.turn_on:
           brightness: !lambda return max( id(led_ring).current_values.get_brightness() , 0.2f );
           id: voice_assistant_leds
-          effect: "Listening For Command"
+          effect: "VoD Listening"
 
   # Script executed while the center button is held for push-to-intercom.
   # Tater orange listening animation so it reads differently from a normal touch.
@@ -378,6 +400,27 @@ script:
       - light.turn_on:
           id: voice_assistant_leds
           effect: "Remote Timer tick"
+
+  # Script executed when the VoicePE XMOS firmware is being flashed.
+  - id: control_leds_xmos_flasher_state_update
+    then:
+      - if:
+          condition:
+            lambda: 'return id(xmos_flashing_state) == 1;'
+          then:
+            - light.turn_on:
+                brightness: !lambda return .6f ;
+                id: voice_assistant_leds
+                effect: "Flashing XMOS"
+          else:
+            - light.turn_on:
+                brightness: !lambda return .6f ;
+                id: voice_assistant_leds
+                effect: !lambda 'return id(xmos_flashing_state) == 3 ? "Error" : "Success" ;'
+            - delay: 1s
+            - light.turn_off:
+                id: voice_assistant_leds
+
   - id: control_volume
     mode: restart
     parameters:

@@ -1,0 +1,27 @@
+FROM ghcr.io/xmos/xcore_builder:v3.0.0
+
+# This Dockerfile is for use by the XMOS XCORE-VOICE CI system
+# It provides a minimal environment needed to build applications and run tests
+
+RUN apt install -y git pkg-config python3.9 python3-pip libusb-1.0-0-dev -o APT::Immediate-Configure=0 --no-install-recommends
+
+# install dependencies
+RUN apt-get update && apt-get install -y \
+    dfu-util \
+    usbutils \
+    procps \
+    && apt-get clean autoclean
+
+WORKDIR /test
+ADD test/requirements.txt /test
+RUN pip install -r requirements.txt
+
+#WORKDIR /tools/install
+#ADD tools/install/contribute.txt /tools/install
+#RUN pip3 install -r contribute.txt
+
+# set some git config
+#RUN git config --global --add url.https://github.com/.insteadOf git@github.com:
+
+# set login shell
+SHELL ["/bin/bash", "-l", "-c"]

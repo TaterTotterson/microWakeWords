@@ -1,0 +1,12 @@
+# Path URL Commit
+# xmos_cmake_toolchain is vendored in this source folder because it is small.
+modules/core https://github.com/xmos/fwk_core.git c4582cb3ce4da34c8757a6f8f7df8935496038eb
+modules/io https://github.com/esphome/xmos_fwk_io.git 0fc6f7c9c7608f3ffaa05238df04cc5ba50718fc
+modules/rtos https://github.com/esphome/xmos_fwk_rtos.git 656e31cc784254d7f404f915a1663438ac46356c
+modules/sample_rate_conversion/lib_src https://github.com/xmos/lib_src.git e3bb065134b52d0b16bb123a3d40c0761d30f2a5
+modules/voice https://github.com/xmos/fwk_voice.git 8b80d3cf684934f038b6ae3167a70cacfb6dd2c1
+modules/xscope_fileio/xscope_fileio https://github.com/xmos/xscope_fileio.git 52cff0826b2773beec49044a0729bb000c011379
+modules/inferencing/lib_nn https://github.com/xmos/lib_nn.git f85b4804ea5f52f5fa4ca4b709a787ac62a8c526
+modules/lib_qspi_fast_read https://github.com/xmos/lib_qspi_fast_read.git a297eef9de55712bd76994fdb7fb438ab2f1ef78
+modules/inferencing/lib_tflite_micro https://github.com/xmos/lib_tflite_micro.git c59ee18f013f159abaa10ef0faf70b18f80f0315
+modules/xua https://github.com/xmos/lib_xua.git a485ffe41abcaf0f02ed289a9c759751dd75b29a

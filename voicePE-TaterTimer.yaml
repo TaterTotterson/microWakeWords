@@ -1,6 +1,6 @@
 substitutions:
   # DEVICE IDENTITY
-  firmware_version: "3.0.3"
+  firmware_version: "3.0.4"
   device_name: tatervpe
   friendly_name: TaterVPE
 
@@ -55,6 +55,7 @@ packages:
       - voicepe/scripts.yaml
       - voicepe/audio.yaml
       - voicepe/voice.yaml
+      - voicepe/doa.yaml
       - voicepe/buttons.yaml
 
 globals:
