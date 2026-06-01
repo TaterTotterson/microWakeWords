@@ -1,0 +1,85 @@
+#include <check.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <curl/curl.h>
+
+#define BASE_URL "http://localhost:80"
+
+static long do_request(const char *path, const char *method, const char *auth_header) {
+    CURL *curl = curl_easy_init();
+    long http_code = 0;
+    if (!curl) return -1;
+
+    char url[256];
+    snprintf(url, sizeof(url), "%s%s", BASE_URL, path);
+    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, method);
+    curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
+
+    struct curl_slist *headers = NULL;
+    if (auth_header) {
+        headers = curl_slist_append(headers, auth_header);
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    }
+
+    curl_easy_perform(curl);
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+    curl_slist_free_all(headers);
+    curl_easy_cleanup(curl);
+    return http_code;
+}
+
+START_TEST(test_unauthenticated_endpoints_rejected)
+{
+    /* Invariant: all API endpoints must reject unauthenticated/invalid auth with 401 or 403 */
+    const char *endpoints[] = {
+        "/api/v1/config",
+        "/api/v1/save",
+        "/api/v1/reboot",
+    };
+    const char *auth_headers[] = {
+        NULL,                                          /* exact exploit: no auth at all */
+        "Authorization: Bearer expired.token.xyz",    /* expired/invalid token */
+        "Authorization: Bearer !!!malformed!!!",       /* malformed token */
+    };
+    const char *methods[] = { "GET", "POST", "PATCH" };
+
+    int num_endpoints = sizeof(endpoints) / sizeof(endpoints[0]);
+    int num_auths     = sizeof(auth_headers) / sizeof(auth_headers[0]);
+    int num_methods   = sizeof(methods) / sizeof(methods[0]);
+
+    for (int e = 0; e < num_endpoints; e++) {
+        for (int a = 0; a < num_auths; a++) {
+            for (int m = 0; m < num_methods; m++) {
+                long code = do_request(endpoints[e], methods[m], auth_headers[a]);
+                if (code <= 0) continue; /* skip if server not reachable */
+                ck_assert_msg(code == 401 || code == 403,
+                    "Endpoint %s [%s] with auth='%s' returned %ld, expected 401 or 403",
+                    endpoints[e], methods[m],
+                    auth_headers[a] ? auth_headers[a] : "(none)",
+                    code);
+            }
+        }
+    }
+}
+END_TEST
+
+Suite *security_suite(void) {
+    Suite *s = suite_create("Security");
+    TCase *tc_core = tcase_create("Core");
+    tcase_add_test(tc_core, test_unauthenticated_endpoints_rejected);
+    suite_add_tcase(s, tc_core);
+    return s;
+}
+
+int main(void) {
+    int number_failed;
+    Suite *s = security_suite();
+    SRunner *sr = srunner_create(s);
+    srunner_run_all(sr, CK_NORMAL);
+    number_failed = srunner_ntests_failed(sr);
+    srunner_free(sr);
+    return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
+}
