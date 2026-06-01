@@ -1,0 +1,122 @@
+# This workflow uses other callable workflows containing actions that are not
+# certified by GitHub. They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support documentation.
+#
+# This workflow triggers on multiple event sources and is intended as the
+# top-level CI for building artifacts during PRs and creation of release tags
+# (note the tags format specified below).
+
+name: Build and Upload Artifacts
+
+on:
+  push:
+    branches:
+      - "develop"
+      - "main"
+
+    # NOTE:
+    # "on tags" is used to trigger the release process instead of
+    # "on release" due to current release process requirements.
+    tags:
+      - v[0-9]+.[0-9]+.[0-9]+
+      - v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+
+
+  pull_request:
+    branches:
+      - "develop"
+      - "main"
+
+  # Allow manually triggering of the workflow.
+  workflow_dispatch:
+    inputs:
+      is_release:
+        description: "Run as release (for testing purposes)?"
+        type: boolean
+        required: true
+        default: false
+
+env:
+  TMP_SOURCES_DIR: ${{ github.workspace }}/tmp/src
+  RELEASE_SOURCES_DIR: ${{ github.workspace }}/release/src
+
+jobs:
+  event_configuration:
+    name: Determine event configuration
+    runs-on: ubuntu-latest
+    outputs:
+      is_release: ${{ steps.run_type.outputs.IS_RELEASE }}
+      examples_artifact_name: ${{ steps.artifact_names.outputs.EXAMPLES_ARTIFACT_NAME }}
+      src_artifact_name: ${{ steps.artifact_names.outputs.SOURCES_ARTIFACT_NAME }}
+    steps:
+      - name: Determine workflow run type
+        id: run_type
+        run: |
+          IS_RELEASE=false
+          IS_TAGGED=false
+          if [ "${{ startsWith(github.ref, 'refs/tags/v') }}" = "true" ]; then
+            IS_RELEASE=true
+            IS_TAGGED=true
+          fi
+          if [ "${{ inputs.is_release }}" = "true" ]; then
+            IS_RELEASE=true
+          fi
+          echo "IS_RELEASE=$IS_RELEASE" >> $GITHUB_OUTPUT
+          echo "IS_RELEASE=$IS_RELEASE" >> $GITHUB_ENV
+          echo "IS_TAGGED=$IS_TAGGED" >> $GITHUB_ENV
+
+      - name: Determine artifact names
+        id: artifact_names
+        run: |
+          if [ "$IS_RELEASE" = "true" ]; then
+            if [ "$IS_TAGGED" = "true" ]; then
+              version=$(echo "${{ github.ref_name }}" | sed "s/\./_/g")
+            else
+              version="test"
+            fi
+            echo "EXAMPLES_ARTIFACT_NAME=XM-014871-SM_xcore_voice_example_apps_$version" >> $GITHUB_OUTPUT
+            echo "SOURCES_ARTIFACT_NAME=XM-014872-SM_xcore_voice_sources_$version" >> $GITHUB_OUTPUT
+          else
+            echo "EXAMPLES_ARTIFACT_NAME=xcore_voice_example_apps" >> $GITHUB_OUTPUT
+            echo "SOURCES_ARTIFACT_NAME=xcore_voice_sources" >> $GITHUB_OUTPUT
+          fi
+
+  build_apps:
+    name: Build example applications
+    needs: event_configuration
+    uses: ./.github/workflows/apps.yml
+    with:
+      is_release: ${{ needs.event_configuration.outputs.is_release }}
+      examples_artifact_name: ${{ needs.event_configuration.outputs.examples_artifact_name }}
+
+  release_sources:
+    name: Release sources
+    needs: event_configuration
+    runs-on: ubuntu-latest
+    if: needs.event_configuration.outputs.is_release == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744  # v3.6.0
+        with:
+          fetch-depth: 1
+          submodules: recursive
+          path: ${{ env.TMP_SOURCES_DIR }}
+
+      # NOTE:
+      # Sources must be pre-zipped or added to an archive such as a tarball to
+      # prevent loss of file permissions such as the executable bash scripts.
+      # The side-effect of this is that the uploaded artifact will be
+      # double-zipped. This is a reported limitation (as of 2023-02) in:
+      # https://github.com/actions/upload-artifact
+      # Also some 3rd party sources contain symlinks thus the --symlinks option
+      # specified below.
+      - name: Prepare artifact
+        run: |
+          cd $TMP_SOURCES_DIR
+          mkdir -p $RELEASE_SOURCES_DIR
+          zip -r --symlinks $RELEASE_SOURCES_DIR/${{ needs.event_configuration.outputs.src_artifact_name }}.zip .
+
+      - name: Upload sources
+        uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5  # v3.2.1
+        with:
+          name: ${{ needs.event_configuration.outputs.src_artifact_name }}
+          path: ${{ env.RELEASE_SOURCES_DIR }}

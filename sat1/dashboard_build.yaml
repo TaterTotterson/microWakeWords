@@ -5,6 +5,7 @@ button:
   - platform: template
     id: flash_embedded
     name: "XMOS Flash Embedded FW"
+    internal: true
     entity_category: diagnostic
     on_press:
       then:

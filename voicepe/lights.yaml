@@ -76,36 +76,206 @@ light:
             }
             id(global_led_animation_index) = (id(global_led_animation_index) + 1) % 12;
       - addressable_lambda:
-          name: "Thinking"
-          update_interval: 10ms
+          name: "VoD Listening"
+          update_interval: 50ms
           lambda: |-
-            static uint8_t brightness_step = 0;
-            static bool brightness_decreasing = true;
-            static uint8_t brightness_step_number = 10;
-            if (initial_run) {
-              brightness_step = 0;
-              brightness_decreasing = true;
-            }
-            auto light_color = id(led_ring).current_values;
-            Color color(light_color.get_red() * 255, light_color.get_green() * 255,
-                  light_color.get_blue() * 255);
-            for (uint8_t i = 0; i < 12; i++) {
-              if (i == id(global_led_animation_index) % 12) {
-                it[i] = color * uint8_t(255/brightness_step_number*(brightness_step_number-brightness_step));
-              } else if (i == (id(global_led_animation_index) + 6) % 12) {
-                it[i] = color * uint8_t(255/brightness_step_number*(brightness_step_number-brightness_step));
+            static float animated_position = 6.0f;
+            static float filtered_delay = 0.0f;
+            static uint32_t last_update_ms = 0;
+            static uint32_t last_valid_ms = 0;
+            constexpr int num_leds = 12;
+            constexpr int fade_leds = 3;
+            constexpr float center_led = 6.0f;
+            constexpr float side_led_span = 3.5f;
+            constexpr float max_abs_delay = 1.2f;
+            constexpr float delay_deadband = 0.08f;
+            constexpr uint8_t min_confidence = 1;
+            constexpr float delay_filter_alpha = 0.22f;
+            constexpr float transition_duration = 0.25f;
+            auto clamp_u8 = [](float value) -> uint8_t {
+              if (value <= 0.0f) {
+                return 0;
+              }
+              if (value >= 255.0f) {
+                return 255;
+              }
+              return (uint8_t) value;
+            };
+            auto wrap_position = [](float position) -> float {
+              while (position >= 12.0f) {
+                position -= 12.0f;
+              }
+              while (position < 0.0f) {
+                position += 12.0f;
+              }
+              return position;
+            };
+            auto delay_to_position = [&](float delay) -> float {
+              if (delay > max_abs_delay) {
+                delay = max_abs_delay;
+              } else if (delay < -max_abs_delay) {
+                delay = -max_abs_delay;
+              }
+
+              float normalized = delay / max_abs_delay;
+              float magnitude = normalized < 0.0f ? -normalized : normalized;
+              if (magnitude < delay_deadband) {
+                normalized = 0.0f;
               } else {
-                it[i] = Color::BLACK;
+                magnitude = (magnitude - delay_deadband) / (1.0f - delay_deadband);
+                magnitude = 1.0f - ((1.0f - magnitude) * (1.0f - magnitude));
+                normalized = normalized < 0.0f ? -magnitude : magnitude;
+              }
+
+              float target = center_led - (normalized * side_led_span);
+              return wrap_position(target);
+            };
+
+            const uint32_t now = millis();
+            float dt = 0.05f;
+            if (last_update_ms != 0 && now >= last_update_ms) {
+              dt = (now - last_update_ms) / 1000.0f;
+            }
+            last_update_ms = now;
+            const bool has_valid_doa = id(xmos_doa).valid() &&
+                                       id(xmos_doa).confidence() >= min_confidence;
+
+            if (initial_run) {
+              filtered_delay = id(xmos_doa).sample_delay();
+              animated_position = has_valid_doa ? delay_to_position(filtered_delay) : center_led;
+              last_valid_ms = has_valid_doa ? now : 0;
+              dt = 0.0f;
+            }
+
+            if (has_valid_doa) {
+              filtered_delay += (id(xmos_doa).sample_delay() - filtered_delay) * delay_filter_alpha;
+              float target_position = delay_to_position(filtered_delay);
+              last_valid_ms = now;
+
+              float diff = target_position - animated_position;
+              if (diff > num_leds / 2.0f) {
+                diff -= num_leds;
+              } else if (diff < -num_leds / 2.0f) {
+                diff += num_leds;
+              }
+              if (diff > 0.01f || diff < -0.01f) {
+                animated_position += (diff / transition_duration) * dt;
+              } else {
+                animated_position = target_position;
+              }
+            } else if (last_valid_ms == 0 || now - last_valid_ms > 1000) {
+              float diff = center_led - animated_position;
+              if (diff > num_leds / 2.0f) {
+                diff -= num_leds;
+              } else if (diff < -num_leds / 2.0f) {
+                diff += num_leds;
+              }
+              animated_position += diff * 0.08f;
+            }
+
+            animated_position = wrap_position(animated_position);
+
+            auto light_color = id(led_ring).current_values;
+            float selected_r = light_color.get_red() * 255.0f;
+            float selected_g = light_color.get_green() * 255.0f;
+            float selected_b = light_color.get_blue() * 255.0f;
+
+            for (int i = 0; i < num_leds; i++) {
+              float dist = i - animated_position;
+              if (dist < 0.0f) {
+                dist = -dist;
+              }
+              if (dist > num_leds / 2.0f) {
+                dist = num_leds - dist;
+              }
+
+              float base_level = 0.06f;
+              float beam_level = 1.0f - (dist / (fade_leds + 1.0f));
+              if (beam_level < 0.0f) {
+                beam_level = 0.0f;
+              }
+              beam_level *= 0.65f;
+
+              float center_level = 1.0f - (dist / 1.20f);
+              if (center_level < 0.0f) {
+                center_level = 0.0f;
+              }
+
+              float color_level = base_level + beam_level;
+              float r = selected_r * color_level + 255.0f * center_level;
+              float g = selected_g * color_level + 240.0f * center_level;
+              float b = selected_b * color_level + 170.0f * center_level;
+              it[i] = Color(clamp_u8(r), clamp_u8(g), clamp_u8(b));
+            }
+      - addressable_lambda:
+          name: "Thinking"
+          update_interval: 80ms
+          lambda: |-
+            static uint8_t tick = 0;
+            static float led_levels[12] = {};
+            if (initial_run) {
+              tick = 0;
+              for (int i = 0; i < 12; i++) {
+                led_levels[i] = 0.0f;
               }
             }
-            if (brightness_decreasing) {
-              brightness_step++;
-            } else {
-              brightness_step--;
+
+            auto clamp_u8 = [](float value) -> uint8_t {
+              if (value <= 0.0f) {
+                return 0;
+              }
+              if (value >= 255.0f) {
+                return 255;
+              }
+              return (uint8_t) value;
+            };
+
+            auto light_color = id(led_ring).current_values;
+            const float selected_r = light_color.get_red() * 255.0f;
+            const float selected_g = light_color.get_green() * 255.0f;
+            const float selected_b = light_color.get_blue() * 255.0f;
+
+            const uint8_t breath_step = tick % 18;
+            const uint8_t breath = breath_step <= 9 ? breath_step : 18 - breath_step;
+
+            for (int i = 0; i < 12; i++) {
+              float target_level = 0.025f + ((float) breath * 0.006f);
+
+              const uint8_t bit_phase = (uint8_t) ((i * 7 + tick * 5) % 29);
+              if (bit_phase == 0) {
+                target_level += 0.86f;
+              } else if (bit_phase == 1 || bit_phase == 28) {
+                target_level += 0.46f;
+              }
+
+              const uint8_t calc_phase = (uint8_t) ((i * 5 + tick * 2) % 17);
+              if (calc_phase == 0 || calc_phase == 8) {
+                target_level += 0.50f;
+              } else if (calc_phase == 1 || calc_phase == 9) {
+                target_level += 0.24f;
+              }
+
+              if (target_level > 1.0f) {
+                target_level = 1.0f;
+              }
+
+              const float alpha = target_level > led_levels[i] ? 0.58f : 0.20f;
+              led_levels[i] += (target_level - led_levels[i]) * alpha;
+
+              float color_level = led_levels[i];
+              if (color_level > 1.0f) {
+                color_level = 1.0f;
+              }
+
+              float white_level = color_level > 0.55f ? (color_level - 0.55f) * 0.46f : 0.0f;
+
+              float r = selected_r * color_level + 255.0f * white_level;
+              float g = selected_g * color_level + 240.0f * white_level;
+              float b = selected_b * color_level + 170.0f * white_level;
+              it[i] = Color(clamp_u8(r), clamp_u8(g), clamp_u8(b));
             }
-            if (brightness_step == 0 || brightness_step == brightness_step_number) {
-              brightness_decreasing = !brightness_decreasing;
-            }
+
+            tick++;
       - addressable_lambda:
           name: "Tool Call"
           update_interval: 80ms
@@ -152,28 +322,76 @@ light:
             }
       - addressable_lambda:
           name: "Replying"
-          update_interval: 50ms
+          update_interval: 40ms
           lambda: |-
-            id(global_led_animation_index) = (12 + id(global_led_animation_index) - 1) % 12;
-            auto light_color = id(led_ring).current_values;
-            Color color(light_color.get_red() * 255, light_color.get_green() * 255,
-                  light_color.get_blue() * 255);
-            for (uint8_t i = 0; i < 12; i++) {
-              if (i == (id(global_led_animation_index)) % 12) {
-                it[i] = color;
-              } else if (i == ( id(global_led_animation_index) + 1) % 12) {
-                it[i] = color * 192;
-              } else if (i == ( id(global_led_animation_index) + 2) % 12) {
-                it[i] = color * 128;
-              } else if (i == ( id(global_led_animation_index) + 6) % 12) {
-                it[i] = color;
-              } else if (i == ( id(global_led_animation_index) + 7) % 12) {
-                it[i] = color * 192;
-              } else if (i == ( id(global_led_animation_index) + 8) % 12) {
-                it[i] = color * 128;
-              } else {
-                it[i] = Color::BLACK;
+            static float smoothed_radius = 1.25f;
+            if (initial_run) {
+              smoothed_radius = 1.25f;
+            }
+
+            auto clamp_u8 = [](float value) -> uint8_t {
+              if (value <= 0.0f) {
+                return 0;
               }
+              if (value >= 255.0f) {
+                return 255;
+              }
+              return (uint8_t) value;
+            };
+            auto ring_distance = [](int a, int b) -> int {
+              int dist = a - b;
+              if (dist < 0) {
+                dist = -dist;
+              }
+              return dist > 6 ? 12 - dist : dist;
+            };
+
+            id(global_led_animation_index) = (id(global_led_animation_index) + 1) % 12;
+            constexpr int center = 6;
+            float audio_level = id(i2s_audio_speaker).audio_level() * 5.5f;
+            if (audio_level > 1.0f) {
+              audio_level = 1.0f;
+            }
+            float volume_level = id(external_media_player).volume;
+            if (id(external_media_player).is_muted()) {
+              audio_level = 0.0f;
+              volume_level = 0.0f;
+            }
+            float target_radius = 0.85f + (audio_level * 3.65f) + (volume_level * 0.85f);
+            if (target_radius > 5.5f) {
+              target_radius = 5.5f;
+            }
+            float alpha = target_radius > smoothed_radius ? 0.45f : 0.20f;
+            smoothed_radius += (target_radius - smoothed_radius) * alpha;
+
+            auto light_color = id(led_ring).current_values;
+            const float selected_r = light_color.get_red() * 255.0f;
+            const float selected_g = light_color.get_green() * 255.0f;
+            const float selected_b = light_color.get_blue() * 255.0f;
+
+            for (int i = 0; i < 12; i++) {
+              int dist = ring_distance(i, center);
+              float level = smoothed_radius - (float) dist;
+              if (level <= 0.0f) {
+                it[i] = Color::BLACK;
+                continue;
+              }
+
+              if (level > 1.0f) {
+                level = 1.0f;
+              }
+              float ripple = 0.86f + (0.14f * ((id(global_led_animation_index) + dist * 5) % 4) / 3.0f);
+              float color_level = (0.12f + (level * 0.76f)) * ripple;
+              float center_level = 1.0f - ((float) dist / 1.6f);
+              if (center_level < 0.0f) {
+                center_level = 0.0f;
+              }
+              center_level *= 0.52f;
+
+              float r = selected_r * color_level + 255.0f * center_level;
+              float g = selected_g * color_level + 240.0f * center_level;
+              float b = selected_b * color_level + 170.0f * center_level;
+              it[i] = Color(clamp_u8(r), clamp_u8(g), clamp_u8(b));
             }
       - addressable_lambda:
           name: "Muted or Silent"
@@ -272,6 +490,29 @@ light:
             Color error_color(255, 0, 0);
             for (uint8_t i = 0; i < 12; i++) {
               it[i] = error_color * uint8_t(255/brightness_step_number*(brightness_step_number-brightness_step));
+            }
+            if (brightness_decreasing) {
+              brightness_step++;
+            } else {
+              brightness_step--;
+            }
+            if (brightness_step == 0 || brightness_step == brightness_step_number) {
+              brightness_decreasing = !brightness_decreasing;
+            }
+      - addressable_lambda:
+          name: "Success"
+          update_interval: 10ms
+          lambda: |-
+            static uint8_t brightness_step = 0;
+            static bool brightness_decreasing = true;
+            static uint8_t brightness_step_number = 10;
+            if (initial_run) {
+              brightness_step = 0;
+              brightness_decreasing = true;
+            }
+            Color success_color(0, 255, 0);
+            for (uint8_t i = 0; i < 12; i++) {
+              it[i] = success_color * uint8_t(255/brightness_step_number*(brightness_step_number-brightness_step));
             }
             if (brightness_decreasing) {
               brightness_step++;
@@ -389,6 +630,23 @@ light:
               }
             }
             index = (index + 1) % 12;
+      - addressable_lambda:
+          name: "Flashing XMOS"
+          update_interval: 333ms
+          lambda: |-
+            static uint8_t index = 0;
+            Color color(255, 138, 0);
+            if (initial_run) {
+              index = 0;
+            }
+            for (uint8_t i = 0; i < 12; i++) {
+              if (i <= index ) {
+                it[i] = Color::BLACK;
+              } else {
+                it[i] = color;
+              }
+            }
+            index = id(global_led_animation_index) % 12;
       - addressable_lambda:
           name: "Factory Reset Coming Up"
           update_interval: 1s

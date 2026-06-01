@@ -4,6 +4,11 @@ globals:
     type: int
     restore_value: no
     initial_value: '0'
+  # Global variable tracking if the XMOS firmware is being flashed.
+  - id: xmos_flashing_state
+    type: int
+    restore_value: no
+    initial_value: '0'
   # Global initialization variable. Initialized to true and set to false once everything is connected. Only used to have a smooth "plugging" experience
   - id: init_in_progress
     type: bool

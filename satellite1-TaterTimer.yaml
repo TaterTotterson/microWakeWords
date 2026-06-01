@@ -25,8 +25,8 @@ substitutions:
   # -----------------------------
   # FIRMWARE VERSIONS
   # -----------------------------
-  esp32_fw_version: "3.0.3"
-  xmos_fw_version: "v1.0.3"
+  esp32_fw_version: "3.0.4"
+  xmos_fw_version: "v1.0.4-dev"
 
   # -----------------------------
   # WAKE WORD CONFIG
@@ -235,6 +235,7 @@ external_components:
       - memory_flasher
       - pcm5122
       - satellite1
+      - satellite1_doa
       - satellite1_radar
       - tas2780
     refresh: 0s
@@ -252,6 +253,7 @@ packages:
       - sat1/home_assistant.yaml
       - sat1/media_player.yaml
       - sat1/voice_assistant.yaml
+      - sat1/doa.yaml
       - sat1/timer.yaml
       - sat1/led_ring.yaml
 
@@ -299,10 +301,11 @@ satellite1:
 memory_flasher:
   - platform: satellite1
     id: xflash
+    auto_flash: true
     embed_flash_image:
       image_version: ${xmos_fw_version}
-      image_file: https://raw.githubusercontent.com/FutureProofHomes/Documentation/refs/heads/main/assets/firmware/xmos/${xmos_fw_version}/satellite1_firmware_fixed_delay.factory.bin
-      md5_file: https://raw.githubusercontent.com/FutureProofHomes/Documentation/refs/heads/main/assets/firmware/xmos/${xmos_fw_version}/satellite1_firmware_fixed_delay.factory.md5
+      image_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/sat1/firmware/xmos/satellite1_firmware_fixed_delay-v1.0.4-dev.factory.bin
+      md5: 25babfee1e1eb1252e4855a00a5e2ed9
 
     on_flashing_start:
       then:

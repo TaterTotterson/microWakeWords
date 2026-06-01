@@ -12,9 +12,32 @@ static const size_t FLASH_PAGE_SIZE = 256;
 static const size_t FLASH_SECTOR_SIZE = 4096;
 constexpr size_t FLASH_TOTAL_NUMBER_OF_SECTORS = 8388608 / FLASH_SECTOR_SIZE;
 
+static std::string prerelease_str(uint8_t pre_idx) {
+  switch (pre_idx) {
+    case PRE_RELEASE_ALPHA:
+      return "alpha";
+    case PRE_RELEASE_BETA:
+      return "beta";
+    case PRE_RELEASE_RC:
+      return "rc";
+    case PRE_RELEASE_DEV:
+      return "dev";
+    case PRE_RELEASE_NONE:
+    default:
+      return "";
+  }
+}
+
+static std::string version_string(const uint8_t version[5]) {
+  return ("v" + std::to_string(version[0]) + "." + std::to_string(version[1]) + "." + std::to_string(version[2]) +
+          (version[3] ? "-" + prerelease_str(version[3]) : "") +
+          (version[4] ? "." + std::to_string(version[4]) : ""));
+}
+
 void XMOSFlasher::loop() {
   switch (this->state) {
     case FLASHER_IDLE:
+      this->maybe_auto_flash_();
       break;
 
     case FLASHER_INITIALIZING:
@@ -66,6 +89,28 @@ void XMOSFlasher::loop() {
     default:
       break;
   }
+}
+
+void XMOSFlasher::maybe_auto_flash_() {
+  if (!this->auto_flash_ || this->auto_flash_checked_ || !this->has_image_embedded()) {
+    return;
+  }
+
+  if (this->parent_->state != SAT_XMOS_CONNECTED_STATE) {
+    return;
+  }
+
+  this->auto_flash_checked_ = true;
+  if (this->match_embedded(this->parent_->xmos_fw_version)) {
+    ESP_LOGI(TAG, "XMOS firmware already matches embedded image: %s",
+             version_string(this->parent_->xmos_fw_version).c_str());
+    return;
+  }
+
+  ESP_LOGW(TAG, "Expected XMOS firmware %s; found %s. Updating embedded XMOS firmware...",
+           version_string(this->embedded_image_.version.bytes).c_str(),
+           version_string(this->parent_->xmos_fw_version).c_str());
+  this->flash_embedded_image();
 }
 
 void XMOSFlasher::publish_progress_() {

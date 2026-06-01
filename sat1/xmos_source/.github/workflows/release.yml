@@ -1,0 +1,137 @@
+# This workflow uses other callable workflows containing actions that are not
+# certified by GitHub. They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support documentation.
+#
+# This workflow triggers on multiple event sources and is intended as the
+# top-level CI for building artifacts during PRs and creation of release tags
+# (note the tags format specified below).
+
+name: Build and Release Artifacts
+
+on:
+  push:
+    branches:
+      - "develop"
+      - "staging"
+      - "main"
+    
+  #pull_request:
+  #  branches: [develop]
+  
+  # Allow manually triggering of the workflow.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag for the release.'
+        required: true
+
+env:
+  TMP_SOURCES_DIR: ${{ github.workspace }}/tmp/src
+  RELEASE_SOURCES_DIR: ${{ github.workspace }}/release/src
+  FIRMWARE_ARTIFACT_NAME: "satellite_firmware_apps"
+permissions:
+  contents: write
+
+jobs:
+  create_release_tag:  
+    name: Bump version and create tag
+    runs-on: ubuntu-latest
+    outputs:
+      new_tag: ${{ steps.set_release_tag.outputs.release_tag }} 
+      firmware_artifact_name: ${{ env.FIRMWARE_ARTIFACT_NAME }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set Manual Tag (if provided)
+        id: set_tag
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag != '' }}
+        run: echo "manual_tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+      
+      - name: Get previous tag
+        id: previous_tag
+        run: |
+          echo "previous_tag=$(git describe --abbrev=0 --tags)" >> $GITHUB_OUTPUT
+
+      - name: Bump version and create tag
+        if:  ${{ !steps.set_tag.outputs.manual_tag }}
+        uses: anothrNick/github-tag-action@1.70.0
+        id: bump
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # To create a major bump add #major to commit message
+          DEFAULT_BUMP: 'patch'
+          WITH_V: true
+          PRERELEASE: ${{ github.ref_name != 'main' }}
+          PRERELEASE_SUFFIX: ${{ github.ref_name == 'staging' && 'beta' || 'alpha' }}
+          DRY_RUN: false # Set the tag to the commit.
+          INITIAL_VERSION: 1.0.0 
+      
+      - name: create tag with provided tag name
+        if:  ${{ steps.set_tag.outputs.manual_tag }}
+        id: manual_tagging
+        run: |
+          cd ${{ env.RELEASE_SOURCES_DIR }}
+          git tag ${{ steps.set_tag.outputs.manual_tag }}
+          git push origin ${{ steps.set_tag.outputs.manual_tag }}    
+        
+      
+      - name: Export tag name for release
+        if: ${{ steps.set_tag.outputs.manual_tag || steps.bump.outputs.tag }}
+        id: set_release_tag
+        run: |
+            if [ -z "${{ steps.set_tag.outputs.manual_tag }}" ]; then
+              echo "release_tag=${{ steps.bump.outputs.tag }}" >> $GITHUB_OUTPUT
+            else
+              echo "release_tag=${{ steps.set_tag.outputs.manual_tag }}" >> $GITHUB_OUTPUT
+            fi
+      
+  build_firmware:
+    name: Build host_app and firmware
+    uses: ./.github/workflows/apps.yml
+    needs: create_release_tag
+    with:
+      firmware_artifact_name: ${{ needs.create_release_tag.outputs.firmware_artifact_name }}
+      firmware_version_string: ${{ needs.create_release_tag.outputs.new_tag }}
+
+  create_release:
+    name: Release Firmware
+    needs:
+      - create_release_tag
+      - build_firmware
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Get Release Binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.FIRMWARE_ARTIFACT_NAME }}
+          path: ${{ env.RELEASE_SOURCES_DIR }}
+
+      - name: Zip Release Binaries
+        run: |
+          cd ${{ env.RELEASE_SOURCES_DIR }}
+          zip -r --symlinks ${{ env.RELEASE_SOURCES_DIR }}/${{ env.FIRMWARE_ARTIFACT_NAME }}.zip .
+
+      - run: tree ${{ env.RELEASE_SOURCES_DIR }}
+      
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.RELEASE_SOURCES_DIR }}/${{ env.FIRMWARE_ARTIFACT_NAME }}.zip
+          generate_release_notes: true
+          append_body: true
+          tag_name: ${{ needs.create_release_tag.outputs.new_tag }}
+
+      - name: Update Documentation
+        run: |
+          curl -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.SECOND_REPO_PAT }}" \
+            https://api.github.com/repos/FutureProofHomes/Documentation/actions/workflows/update-binaries-xmos.yaml/dispatches \
+            -d '{"ref":"main", "inputs": {"xmos_release_tag": "${{ needs.create_release_tag.outputs.new_tag }}"}}'
+        env:
+          SECOND_REPO_PAT: ${{ secrets.SECOND_REPO_PAT }}

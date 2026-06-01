@@ -1,0 +1,3 @@
+ffva_int_adec_altarch     example_ffva_int_adec_altarch    Yes  XK_VOICE_L71        xmos_cmake_toolchain/xs3a.cmake
+ffva_ua_adec_altarch      example_ffva_ua_adec_altarch     Yes  XK_VOICE_L71        xmos_cmake_toolchain/xs3a.cmake
+ffva_ua_fixed_delay       example_ffva_ua_fixed_delay      Yes  XK_VOICE_L71        xmos_cmake_toolchain/xs3a.cmake

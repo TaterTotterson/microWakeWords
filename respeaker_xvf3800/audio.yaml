@@ -181,17 +181,11 @@ media_player:
 external_components:
   - source:
       type: git
-      url: https://github.com/formatBCE/esphome
-      ref: respeaker_microphone
-    components:
-      - i2s_audio
-    refresh: 0s
-  - source:
-      type: git
       url: https://github.com/TaterTotterson/microWakeWords
       ref: main
       path: respeaker_xvf3800/components
     components:
+      - i2s_audio
       - respeaker_xvf3800
       - aic3104
     refresh: 0s

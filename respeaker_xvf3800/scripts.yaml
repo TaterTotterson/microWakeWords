@@ -373,6 +373,158 @@ script:
           }
           id(respeaker).set_led_ring(colors);
 
+  - id: update_thinking_effect
+    then:
+      - lambda: |-
+          constexpr int NUM_LEDS = 12;
+          static uint8_t tick = 0;
+          static float led_levels[NUM_LEDS] = {0.0f};
+          static uint32_t last_thinking_update = 0;
+
+          uint32_t now = millis();
+          if (last_thinking_update != 0 && now - last_thinking_update < 80) {
+            return;
+          }
+          last_thinking_update = now;
+
+          auto clamp_u8 = [](float value) -> uint8_t {
+            if (value <= 0.0f) {
+              return 0;
+            }
+            if (value >= 255.0f) {
+              return 255;
+            }
+            return (uint8_t) value;
+          };
+
+          float master_brightness = id(user_led_ring_brightness).state * id(effect_brightness);
+          if (master_brightness < 0.0f) {
+            master_brightness = 0.0f;
+          } else if (master_brightness > 1.0f) {
+            master_brightness = 1.0f;
+          }
+
+          const uint8_t breath_step = tick % 18;
+          const uint8_t breath = breath_step <= 9 ? breath_step : 18 - breath_step;
+          uint32_t colors[NUM_LEDS] = {0};
+
+          for (int i = 0; i < NUM_LEDS; i++) {
+            float target_level = 0.025f + ((float) breath * 0.006f);
+
+            const uint8_t bit_phase = (uint8_t) ((i * 7 + tick * 5) % 29);
+            if (bit_phase == 0) {
+              target_level += 0.86f;
+            } else if (bit_phase == 1 || bit_phase == 28) {
+              target_level += 0.46f;
+            }
+
+            const uint8_t calc_phase = (uint8_t) ((i * 5 + tick * 2) % 17);
+            if (calc_phase == 0 || calc_phase == 8) {
+              target_level += 0.50f;
+            } else if (calc_phase == 1 || calc_phase == 9) {
+              target_level += 0.24f;
+            }
+
+            if (target_level > 1.0f) {
+              target_level = 1.0f;
+            }
+
+            const float alpha = target_level > led_levels[i] ? 0.58f : 0.20f;
+            led_levels[i] += (target_level - led_levels[i]) * alpha;
+
+            float color_level = led_levels[i] * master_brightness;
+            if (color_level > 1.0f) {
+              color_level = 1.0f;
+            }
+
+            float white_level = color_level > 0.55f ? (color_level - 0.55f) * 0.46f : 0.0f;
+
+            float r = id(effect_color_r) * color_level + 255.0f * white_level;
+            float g = id(effect_color_g) * color_level + 240.0f * white_level;
+            float b = id(effect_color_b) * color_level + 170.0f * white_level;
+            colors[i] = (clamp_u8(r) << 16) | (clamp_u8(g) << 8) | clamp_u8(b);
+          }
+
+          tick++;
+          id(respeaker).set_led_ring(colors);
+
+  - id: update_replying_effect
+    then:
+      - lambda: |-
+          constexpr int NUM_LEDS = 12;
+          constexpr int CENTER_LED = 6;
+          static float smoothed_radius = 1.25f;
+          static uint8_t wave_tick = 0;
+
+          auto clamp_u8 = [](float value) -> uint8_t {
+            if (value <= 0.0f) {
+              return 0;
+            }
+            if (value >= 255.0f) {
+              return 255;
+            }
+            return (uint8_t) value;
+          };
+          auto ring_distance = [](int a, int b) -> int {
+            int dist = a - b;
+            if (dist < 0) {
+              dist = -dist;
+            }
+            return dist > 6 ? 12 - dist : dist;
+          };
+
+          float audio_level = id(i2s_audio_speaker).audio_level() * 5.5f;
+          if (audio_level > 1.0f) {
+            audio_level = 1.0f;
+          }
+          float volume_level = id(external_media_player).volume;
+          if (id(external_media_player).is_muted()) {
+            audio_level = 0.0f;
+            volume_level = 0.0f;
+          }
+
+          float target_radius = 0.85f + (audio_level * 3.65f) + (volume_level * 0.85f);
+          if (target_radius > 5.5f) {
+            target_radius = 5.5f;
+          }
+          float alpha = target_radius > smoothed_radius ? 0.45f : 0.20f;
+          smoothed_radius += (target_radius - smoothed_radius) * alpha;
+
+          float master_brightness = id(user_led_ring_brightness).state * id(effect_brightness);
+          if (master_brightness < 0.0f) {
+            master_brightness = 0.0f;
+          } else if (master_brightness > 1.0f) {
+            master_brightness = 1.0f;
+          }
+
+          uint32_t colors[NUM_LEDS] = {0};
+          for (int i = 0; i < NUM_LEDS; i++) {
+            int dist = ring_distance(i, CENTER_LED);
+            float level = smoothed_radius - (float) dist;
+            if (level <= 0.0f) {
+              continue;
+            }
+
+            if (level > 1.0f) {
+              level = 1.0f;
+            }
+            float ripple = 0.86f + (0.14f * ((wave_tick + dist * 5) % 4) / 3.0f);
+            float color_level = (0.12f + (level * 0.76f)) * ripple * master_brightness;
+            float center_level = 1.0f - ((float) dist / 1.6f);
+            if (center_level < 0.0f) {
+              center_level = 0.0f;
+            }
+            center_level *= 0.52f * master_brightness;
+
+            float r = id(effect_color_r) * color_level + 255.0f * center_level;
+            float g = id(effect_color_g) * color_level + 240.0f * center_level;
+            float b = id(effect_color_b) * color_level + 170.0f * center_level;
+            colors[i] = (clamp_u8(r) << 16) | (clamp_u8(g) << 8) | clamp_u8(b);
+          }
+
+          wave_tick = (wave_tick + 1) % NUM_LEDS;
+          id(respeaker).set_led_ring(colors);
+
   - id: update_timer_tick_effect
     then:
       - lambda: |-
@@ -765,11 +917,11 @@ script:
     then:
       - script.execute:
           id: led_set_effect
-          effect: "breathe"
+          effect: "thinking"
           r: !lambda return id(user_led_ring_color_r);
           g: !lambda return id(user_led_ring_color_g);
           b: !lambda return id(user_led_ring_color_b);
-          speed: 3.0
+          speed: 1.0
           brightness: 0.6
 
   # Script executed when the voice assistant is replying to a command
@@ -777,11 +929,11 @@ script:
     then:
       - script.execute:
           id: led_set_effect
-          effect: "comet_ccw"
+          effect: "replying"
           r: !lambda return id(user_led_ring_color_r);
           g: !lambda return id(user_led_ring_color_g);
           b: !lambda return id(user_led_ring_color_b);
-          speed: 3.0
+          speed: 1.0
           brightness: 0.8
 
   # Script executed when the voice assistant is in error

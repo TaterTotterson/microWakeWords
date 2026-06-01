@@ -1,0 +1,105 @@
+# YAML schema for GitHub Actions:
+# https://help.github.com/en/actions/automating-your-workflow-with-github-actions/workflow-syntax-for-github-actions
+#
+# Helpful YAML parser to clarify YAML syntax:
+# https://yaml-online-parser.appspot.com/
+#
+# This workflow uses actions that are not certified by GitHub. They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support documentation.
+#
+# This file contains the workflows that are run prior to merging a pull request.
+
+name: Build Applications
+
+on:
+  # Allow manually triggering of the workflow.
+  workflow_dispatch:
+
+  # Allow workflow to be called from another.
+  workflow_call:
+    inputs:
+      firmware_artifact_name:
+        description: 'The name to be given to the uploaded firmware artifact.'
+        type: string
+        required: true
+        default: ""
+      firmware_version_string:
+        description: "The firmware version as string (or 'dev')."
+        type: string
+        required: false
+        default: "dev"
+
+env:
+  XCORE_BUILDER: "ghcr.io/xmos/xcore_builder:v3.1"
+  HOST_APPS_ARTIFACT_NAME: "host_apps"
+  FIRMWARE_ARTIFACT_NAME: "satellite1_firmware"
+
+jobs:
+  build_host_apps:
+    name: Build host applications
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Pull XCORE builder
+        run: |
+          docker pull ${XCORE_BUILDER}
+
+      - name: Build
+        run: |
+          docker run --rm -u $(id -u):$(id -g) -w /ws -v ${{github.workspace}}:/ws ${XCORE_BUILDER} bash -l tools/ci/build_host_apps.sh
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.HOST_APPS_ARTIFACT_NAME }}
+          path: ./dist_host
+
+  build_firmware:
+    name: Build satellite xmos firmware
+    runs-on: ubuntu-latest
+    needs: build_host_apps
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Pull Docker builder
+        run: |
+          docker pull ${XCORE_BUILDER}
+
+      - name: Download host build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.HOST_APPS_ARTIFACT_NAME }}
+          path: ./dist_host
+
+      - name: write firmware_version.txt
+        run: |
+          echo ${{ inputs.firmware_version_string }} > ${{github.workspace}}/firmware_version.txt
+      
+      - name: Build
+        run: |
+          docker run --rm -u $(id -u):$(id -g) -w /ws -v ${{github.workspace}}:/ws ${XCORE_BUILDER} bash -l tools/ci/build_firmware.sh tools/ci/firmwares.txt
+
+      - name: Save metadata
+        run: |
+          bash tools/ci/log_metadata.sh ./dist/build_metadata.json
+
+      - name: Determine artifact name
+        run: |
+          if [ ! -z "${{ inputs.firmware_artifact_name }}" ]; then
+            echo "FIRMWARE_ARTIFACT_NAME=${{ inputs.firmware_artifact_name }}" >> $GITHUB_ENV
+          fi
+
+      - name: Save example app firmware artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.FIRMWARE_ARTIFACT_NAME }}
+          path: |
+            ./dist/*.*
+

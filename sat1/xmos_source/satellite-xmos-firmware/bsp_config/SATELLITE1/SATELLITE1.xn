@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Network xmlns="http://www.xmos.com"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://www.xmos.com http://www.xmos.com">
+  <Type>Board</Type>
+  <Name>FutureProofHomes Satellite1</Name>
+
+  <Declarations>
+    <Declaration>tileref tile[2]</Declaration>
+  </Declarations>
+  
+  <Packages>
+    <Package id="0" Type="XS3-UnA-1024-QF60B">
+      <Nodes>
+        <Node Id="0" InPackageId="0" Type="XS3-L16A-1024" Oscillator="24MHz" SystemFrequency="600MHz" ReferenceFrequency="100MHz">
+          <Boot>
+            <Source Location="bootFlash"/>
+          </Boot>
+          
+          <Tile Number="0" Reference="tile[0]">
+            <!-- Primary SPI -->
+            <Port Location="XS1_PORT_1B" Name="PORT_SQI_CS"/>
+            <Port Location="XS1_PORT_1C" Name="PORT_SQI_SCLK"/>
+            <Port Location="XS1_PORT_4B" Name="PORT_SQI_SIO"/>
+
+            <!-- Secondary SPI -->
+            <Port Location="XS1_PORT_1A" Name="PORT_XSPI_CS"/>
+            <Port Location="XS1_PORT_1L" Name="PORT_XSPI_CLK"/>
+            <Port Location="XS1_PORT_1M" Name="PORT_XSPI_MISO"/>
+            <Port Location="XS1_PORT_1P" Name="PORT_XSPI_MOSI"/>
+            
+            <!-- I2C -->
+            <Port Location="XS1_PORT_1N" Name="PORT_I2C_SCL"/>
+            <Port Location="XS1_PORT_1O" Name="PORT_I2C_SDA"/>
+            
+            <!-- User Input -->
+            <Port Location="XS1_PORT_4F" Name="PORT_ROTARY_ENC"/>
+            <Port Location="XS1_PORT_8D" Name="PORT_BUTTONS"/>
+          </Tile>
+          
+          <Tile Number="1" Reference="tile[1]">
+            <!-- Mic related ports -->
+            <Port Location="XS1_PORT_1G" Name="PORT_PDM_CLK"/>
+            <Port Location="XS1_PORT_4D" Name="PORT_PDM_DATA"/>
+
+            <!-- Audio ports -->
+            <Port Location="XS1_PORT_1D" Name="PORT_MCLK_IN"/>
+            <Port Location="XS1_PORT_1C" Name="PORT_I2S_BCLK"/>
+            <Port Location="XS1_PORT_1B" Name="PORT_I2S_LRCLK"/>
+            <Port Location="XS1_PORT_1F" Name="PORT_I2S_DIN"/>
+            <Port Location="XS1_PORT_1K" Name="PORT_I2S_DOUT1"/>
+            <Port Location="XS1_PORT_1A" Name="PORT_I2S_DOUT2"/>
+            
+            <!-- LED ring -->
+            <Port Location="XS1_PORT_4A" Name="PORT_LED_RING"/>
+          </Tile>
+        </Node>
+      </Nodes>
+    </Package>
+  </Packages>
+  <Nodes>
+    <Node Id="2" Type="device:" RoutingId="0x8000">
+      <Service Id="0" Proto="xscope_host_data(chanend c);">
+        <Chanend Identifier="c" end="3"/>
+      </Service>
+    </Node>
+  </Nodes>
+  <Links>
+    <Link Encoding="2wire" Delays="5clk" Flags="XSCOPE">
+      <LinkEndpoint NodeId="0" Link="XL0"/>
+      <LinkEndpoint NodeId="2" Chanend="1"/>
+    </Link>
+  </Links>
+  <ExternalDevices>
+    <Device NodeId="0" Tile="0" Class="SQIFlash" Name="bootFlash" Type="W25Q64JV" PageSize="256" SectorSize="4096" NumPages="32768">
+      <Attribute Name="PORT_SQI_CS" Value="PORT_SQI_CS"/>
+      <Attribute Name="PORT_SQI_SCLK" Value="PORT_SQI_SCLK"/>
+      <Attribute Name="PORT_SQI_SIO" Value="PORT_SQI_SIO"/>
+     </Device>
+  </ExternalDevices>
+  <JTAGChain>
+    <JTAGDevice NodeId="0"/>
+  </JTAGChain>
+</Network>

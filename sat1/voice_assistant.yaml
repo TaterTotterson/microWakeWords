@@ -81,7 +81,7 @@ micro_wake_word:
                           # Start the voice assistant and play the wake sound, if enabled
                           else:
                             - lambda: |-
-                                id(openwakeword_wake_detected) = false;
+                                id(openwakeword_wake_detected) = true;
                                 id(voice_assistant_phase) = 2;
                             - script.execute: control_leds
                             - if:
@@ -501,7 +501,12 @@ script:
     then:
       - if:
           condition:
-            lambda: return !id(init_in_progress) && !id(push_to_intercom_active);
+            and:
+              - lambda: return !id(init_in_progress) && !id(push_to_intercom_active);
+              - not:
+                  voice_assistant.is_running:
+              - not:
+                  media_player.is_announcing:
           then:
             - if:
                 condition:
@@ -564,6 +569,13 @@ script:
   - id: recover_openwakeword_after_fallback
     mode: restart
     then:
+      - wait_until:
+          condition:
+            and:
+              - not:
+                  voice_assistant.is_running:
+              - not:
+                  media_player.is_announcing:
       - lambda: |-
           id(openwakeword_wake_detected) = false;
           id(voice_assistant_phase) = 1;
@@ -587,7 +599,12 @@ script:
             - delay: 60s
             - if:
                 condition:
-                  lambda: return id(wake_engine_select).state != "microwakeword" && !id(push_to_intercom_active);
+                  and:
+                    - lambda: return id(wake_engine_select).state != "microwakeword" && !id(push_to_intercom_active);
+                    - not:
+                        voice_assistant.is_running:
+                    - not:
+                        media_player.is_announcing:
                 then:
                   - logger.log:
                       level: INFO

@@ -56,6 +56,31 @@ static esp_err_t err_bit_to_esp_err(uint32_t bit) {
   }
 }
 
+static float calculate_audio_peak_level(const uint8_t *data, size_t bytes, const audio::AudioStreamInfo &stream_info) {
+  const size_t bytes_per_sample = stream_info.samples_to_bytes(1);
+  if (data == nullptr || bytes_per_sample == 0 || bytes < bytes_per_sample) {
+    return 0.0f;
+  }
+
+  const size_t sample_count = bytes / bytes_per_sample;
+  const size_t stride = sample_count > 256 ? sample_count / 256 : 1;
+  int64_t peak = 0;
+
+  for (size_t i = 0; i < sample_count; i += stride) {
+    int32_t sample = audio::unpack_audio_sample_to_q31(&data[i * bytes_per_sample], bytes_per_sample);
+    int64_t magnitude = sample < 0 ? -(int64_t) sample : (int64_t) sample;
+    if (magnitude > peak) {
+      peak = magnitude;
+    }
+  }
+
+  float level = (float) peak / 2147483647.0f;
+  if (level > 1.0f) {
+    return 1.0f;
+  }
+  return level;
+}
+
 // Lists the Q15 fixed point scaling factor for volume reduction.
 // Has 100 values representing silence and a reduction [49, 48.5, ... 0.5, 0] dB.
 // dB to PCM scaling factor formula: floating_point_scale_factor = 2^(-db/6.014)
@@ -379,6 +404,14 @@ void I2SAudioSpeaker::speaker_task(void *params) {
           sample *= gain_factor;  // Q31
           audio::pack_q31_as_audio_sample(sample, &this_speaker->data_buffer_[i * bytes_per_sample], bytes_per_sample);
         }
+      }
+
+      if (bytes_read > 0) {
+        float target_level = calculate_audio_peak_level(this_speaker->data_buffer_, bytes_read, audio_stream_info);
+        float alpha = target_level > this_speaker->audio_level_ ? 0.40f : 0.16f;
+        this_speaker->audio_level_ += (target_level - this_speaker->audio_level_) * alpha;
+      } else {
+        this_speaker->audio_level_ *= 0.84f;
       }
 
 #ifdef USE_ESP32_VARIANT_ESP32

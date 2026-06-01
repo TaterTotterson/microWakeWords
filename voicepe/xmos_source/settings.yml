@@ -1,0 +1,22 @@
+---
+project: sln_voice
+title: XCORE-VOICE SOLUTION
+version: 2.2.0
+
+documentation:
+  exclude_patterns_path: doc/exclude_patterns.inc
+  substitutions_path: doc/substitutions.inc
+  linkcheck_ignore_regex:
+    - .*digikey.*  # digikey don't allow auto link checking
+    - .*github.com/xmos/.*  # many links to private repos can't be checked
+    - .*percepio.com/.* # Semi broken link in fwk_rtos that actually still takes you to a sensible place. This may be removed on the next release (>v2.2.0)
+  doxygen_projects:
+    sln_voice:
+      doxyfile_path: doc/Doxyfile.inc
+  pdfs:
+    doc/quick_start_guide/index:
+      pdf_title: "{{title}} - Quick Start Guide"
+      pdf_filename: "{{project}}_quick_start_guide_v{{version}}"
+    doc/programming_guide/index:
+      pdf_title: "{{title}} - Programming Guide"
+      pdf_filename: "{{project}}_programming_guide_v{{version}}"

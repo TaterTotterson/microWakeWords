@@ -1,0 +1,42 @@
+[submodule "xmos_cmake_toolchain"]
+	path = xmos_cmake_toolchain
+	url = https://github.com/xmos/xmos_cmake_toolchain.git
+[submodule "modules/core"]
+	path = modules/core
+	url = https://github.com/xmos/fwk_core.git
+[submodule "modules/io"]
+	path = modules/io
+	url = https://github.com/xmos/fwk_io.git
+[submodule "modules/rtos"]
+	path = modules/rtos
+	url = https://github.com/xmos/fwk_rtos.git
+[submodule "modules/sample_rate_conversion/lib_src"]
+	path = modules/sample_rate_conversion/lib_src
+	url = https://github.com/xmos/lib_src.git
+	branch = master
+[submodule "modules/xua"]
+	path = modules/xua
+	url = https://github.com/xmos/lib_xua.git
+	branch = master
+[submodule "modules/sw_pll"]
+	path = modules/sw_pll
+	url = https://github.com/xmos/lib_sw_pll
+[submodule "modules/voice"]
+	path = modules/voice
+	url = https://github.com/xmos/fwk_voice.git
+[submodule "modules/inferencing/lib_tflite_micro"]
+	path = modules/inferencing/lib_tflite_micro
+	url = https://github.com/xmos/lib_tflite_micro.git
+	ignore = dirty
+[submodule "modules/inferencing/lib_nn"]
+	path = modules/inferencing/lib_nn
+	url = https://github.com/xmos/lib_nn.git
+[submodule "modules/inferencing/modules/lib_qspi_fast_read"]
+	path = modules/inferencing/modules/lib_qspi_fast_read
+	url = https://github.com/xmos/lib_qspi_fast_read.git
+[submodule "modules/lib_qspi_fast_read"]
+	path = modules/lib_qspi_fast_read
+	url = https://github.com/xmos/lib_qspi_fast_read.git
+[submodule "modules/xscope_fileio/xscope_fileio"]
+	path = modules/xscope_fileio/xscope_fileio
+	url = https://github.com/xmos/xscope_fileio.git

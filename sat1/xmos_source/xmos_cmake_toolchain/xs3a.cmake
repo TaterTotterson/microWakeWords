@@ -1,0 +1,55 @@
+
+# Temporary fix until CMAKE_SYSTEM_NAME is updated to Generic, this 
+# allows cmake to find the Compiler/ and Platform/ directories
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
+
+# Deprecation warning: CMAKE_SYSTEM_NAME will eventually be changed to "Generic".
+# Use CMAKE_SYSTEM_PROCESSOR to determine if the build is targetting an xcore. see
+# issue #5 
+set(CMAKE_SYSTEM_NAME XCORE_XS3A)
+set(CMAKE_SYSTEM_PROCESSOR XCORE_XS3A) 
+
+# CMake versions 3.20 and newer now require the ASM dialect to be specified
+set(ASM_DIALECT "")
+
+set(CMAKE_C_COMPILER "xcc")
+set(CMAKE_CXX_COMPILER  "xcc")
+set(CMAKE_ASM_COMPILER  "xcc")
+set(CMAKE_AR "xmosar" CACHE FILEPATH "Archiver")
+set(CMAKE_C_COMPILER_AR "xmosar")
+set(CMAKE_CXX_COMPILER_AR "xmosar")
+set(CMAKE_ASM_COMPILER_AR "xmosar")
+
+if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL Windows)
+    SET(CMAKE_C_USE_RESPONSE_FILE_FOR_OBJECTS 1)
+    SET(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES 1)
+    SET(CMAKE_C_RESPONSE_FILE_LINK_FLAG "@")
+
+    SET(CMAKE_CXX_USE_RESPONSE_FILE_FOR_OBJECTS 1)
+    SET(CMAKE_CXX_USE_RESPONSE_FILE_FOR_INCLUDES 1)
+    SET(CMAKE_CXX_RESPONSE_FILE_LINK_FLAG "@")
+
+    SET(CMAKE_ASM_USE_RESPONSE_FILE_FOR_OBJECTS 1)
+    SET(CMAKE_ASM_USE_RESPONSE_FILE_FOR_INCLUDES 1)
+    SET(CMAKE_ASM_RESPONSE_FILE_LINK_FLAG "@")
+endif()
+
+if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL Windows)
+else()
+    set(CMAKE_RANLIB "echo")
+endif()
+
+set(CMAKE_C_COMPILER_FORCED TRUE)
+set(CMAKE_CXX_COMPILER_FORCED TRUE)
+set(CMAKE_ASM_COMPILER_FORCED TRUE)
+
+set(CMAKE_ASM_COMPILER_ID XCC)
+set(CMAKE_C_FLAGS "-march=xs3a" CACHE STRING "C Compiler Base Flags" FORCE)
+set(CMAKE_CXX_FLAGS "-march=xs3a -std=c++11" CACHE STRING "C++ Compiler Base Flags" FORCE)
+set(CMAKE_ASM_FLAGS "-march=xs3a" CACHE STRING "ASM Compiler Base Flags" FORCE)
+set(CMAKE_EXE_LINKER_FLAGS "" CACHE INTERNAL "" FORCE)
+set(CMAKE_EXECUTABLE_SUFFIX_C   .xe CACHE INTERNAL "" FORCE)
+set(CMAKE_EXECUTABLE_SUFFIX_CXX .xe CACHE INTERNAL "" FORCE)
+set(CMAKE_EXECUTABLE_SUFFIX_ASM .xe CACHE INTERNAL "" FORCE)
+
+set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CMAKE_CURRENT_LIST_DIR}/xc_override.cmake")

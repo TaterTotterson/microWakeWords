@@ -16,6 +16,8 @@ class XMOSFlasher : public MemoryFlasher, public Satellite1SPIService {
  public:
   void loop() override;
 
+  void set_auto_flash(bool auto_flash) { this->auto_flash_ = auto_flash; }
+
   bool init_flasher() override;
   bool deinit_flasher() override;
   void dump_flash_info() override;
@@ -32,6 +34,8 @@ class XMOSFlasher : public MemoryFlasher, public Satellite1SPIService {
   }
 
  protected:
+  void maybe_auto_flash_();
+
   bool read_JEDECID_();
   bool enable_writing_();
   bool disable_writing_();
@@ -68,6 +72,9 @@ class XMOSFlasher : public MemoryFlasher, public Satellite1SPIService {
 
   uint8_t *reader_buffer_;
   uint8_t *compare_buffer_;
+
+  bool auto_flash_{false};
+  bool auto_flash_checked_{false};
 };
 
 }  // namespace satellite1

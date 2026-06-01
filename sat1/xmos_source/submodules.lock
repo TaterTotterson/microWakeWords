@@ -1,0 +1,14 @@
+# Path URL Commit
+# xmos_cmake_toolchain is vendored in this source folder because it is small.
+modules/core https://github.com/xmos/fwk_core.git 948e06ead031609a5b4734728ec66d383601d525
+modules/io https://github.com/xmos/fwk_io.git 7e671c84bfc7857c52a98aca570c1a0ede0b388d
+modules/rtos https://github.com/xmos/fwk_rtos.git 6d5a6fb75f41d65e84e66e4467b898cd02080463
+modules/sample_rate_conversion/lib_src https://github.com/xmos/lib_src.git e3bb065134b52d0b16bb123a3d40c0761d30f2a5
+modules/xua https://github.com/xmos/lib_xua.git a485ffe41abcaf0f02ed289a9c759751dd75b29a
+modules/sw_pll https://github.com/xmos/lib_sw_pll 0a24b96f2a380d0ecb6c310de2c5e845dffbd894
+modules/voice https://github.com/xmos/fwk_voice.git e230d556f52d70bc3a09367c90bac35242351b59
+modules/inferencing/lib_tflite_micro https://github.com/xmos/lib_tflite_micro.git c59ee18f013f159abaa10ef0faf70b18f80f0315
+modules/inferencing/lib_nn https://github.com/xmos/lib_nn.git f85b4804ea5f52f5fa4ca4b709a787ac62a8c526
+modules/inferencing/modules/lib_qspi_fast_read https://github.com/xmos/lib_qspi_fast_read.git c9f75d56b7e7aab1478126bff6c4e92c3c43fc66
+modules/lib_qspi_fast_read https://github.com/xmos/lib_qspi_fast_read.git c9f75d56b7e7aab1478126bff6c4e92c3c43fc66
+modules/xscope_fileio/xscope_fileio https://github.com/xmos/xscope_fileio.git 52cff0826b2773beec49044a0729bb000c011379
