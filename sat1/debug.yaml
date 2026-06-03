@@ -4,7 +4,7 @@ external_components:
       url: https://github.com/TaterTotterson/microWakeWords
       ref: main
       path: sat1/components
-    refresh: 0s
+    refresh: 1h
     components: [version]
 
 debug:
