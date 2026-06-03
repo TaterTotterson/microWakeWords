@@ -196,13 +196,6 @@ respeaker_lite:
 external_components:
   - source:
       type: git
-      url: https://github.com/formatBCE/esphome
-      ref: respeaker_microphone
-    components:
-      - i2s_audio
-    refresh: 1h
-  - source:
-      type: git
       url: https://github.com/formatBCE/Respeaker-Lite-ESPHome-integration
       ref: main
     components:
@@ -214,6 +207,7 @@ external_components:
       ref: main
       path: respeaker_lite/components
     components:
+      - i2s_audio
       - http_request
     refresh: 1h
 audio_dac:
