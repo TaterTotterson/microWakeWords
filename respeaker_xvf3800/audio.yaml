@@ -186,6 +186,7 @@ external_components:
       path: respeaker_xvf3800/components
     components:
       - i2s_audio
+      - http_request
       - sendspin
       - respeaker_xvf3800
       - aic3104
