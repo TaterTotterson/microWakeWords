@@ -8,7 +8,8 @@
 #include <esp_idf_version.h>
 #include <driver/i2s_std.h>
 
-namespace esphome::i2s_audio {
+namespace esphome {
+namespace i2s_audio {
 
 class I2SAudioComponent;
 
@@ -76,6 +77,7 @@ class I2SAudioComponent : public Component {
   int port_{};
 };
 
-}  // namespace esphome::i2s_audio
+}  // namespace i2s_audio
+}  // namespace esphome
 
 #endif  // USE_ESP32
