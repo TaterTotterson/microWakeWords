@@ -65,14 +65,6 @@ wifi:
   on_connect:
     - lambda: id(improv_ble_in_progress) = false;
     - script.execute: control_leds
-    # Enable/disable Sendspin static adjustment delay if the jack is plugged in or not
-    - if:
-        condition:
-          - binary_sensor.is_on: jack_plugged
-        then:
-          - sendspin.media_source.enable_static_delay_adjustment:
-        else:
-          - sendspin.media_source.disable_static_delay_adjustment:
   on_disconnect:
     - script.execute: control_leds
 

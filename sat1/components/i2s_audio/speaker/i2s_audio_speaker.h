@@ -131,7 +131,7 @@ class I2SAudioSpeaker : public I2SAudioOut, public speaker::Speaker, public Comp
   bool has_pending_volume_{false};
   bool has_pending_mute_{false};
 
-  // Playout time tracking for sendspin synchronization
+  // Playout time tracking for synchronized playback
   int64_t last_dma_write_{0};
   QueueHandle_t i2s_sent_time_queue_{nullptr};
 

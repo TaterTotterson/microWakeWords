@@ -444,33 +444,6 @@ script:
           value: 0
       - script.execute: control_leds
 
-  # Script executed when the volume is increased/decreased from the dial for the group media player
-  - id: control_group_volume
-    mode: restart
-    parameters:
-      increase_volume: bool  # True: Increase volume / False: Decrease volume.
-    then:
-      - delay: 16ms
-      - if:
-          condition:
-            lambda: return increase_volume;
-          then:
-            - lambda: id(group_volume_changed) = true;
-            - media_player.volume_up:
-                id: sendspin_group_media_player
-          else:
-            - lambda: id(group_volume_changed) = true;
-            - media_player.volume_down:
-                id: sendspin_group_media_player
-      - script.execute: control_leds
-      - delay: 1s
-      - lambda: id(dial_touched) = false;
-      - lambda: id(group_volume_changed) = false;
-      - sensor.rotary_encoder.set_value:
-          id: dial
-          value: 0
-      - script.execute: control_leds
-
   # Script executed when the hue is increased/decreased from the dial
   - id: control_hue
     mode: restart
