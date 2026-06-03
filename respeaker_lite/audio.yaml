@@ -160,7 +160,7 @@ respeaker_lite:
     internal: false
     id: firmware_version
   firmware:
-    url: https://github.com/formatBCE/Respeaker-Lite-ESPHome-integration/raw/refs/heads/main/respeaker_lite_i2s_dfu_firmware_48k_v1.1.0.bin
+    url: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/firmware/respeaker_lite/respeaker_lite_i2s_dfu_firmware_48k_v1.1.0.bin
     version: "1.1.0"
     md5: 9297155d1bf3eb21a9d4db52a89ea0c6
     on_begin:
@@ -196,10 +196,12 @@ respeaker_lite:
 external_components:
   - source:
       type: git
-      url: https://github.com/formatBCE/Respeaker-Lite-ESPHome-integration
+      url: https://github.com/TaterTotterson/microWakeWords
       ref: main
+      path: shared/components
     components:
       - respeaker_lite
+      - http_request
     refresh: 1h
   - source:
       type: git
@@ -208,7 +210,6 @@ external_components:
       path: respeaker_lite/components
     components:
       - i2s_audio
-      - http_request
     refresh: 1h
 audio_dac:
   - platform: aic3204

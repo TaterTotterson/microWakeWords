@@ -173,10 +173,17 @@ external_components:
       type: git
       url: https://github.com/TaterTotterson/microWakeWords
       ref: main
+      path: shared/components
+    components:
+      - http_request
+    refresh: 1h
+  - source:
+      type: git
+      url: https://github.com/TaterTotterson/microWakeWords
+      ref: main
       path: respeaker_xvf3800/components
     components:
       - i2s_audio
-      - http_request
       - respeaker_xvf3800
       - aic3104
     refresh: 1h
@@ -219,7 +226,7 @@ respeaker_xvf3800:
     internal: true
     update_interval: 100ms
   firmware:
-    url: https://github.com/TaterTotterson/Respeaker-XVF3800-ESPHome-integration/raw/refs/heads/main/application_xvf3800_inthost-lr48-sqr-i2c-v1.0.7-release.bin
+    url: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/firmware/respeaker_xvf3800/application_xvf3800_inthost-lr48-sqr-i2c-v1.0.7-release.bin
     version: "1.0.7"
     md5: 043a848f544ff2c7265ac19685daf5de
 

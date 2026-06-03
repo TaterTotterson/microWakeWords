@@ -42,23 +42,18 @@ external_components:
       path: voicepe/components
     components:
       - i2s_audio
-      - http_request
       - voicepe_doa
     refresh: 1h
   - source:
       type: git
       url: https://github.com/TaterTotterson/microWakeWords
       ref: main
+      path: shared/components
     components:
+      - http_request
       - voice_assistant
       - micro_wake_word
       - remote_wake_word
-    refresh: 1h
-  - source:
-      type: git
-      url: https://github.com/esphome/home-assistant-voice-pe
-      ref: dev
-    components:
       - voice_kit
     refresh: 1h
 
@@ -77,7 +72,7 @@ micro_wake_word:
   models:
     - model: ${wake_word_model_url}
       id: ${wake_word_name}
-    - model: https://github.com/kahrendt/microWakeWord/releases/download/stop/stop.json
+    - model: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/wake_words/stop.json
       id: stop
       internal: true
   vad:
