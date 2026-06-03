@@ -74,8 +74,8 @@ button:
       then:
         - memory_flasher.write_image:
             image_version: ${xmos_fw_version}
-            image_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/sat1/firmware/xmos/satellite1_firmware_fixed_delay-${xmos_fw_version}.factory.bin
-            md5_url: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/sat1/firmware/xmos/satellite1_firmware_fixed_delay-${xmos_fw_version}.factory.md5
+            image_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/sat1/firmware/xmos/satellite1_firmware_fixed_delay-${xmos_fw_version}.factory.bin
+            md5_url: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/sat1/firmware/xmos/satellite1_firmware_fixed_delay-${xmos_fw_version}.factory.md5
 
   # Flashes Sat1 HAT with XMOS firmware embedded in the ESP32
   - platform: template

@@ -37,8 +37,8 @@ substitutions:
   openwakeword_http_timeout_ms: "3000"
   openwakeword_max_failures: "3"
   wake_word_name: hey_tater
-  wake_word_model_url: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/microWakeWords/hey_tater.json
-  wake_model_stop_url: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/wake_words/stop.json
+  wake_word_model_url: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWords/hey_tater.json
+  wake_model_stop_url: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/wake_words/stop.json
 
   # -----------------------------
   # WAKE WORD SENSITIVITY (probability cutoff)
@@ -50,18 +50,18 @@ substitutions:
   # -----------------------------
   # AUDIO FILE URLS
   # -----------------------------
-  center_button_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/sounds/center_button_press.flac
-  center_button_double_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/sounds/center_button_double_press.flac
-  center_button_triple_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/sounds/center_button_triple_press.flac
-  center_button_long_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/sounds/center_button_long_press.flac
-  factory_reset_initiated_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/sounds/factory_reset_initiated.mp3
-  factory_reset_cancelled_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/sounds/factory_reset_cancelled.mp3
-  mute_switch_on_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/sounds/mute_switch_on.flac
-  mute_switch_off_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/sounds/mute_switch_off.flac
-  timer_finished_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/sounds/timer_finished.flac
-  wake_word_triggered_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/sounds/wake_word_triggered.flac
-  jack_connected_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/sounds/jack_connected.flac
-  jack_disconnected_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/sounds/jack_disconnected.flac
+  center_button_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/center_button_press.flac
+  center_button_double_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/center_button_double_press.flac
+  center_button_triple_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/center_button_triple_press.flac
+  center_button_long_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/center_button_long_press.flac
+  factory_reset_initiated_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/factory_reset_initiated.mp3
+  factory_reset_cancelled_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/factory_reset_cancelled.mp3
+  mute_switch_on_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/mute_switch_on.flac
+  mute_switch_off_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/mute_switch_off.flac
+  timer_finished_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/timer_finished.flac
+  wake_word_triggered_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/wake_word_triggered.flac
+  jack_connected_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/jack_connected.flac
+  jack_disconnected_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/jack_disconnected.flac
 
 globals:
   # Global initialisation variable. Initialized to true and set to false once everything is connected. Only used to have a smooth "plugging" experience
@@ -304,7 +304,7 @@ memory_flasher:
     auto_flash: true
     embed_flash_image:
       image_version: ${xmos_fw_version}
-      image_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/sat1/firmware/xmos/satellite1_firmware_fixed_delay-v1.0.4-dev.factory.bin
+      image_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/sat1/firmware/xmos/satellite1_firmware_fixed_delay-v1.0.4-dev.factory.bin
       md5: 25babfee1e1eb1252e4855a00a5e2ed9
 
     on_flashing_start:

@@ -226,7 +226,7 @@ respeaker_xvf3800:
     internal: true
     update_interval: 100ms
   firmware:
-    url: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/firmware/respeaker_xvf3800/application_xvf3800_inthost-lr48-sqr-i2c-v1.0.7-release.bin
+    url: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/firmware/respeaker_xvf3800/application_xvf3800_inthost-lr48-sqr-i2c-v1.0.7-release.bin
     version: "1.0.7"
     md5: 043a848f544ff2c7265ac19685daf5de
 

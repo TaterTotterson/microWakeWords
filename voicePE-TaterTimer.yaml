@@ -16,7 +16,7 @@ substitutions:
   openwakeword_http_timeout_ms: "3000"
   openwakeword_max_failures: "3"
   wake_word_name: hey_tater
-  wake_word_model_url: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/microWakeWords/hey_tater.json
+  wake_word_model_url: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWords/hey_tater.json
 
   # WAKE WORD SENSITIVITY (probability cutoff)
   wake_cutoff_slight: "250"     # ~0.98
@@ -25,22 +25,22 @@ substitutions:
   # Change this to true in case you ahve a hidden SSID at home.
   hidden_ssid: "false"
   # Substitutions for audio files
-  jack_connected_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/sounds/jack_connected.flac
-  jack_disconnected_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/sounds/jack_disconnected.flac
-  mute_switch_on_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/sounds/mute_switch_on.flac
-  mute_switch_off_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/sounds/mute_switch_off.flac
-  timer_finished_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/sounds/timer_finished.flac
-  wake_word_triggered_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/sounds/wake_word_triggered.flac
-  center_button_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/sounds/center_button_press.flac
-  center_button_double_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/sounds/center_button_double_press.flac
-  center_button_triple_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/sounds/center_button_triple_press.flac
-  center_button_long_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/sounds/center_button_long_press.flac
-  factory_reset_initiated_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/sounds/factory_reset_initiated.mp3
-  factory_reset_cancelled_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/sounds/factory_reset_cancelled.mp3
-  factory_reset_confirmed_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/sounds/factory_reset_confirmed.mp3
-  easter_egg_tick_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/sounds/easter_egg_tick.mp3
-  easter_egg_tada_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/sounds/easter_egg_tada.mp3
-  error_cloud_expired_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/shared/assets/sounds/error_cloud_expired.mp3
+  jack_connected_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/jack_connected.flac
+  jack_disconnected_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/jack_disconnected.flac
+  mute_switch_on_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/mute_switch_on.flac
+  mute_switch_off_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/mute_switch_off.flac
+  timer_finished_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/timer_finished.flac
+  wake_word_triggered_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/wake_word_triggered.flac
+  center_button_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/center_button_press.flac
+  center_button_double_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/center_button_double_press.flac
+  center_button_triple_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/center_button_triple_press.flac
+  center_button_long_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/center_button_long_press.flac
+  factory_reset_initiated_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/factory_reset_initiated.mp3
+  factory_reset_cancelled_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/factory_reset_cancelled.mp3
+  factory_reset_confirmed_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/factory_reset_confirmed.mp3
+  easter_egg_tick_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/easter_egg_tick.mp3
+  easter_egg_tada_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/easter_egg_tada.mp3
+  error_cloud_expired_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/error_cloud_expired.mp3
 
 packages:
   TaterTotterson.VoicePE:
