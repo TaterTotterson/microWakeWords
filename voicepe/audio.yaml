@@ -64,10 +64,6 @@ speaker:
     sample_rate: 48000
     bits_per_sample: 16
 
-sendspin:
-  id: sendspin_hub
-  task_stack_in_psram: false
-
 http_request:
   buffer_size_rx: 2048  # Reduces CPU load when streaming audio
 
@@ -114,13 +110,8 @@ media_source:
   - platform: http_request
     id: http_media_source
     buffer_size: 500000
-  - platform: sendspin
-    id: sendspin_media_source
-    fixed_delay: 480 microseconds  # The AIC3204 DAC used, as configured, on the VPE delays audio by 480 microseconds
 
 media_player:
-  - platform: sendspin
-    id: sendspin_group_media_player
   - platform: speaker_source
     id: external_media_player
     name: Media Player
@@ -139,7 +130,6 @@ media_player:
       speaker: media_resampling_speaker
       sources:
         - http_media_source
-        - sendspin_media_source
     volume_increment: 0.05
     volume_min: 0.4
     volume_max: 0.85
@@ -168,4 +158,3 @@ media_player:
               id: media_mixing_input
               decibel_reduction: 0
               duration: 1.0s
-

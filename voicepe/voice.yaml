@@ -34,7 +34,6 @@ voice_kit:
         - script.execute: control_leds
         - lambda: id(xmos_flashing_state) = 0;
 
-# Sendspin related components are pinned to specific commits for reproducible builds
 external_components:
   - source:
       type: git
@@ -44,7 +43,6 @@ external_components:
     components:
       - i2s_audio
       - http_request
-      - sendspin
       - voicepe_doa
     refresh: 1h
   - source:

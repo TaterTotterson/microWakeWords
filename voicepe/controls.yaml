@@ -129,7 +129,7 @@ binary_sensor:
         then:
           - if:
               condition:
-                lambda: return !id(init_in_progress) && !id(color_changed) && !id(group_volume_changed);
+                lambda: return !id(init_in_progress) && !id(color_changed);
               then:
                 - if:
                     condition:
@@ -183,7 +183,7 @@ binary_sensor:
         then:
           - if:
               condition:
-                lambda: return !id(init_in_progress) && !id(color_changed) && !id(group_volume_changed);
+                lambda: return !id(init_in_progress) && !id(color_changed);
               then:
                 - script.execute:
                     id: play_sound
@@ -204,7 +204,7 @@ binary_sensor:
         then:
           - if:
               condition:
-                lambda: return !id(init_in_progress) && !id(color_changed) && !id(group_volume_changed);
+                lambda: return !id(init_in_progress) && !id(color_changed);
               then:
                 - script.execute:
                     id: play_sound
@@ -221,7 +221,7 @@ binary_sensor:
           - if:
               condition:
                 and:
-                  - lambda: return !id(init_in_progress) && !id(color_changed) && !id(group_volume_changed) && !id(factory_reset_requested);
+                  - lambda: return !id(init_in_progress) && !id(color_changed) && !id(factory_reset_requested);
                   - switch.is_off: master_mute_switch
               then:
                 - if:
@@ -393,11 +393,9 @@ binary_sensor:
       number: GPIO17
     # When the jack is plugged in:
     #  - LED animation
-    #  - Enable Sendspin static delay adjustment to apply the persisted delay when using the external audio output
     #  - Sound played
     on_press:
       - lambda: id(jack_plugged_recently) = true;
-      - sendspin.media_source.enable_static_delay_adjustment:
       - script.execute: control_leds
       - delay: 200ms
       - script.execute:
@@ -409,12 +407,10 @@ binary_sensor:
       - script.execute: control_leds
     # When the jack is unplugged:
     #  - LED animation
-    #  - Disable Sendspin static delay adjustment when using the internal speaker
     #  - Sound played
     on_release:
       - lambda: id(jack_unplugged_recently) = true;
       - script.execute: control_leds
-      - sendspin.media_source.disable_static_delay_adjustment:
       - delay: 200ms
       - script.execute:
           id: play_sound

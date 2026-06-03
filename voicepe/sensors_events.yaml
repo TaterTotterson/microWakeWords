@@ -15,18 +15,9 @@ sensor:
                 id: control_volume
                 increase_volume: true
           else:
-            - if:
-                condition:
-                  media_player.is_playing:
-                    id: sendspin_group_media_player
-                then:
-                  - script.execute:
-                      id: control_group_volume
-                      increase_volume: true
-                else:
-                  - script.execute:
-                      id: control_hue
-                      increase_hue: true
+            - script.execute:
+                id: control_hue
+                increase_hue: true
     on_anticlockwise:
       - lambda: id(dial_touched) = true;
       - if:
@@ -37,18 +28,9 @@ sensor:
                 id: control_volume
                 increase_volume: false
           else:
-            - if:
-                condition:
-                  media_player.is_playing:
-                    id: sendspin_group_media_player
-                then:
-                  - script.execute:
-                      id: control_group_volume
-                      increase_volume: false
-                else:
-                  - script.execute:
-                      id: control_hue
-                      increase_hue: false
+            - script.execute:
+                id: control_hue
+                increase_hue: false
 
 event:
   # Event entity exposed to the user to automate on complex center button presses.

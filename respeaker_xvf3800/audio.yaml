@@ -72,10 +72,6 @@ speaker:
     sample_rate: 48000
     bits_per_sample: 16
 
-sendspin:
-  id: sendspin_hub
-  task_stack_in_psram: false
-
 http_request:
 # Uncomment this, if you have problems with text-to-speech because of Home Assistant HTTPS internal URL
 #   verify_ssl: false
@@ -116,13 +112,8 @@ media_source:
   - platform: http_request
     id: http_media_source
     buffer_size: 500000
-  - platform: sendspin
-    id: sendspin_media_source
-    fixed_delay: 480 microseconds
 
 media_player:
-  - platform: sendspin
-    id: sendspin_group_media_player
   - platform: speaker_source
     id: external_media_player
     name: Media Player
@@ -141,7 +132,6 @@ media_player:
       speaker: media_resampling_speaker
       sources:
         - http_media_source
-        - sendspin_media_source
     volume_increment: 0.05
     volume_min: 0.0
     volume_max: 1.0
@@ -187,7 +177,6 @@ external_components:
     components:
       - i2s_audio
       - http_request
-      - sendspin
       - respeaker_xvf3800
       - aic3104
     refresh: 1h
