@@ -6,6 +6,7 @@ from esphome.components.audio_dac import AudioDac, audio_dac_ns
 from esphome.const import ( 
     CONF_ID, 
     CONF_MODE,
+    CONF_NUMBER,
     CONF_PIN,
     CONF_OUTPUT,
     CONF_INPUT,
@@ -46,6 +47,11 @@ def _validate_pin_mode(value):
     return value
 
 
+def _add_pin_number(value):
+    value[CONF_NUMBER] = value[CONF_PIN]
+    return value
+
+
 PIN_SCHEMA = cv.All(
     {
         cv.GenerateID(): cv.declare_id(PCMGPIOPin),
@@ -59,7 +65,8 @@ PIN_SCHEMA = cv.All(
             _validate_pin_mode,
         ),
         cv.Optional(CONF_INVERTED, default=False): cv.boolean,
-    }
+    },
+    _add_pin_number,
 )
 
 
