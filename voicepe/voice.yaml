@@ -43,6 +43,7 @@ external_components:
       path: voicepe/components
     components:
       - i2s_audio
+      - http_request
       - sendspin
       - voicepe_doa
     refresh: 0s
