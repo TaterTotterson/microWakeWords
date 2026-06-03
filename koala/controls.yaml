@@ -193,7 +193,7 @@ binary_sensor:
         then:
           - if:
               condition:
-                lambda: return !id(init_in_progress) && !id(color_changed) && !id(group_volume_changed);
+                lambda: return !id(init_in_progress) && !id(color_changed);
               then:
                 - if:
                     condition:
@@ -250,7 +250,7 @@ binary_sensor:
         then:
           - if:
               condition:
-                lambda: return !id(init_in_progress) && !id(color_changed) && !id(group_volume_changed);
+                lambda: return !id(init_in_progress) && !id(color_changed);
               then:
                 - if:
                     condition:
@@ -275,7 +275,7 @@ binary_sensor:
         then:
           - if:
               condition:
-                lambda: return !id(init_in_progress) && !id(color_changed) && !id(group_volume_changed);
+                lambda: return !id(init_in_progress) && !id(color_changed);
               then:
                 - if:
                     condition:
@@ -296,7 +296,7 @@ binary_sensor:
           - if:
               condition:
                 and:
-                  - lambda: return !id(init_in_progress) && !id(color_changed) && !id(group_volume_changed) && !id(factory_reset_requested);
+                  - lambda: return !id(init_in_progress) && !id(color_changed) && !id(factory_reset_requested);
                   - switch.is_off: mic_mute_switch
               then:
                 - if:

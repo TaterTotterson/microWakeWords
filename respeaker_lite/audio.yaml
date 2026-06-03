@@ -69,9 +69,6 @@ speaker:
     output_speaker: media_mixing_input
     sample_rate: 48000
     bits_per_sample: 16
-sendspin:
-  id: sendspin_hub
-  task_stack_in_psram: false
 http_request:
 # Uncomment this, if you have problems with text-to-speech because of Home Assistant HTTPS internal URL
 #   verify_ssl: false
@@ -110,12 +107,7 @@ media_source:
   - platform: http_request
     id: http_media_source
     buffer_size: 500000
-  - platform: sendspin
-    id: sendspin_media_source
-    fixed_delay: 480 microseconds
 media_player:
-  - platform: sendspin
-    id: sendspin_group_media_player
   - platform: speaker_source
     id: external_media_player
     name: Media Player
@@ -134,7 +126,6 @@ media_player:
       speaker: media_resampling_speaker
       sources:
         - http_media_source
-        - sendspin_media_source
     volume_increment: 0.05
     volume_min: 0.4
     volume_max: 0.85
@@ -209,27 +200,22 @@ external_components:
       ref: respeaker_microphone
     components:
       - i2s_audio
-    refresh: 0s
+    refresh: 1h
   - source:
       type: git
       url: https://github.com/formatBCE/Respeaker-Lite-ESPHome-integration
       ref: main
     components:
       - respeaker_lite
-    refresh: 0s
+    refresh: 1h
   - source:
-      # https://github.com/esphome/esphome/pull/14933
       type: git
-      url: https://github.com/kahrendt/esphome
-      ref: 7a6cf5c8472b7e2fa18ee0fc314f66a80d249e32
-    components: [const, media_source, sendspin]
-  - source:
-      # https://github.com/esphome/esphome/pull/12429
-      type: git
-      url: https://github.com/esphome/esphome
-      ref: ff8ce89556748509d7ee8724e12d9d43d3c8c1e8
-    refresh: 0s
-    components: [http_request]
+      url: https://github.com/TaterTotterson/microWakeWords
+      ref: main
+      path: respeaker_lite/components
+    components:
+      - http_request
+    refresh: 1h
 audio_dac:
   - platform: aic3204
     id: aic3204_dac
