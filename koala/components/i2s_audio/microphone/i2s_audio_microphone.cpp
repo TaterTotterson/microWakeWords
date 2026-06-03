@@ -85,7 +85,7 @@ void I2SAudioMicrophone::configure_stream_settings_() {
     bits_per_sample = 16;  // PDM mics are always 16 bits per sample
   }
 
-  this->audio_stream_info_ = audio::AudioStreamInfo(bits_per_sample, channel_count, this->sample_rate_);
+  this->audio_stream_info_ = audio::AudioStreamInfo(bits_per_sample, channel_count, 16000);
 }
 
 void I2SAudioMicrophone::start() {
