@@ -10,7 +10,8 @@
 
 #include "esphome/components/audio/audio.h"
 
-namespace esphome::i2s_audio {
+namespace esphome {
+namespace i2s_audio {
 
 static const UBaseType_t MAX_LISTENERS = 16;
 
@@ -84,7 +85,7 @@ void I2SAudioMicrophone::configure_stream_settings_() {
     bits_per_sample = 16;  // PDM mics are always 16 bits per sample
   }
 
-  this->audio_stream_info_ = audio::AudioStreamInfo(bits_per_sample, channel_count, 16000);
+  this->audio_stream_info_ = audio::AudioStreamInfo(bits_per_sample, channel_count, this->sample_rate_);
 }
 
 void I2SAudioMicrophone::start() {
@@ -250,23 +251,7 @@ void I2SAudioMicrophone::mic_task(void *params) {
         if (this_microphone->correct_dc_offset_) {
           this_microphone->fix_dc_offset_(samples);
         }
-
-        std::vector<uint8_t> each_third_sample;
-        size_t block_size = 24;
-        size_t copy_size = 8;
-        size_t total_blocks = samples.size() / block_size;
-
-        each_third_sample.resize(total_blocks * copy_size);
-
-        for (size_t block = 0; block < total_blocks; ++block) {
-            std::copy_n(
-                samples.begin() + block * block_size,
-                copy_size,
-                each_third_sample.begin() + block * copy_size
-            );
-        }
-
-        this_microphone->data_callbacks_.call(each_third_sample);
+        this_microphone->data_callbacks_.call(samples);
       } else {
         vTaskDelay(pdMS_TO_TICKS(READ_DURATION_MS));
       }
@@ -441,6 +426,7 @@ void I2SAudioMicrophone::loop() {
   }
 }
 
-}  // namespace esphome::i2s_audio
+}  // namespace i2s_audio
+}  // namespace esphome
 
 #endif  // USE_ESP32
