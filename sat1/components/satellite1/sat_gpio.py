@@ -5,6 +5,7 @@ from esphome import pins
 from esphome.const import (
     CONF_ID,
     CONF_MODE,
+    CONF_NUMBER,
     CONF_PIN,
     CONF_PORT,
     CONF_OUTPUT,
@@ -31,11 +32,28 @@ XMOS_PORT = {
 "OUTPUT_A" : XMOSPort.OUTPUT_A      
 }
 
+XMOS_PORT_NUMBER_BASE = {
+    "INPUT_A": 0,
+    "INPUT_B": 8,
+    "OUTPUT_A": 16,
+}
+
+
+def _xmos_port_name(port):
+    return str(port).split(".")[-1]
+
+
 def _validate_pin_mode(value):
     if not (value[CONF_INPUT] or value[CONF_OUTPUT]):
         raise cv.Invalid("Mode must be either input or output")
     if value[CONF_INPUT] and value[CONF_OUTPUT]:
         raise cv.Invalid("Mode must be either input or output")
+    return value
+
+
+def _add_pin_number(value):
+    port_name = _xmos_port_name(value[CONF_PORT])
+    value[CONF_NUMBER] = XMOS_PORT_NUMBER_BASE[port_name] + value[CONF_PIN]
     return value
 
 
@@ -53,7 +71,8 @@ PIN_SCHEMA = cv.All(
             _validate_pin_mode,
         ),
         cv.Optional(CONF_INVERTED, default=False): cv.boolean,
-    }
+    },
+    _add_pin_number,
 )
 
 
@@ -64,9 +83,10 @@ async def satellite1_pin_to_code(config):
 
     cg.add(var.set_pin(config[CONF_PORT], config[CONF_PIN]))
     cg.add(var.set_inverted(config[CONF_INVERTED]))
+    port_name = _xmos_port_name(config[CONF_PORT])
     port_mode = {
-        CONF_INPUT : config[CONF_PORT] in ["INPUT_A","INPUT_B"],
-        CONF_OUTPUT: config[CONF_PORT] in ["OUTPUT_A"]
+        CONF_INPUT : port_name in ["INPUT_A","INPUT_B"],
+        CONF_OUTPUT: port_name in ["OUTPUT_A"]
     }
     cg.add(var.set_flags(pins.gpio_flags_expr(port_mode)))
 
