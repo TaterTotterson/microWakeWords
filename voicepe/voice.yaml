@@ -46,7 +46,7 @@ external_components:
       - http_request
       - sendspin
       - voicepe_doa
-    refresh: 0s
+    refresh: 1h
   - source:
       type: git
       url: https://github.com/TaterTotterson/microWakeWords
@@ -55,14 +55,14 @@ external_components:
       - voice_assistant
       - micro_wake_word
       - remote_wake_word
-    refresh: 0s
+    refresh: 1h
   - source:
       type: git
       url: https://github.com/esphome/home-assistant-voice-pe
       ref: dev
     components:
       - voice_kit
-    refresh: 0s
+    refresh: 1h
 
 audio_dac:
   - platform: aic3204

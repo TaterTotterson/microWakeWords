@@ -19,7 +19,7 @@ external_components:
       - voice_assistant
       - micro_wake_word
       - remote_wake_word
-    refresh: 0s
+    refresh: 1h
 
 microphone:
   - platform: satellite1

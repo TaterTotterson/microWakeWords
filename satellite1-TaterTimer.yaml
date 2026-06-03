@@ -25,7 +25,7 @@ substitutions:
   # -----------------------------
   # FIRMWARE VERSIONS
   # -----------------------------
-  esp32_fw_version: "3.0.4"
+  esp32_fw_version: "3.0.5"
   xmos_fw_version: "v1.0.4-dev"
 
   # -----------------------------
@@ -238,7 +238,7 @@ external_components:
       - satellite1_doa
       - satellite1_radar
       - tas2780
-    refresh: 0s
+    refresh: 1h
 
 packages:
   TaterTotterson.Sat1:
