@@ -43,6 +43,7 @@ external_components:
       path: voicepe/components
     components:
       - i2s_audio
+      - sendspin
       - voicepe_doa
     refresh: 0s
   - source:
@@ -61,19 +62,6 @@ external_components:
     components:
       - voice_kit
     refresh: 0s
-  - source:
-      # https://github.com/esphome/esphome/pull/14933
-      type: git
-      url: https://github.com/kahrendt/esphome
-      ref: 7a6cf5c8472b7e2fa18ee0fc314f66a80d249e32
-    components: [const, media_source, sendspin]
-  - source:
-      # https://github.com/esphome/esphome/pull/12429
-      type: git
-      url: https://github.com/esphome/esphome
-      ref: ff8ce89556748509d7ee8724e12d9d43d3c8c1e8
-    refresh: 0s
-    components: [http_request]
 
 audio_dac:
   - platform: aic3204
