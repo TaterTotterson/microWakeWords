@@ -1,6 +1,6 @@
 substitutions:
   # DEVICE IDENTITY
-  firmware_version: "3.0.4"
+  firmware_version: "3.0.5"
   device_name: tater-respeaker-lite
   friendly_name: Tater ReSpeaker Lite
 
@@ -30,6 +30,9 @@ substitutions:
   mute_switch_off_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/mute_switch_off.flac
   timer_finished_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/timer_finished.flac
   wake_word_triggered_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/wake_word_triggered.flac
+  wake_sound: "No Sound" # Initial Wake Sound select option. Users can change this live after boot.
+  wake_sound_catalog_package: github://TaterTotterson/microWakeWords/shared/wake_sounds.yaml@main
+  wake_sound_script_package: github://TaterTotterson/microWakeWords/shared/wake_sound_scripts.yaml@main
   center_button_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/center_button_press.flac
   center_button_double_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/center_button_double_press.flac
   center_button_triple_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/center_button_triple_press.flac
@@ -63,3 +66,5 @@ packages:
       - respeaker_lite/audio.yaml
       - respeaker_lite/voice.yaml
       - respeaker_lite/system.yaml
+  TaterTotterson.WakeSoundCatalog: ${wake_sound_catalog_package}
+  TaterTotterson.WakeSoundScript: ${wake_sound_script_package}

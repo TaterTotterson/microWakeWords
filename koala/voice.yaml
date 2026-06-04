@@ -63,9 +63,8 @@ micro_wake_word:
                                   switch.is_on: wake_sound
                                 then:
                                   - script.execute:
-                                      id: play_sound
+                                      id: play_wake_sound
                                       priority: true
-                                      sound_file: "wake_word_triggered_sound"
                             - voice_assistant.start:
                                 wake_word: !lambda return wake_word;
 
@@ -124,9 +123,8 @@ remote_wake_word:
                             switch.is_on: wake_sound
                           then:
                             - script.execute:
-                                id: play_sound
+                                id: play_wake_sound
                                 priority: true
-                                sound_file: "wake_word_triggered_sound"
                       - voice_assistant.start:
                           wake_word: !lambda return wake_word;
   on_error:
@@ -416,9 +414,8 @@ voice_assistant:
                   - switch.is_on: wake_sound
               then:
                 - script.execute:
-                    id: play_sound
+                    id: play_wake_sound
                     priority: false
-                    sound_file: "wake_word_triggered_sound"
   on_start:
     - remote_wake_word.stop:
     - mixer_speaker.apply_ducking:

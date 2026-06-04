@@ -1,0 +1,65 @@
+script:
+  # Script executed for the wake sound so it can be changed at runtime.
+  - id: play_wake_sound
+    parameters:
+      priority: bool
+    then:
+      - lambda: |-
+          const auto selected = id(wake_sound_select).state;
+          if (selected == "No Sound") {
+            return;
+          }
+
+          auto sound_file = id(wake_word_triggered_sound);
+
+          if (selected == "Blip2") {
+            sound_file = id(wake_sound_blip2);
+          }
+          else if (selected == "Message Notification 4") {
+            sound_file = id(wake_sound_message_notification_4);
+          }
+          else if (selected == "Notification Ding") {
+            sound_file = id(wake_sound_notification_ding);
+          }
+          else if (selected == "Notification Squeak") {
+            sound_file = id(wake_sound_notification_squeak);
+          }
+          else if (selected == "Phone Chime") {
+            sound_file = id(wake_sound_phone_chime);
+          }
+          else if (selected == "Pop Up Sound") {
+            sound_file = id(wake_sound_pop_up_sound);
+          }
+          else if (selected == "Short Definite Fart") {
+            sound_file = id(wake_sound_short_definite_fart);
+          }
+          else if (selected == "Star Treck Communications Start Transmission") {
+            sound_file = id(wake_sound_star_treck_communications_start_transmission);
+          }
+          else if (selected == "Star Treck Computer Work Beep") {
+            sound_file = id(wake_sound_star_treck_computer_work_beep);
+          }
+          else if (selected == "Tater Notify Digital Blip") {
+            sound_file = id(wake_sound_tater_notify_digital_blip);
+          }
+          else if (selected == "Turning Off Microphone Percussion 1") {
+            sound_file = id(wake_sound_turning_off_microphone_percussion_1);
+          }
+          else if (selected == "Wake Word Triggered") {
+            sound_file = id(wake_sound_wake_word_triggered);
+          }
+          else if (selected == "Waterdrop") {
+            sound_file = id(wake_sound_waterdrop);
+          }
+
+          if (priority) {
+            id(external_media_player)
+              ->make_call()
+              .set_command(media_player::MediaPlayerCommand::MEDIA_PLAYER_COMMAND_STOP)
+              .set_announcement(true)
+              .perform();
+          }
+          if ((id(external_media_player).state != media_player::MediaPlayerState::MEDIA_PLAYER_STATE_ANNOUNCING) || priority) {
+            id(external_media_player)
+              ->play_file(sound_file, true, false);
+          }

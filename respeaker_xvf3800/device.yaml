@@ -137,6 +137,8 @@ ota:
   - platform: esphome
     id: ota_esphome
 
+improv_serial:
+
 i2c:
   - id: internal_i2c
     sda: GPIO5
