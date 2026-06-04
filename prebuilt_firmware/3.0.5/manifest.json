@@ -102,6 +102,25 @@
           "sha256": "31ab2989a583f909fd7f6fe653bfaaccbfef40ae9f2b65b86f860281ad23e4f3"
         }
       }
+    },
+    {
+      "key": "s3box_display",
+      "name": "Tater ESP32-S3-BOX-3 Display",
+      "config": "esp32-s3-box-3.yaml",
+      "artifacts": {
+        "ota": {
+          "kind": "ota",
+          "path": "prebuilt_firmware/3.0.5/s3box_display/tater-s3box-display-3.0.5.ota.bin",
+          "size_bytes": 1751504,
+          "sha256": "3046abbbe78f388a15f74e9f46749acb59e697bd83363202392751c0da851f40"
+        },
+        "factory": {
+          "kind": "factory",
+          "path": "prebuilt_firmware/3.0.5/s3box_display/tater-s3box-display-3.0.5.factory.bin",
+          "size_bytes": 1817040,
+          "sha256": "88cc97516b9fcd497351c5826dd74f920eb929ac509891b9b10b8735bf554588"
+        }
+      }
     }
   ]
 }

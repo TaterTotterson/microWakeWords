@@ -1,0 +1,2214 @@
+# Tater display firmware for the ESP32-S3-BOX-3.
+substitutions:
+  firmware_version: "3.0.5"
+  device_name: taters3box
+  friendly_name: taterS3Box
+  tater_first_name: Tater
+  display_target: livingroom
+
+  # Point this at the Tater host running the voice/display API.
+  tater_base_url: http://tater.local:8501
+  tater_token: ""
+  timezone: America/Chicago
+
+  # Wi-Fi / OTA target
+  wifi_ssid: !secret wifi_ssid
+  wifi_password: !secret wifi_password
+  device_ip: 10.4.20.237
+
+  # Tater display feed slots. These are Home Assistant entity ids already known to Tater.
+  sensor_temp_out: sensor.weather_outdoor_temperature
+  sensor_temp_in: sensor.living_room_temperature
+  sensor_humidity_out: sensor.humidity
+  sensor_humidity_in: sensor.up_sense_humidity_level
+  sensor_wind_speed: sensor.wind_speed
+  sensor_rain_rate: sensor.rain_rate
+  sensor_lightning_strikes: sensor.weather_lightning_strikes
+
+  # Tater voice / wake word
+  wake_engine: microwakeword
+  openwakeword_server_url: ws://tater.local:8501
+  nanowakeword_server_url: ws://tater.local:8501
+  openwakeword_http_timeout_ms: "3000"
+  openwakeword_max_failures: "3"
+  wake_word_name: hey_tater
+  wake_word_model_url: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/microWakeWordsV3/hey_tater.json
+  wake_cutoff_slight: "250"
+  wake_cutoff_moderate: "245"
+  wake_cutoff_very: "222"
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_name}
+  name_add_mac_suffix: true
+  min_version: 2026.4.0
+  project:
+    name: tater.s3box_display
+    version: ${firmware_version}
+  on_boot:
+    priority: -100
+    then:
+      - light.turn_on:
+          id: lcd_backlight
+          brightness: !lambda |-
+            float brightness = id(display_brightness).state;
+            if (brightness != brightness) {
+              brightness = 100.0f;
+            }
+            if (brightness < 10.0f) {
+              brightness = 10.0f;
+            }
+            if (brightness > 100.0f) {
+              brightness = 100.0f;
+            }
+            return brightness / 100.0f;
+      - script.execute: refresh_clock
+
+dashboard_import:
+  package_import_url: github://TaterTotterson/microWakeWords/esp32-s3-box-3.yaml@main
+  import_full_config: true
+
+esp32:
+  board: esp32s3box
+  flash_size: 16MB
+  cpu_frequency: 240MHz
+  partitions:
+    - name: mww_model_a
+      type: data
+      subtype: 0x40
+      size: 0x80000
+    - name: mww_model_b
+      type: data
+      subtype: 0x41
+      size: 0x80000
+  framework:
+    type: esp-idf
+    version: recommended
+    sdkconfig_options:
+      CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: "y"
+      CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
+      CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+wifi:
+  ssid: ${wifi_ssid}
+  password: ${wifi_password}
+  use_address: ${device_ip}
+  reboot_timeout: 0s
+  ap:
+  on_connect:
+    then:
+      - text_sensor.template.publish:
+          id: connection_status_text
+          state: "Wi-Fi online"
+      - script.execute: fetch_tater_feed
+      - script.wait: fetch_tater_feed
+      - delay: 1s
+      - script.execute: fetch_tater_events
+  on_disconnect:
+    then:
+      - text_sensor.template.publish:
+          id: connection_status_text
+          state: "Wi-Fi offline"
+
+logger:
+  level: INFO
+  hardware_uart: USB_SERIAL_JTAG
+  logs:
+    lvgl: WARN
+
+api:
+  reboot_timeout: 0s
+
+button:
+  - platform: template
+    id: refresh_display_events_button
+    name: Refresh Display Events
+    entity_category: diagnostic
+    on_press:
+      then:
+        - script.execute: fetch_tater_feed
+        - script.wait: fetch_tater_feed
+        - script.execute: fetch_tater_events
+
+ota:
+  - platform: esphome
+
+captive_portal:
+
+external_components:
+  - source:
+      type: git
+      url: https://github.com/TaterTotterson/microWakeWords
+      ref: main
+      path: shared/components
+    components:
+      - voice_assistant
+      - micro_wake_word
+      - remote_wake_word
+    refresh: 1h
+
+time:
+  - platform: sntp
+    id: local_time
+    timezone: ${timezone}
+    on_time_sync:
+      then:
+        - script.execute: refresh_clock
+    on_time:
+      - seconds: 0
+        minutes: /1
+        then:
+          - script.execute: refresh_clock
+
+json:
+
+http_request:
+  timeout: 3s
+  verify_ssl: false
+  buffer_size_rx: 1024
+  buffer_size_tx: 1024
+
+online_image:
+  - url: "http://127.0.0.1/"
+    id: event_snapshot_image
+    format: JPEG
+    type: RGB565
+    resize: 296x122
+    update_interval: never
+    request_headers:
+      X-Tater-Token: "${tater_token}"
+    on_download_finished:
+      then:
+        - logger.log:
+            level: INFO
+            tag: tater.display
+            format: "Snapshot download finished; showing image."
+        - lvgl.image.update:
+            id: event_image_widget
+            src: event_snapshot_image
+        - lvgl.widget.show: event_image_widget
+        - lvgl.widget.hide: event_image_status_label
+        - if:
+            condition:
+              lambda: return id(event_visible) && id(event_kind_text).state != "tool_call";
+            then:
+              - lvgl.page.show: event_image_page
+        - lvgl.widget.redraw:
+            id: event_image_widget
+    on_error:
+      then:
+        - logger.log:
+            level: WARN
+            tag: tater.display
+            format: "Snapshot download failed or could not be decoded."
+        - lvgl.widget.hide: event_image_widget
+        - lvgl.label.update:
+            id: event_image_status_label
+            text: "Snapshot unavailable"
+        - lvgl.widget.show: event_image_status_label
+        - if:
+            condition:
+              lambda: return id(event_visible) && id(event_kind_text).state != "tool_call";
+            then:
+              - lvgl.page.show: event_image_page
+
+i2c:
+  - id: i2c_adc_dac
+    scl: GPIO18
+    sda: GPIO8
+
+i2s_audio:
+  - id: i2s_audio_bus
+    i2s_lrclk_pin:
+      number: GPIO45
+      ignore_strapping_warning: true
+    i2s_bclk_pin: GPIO17
+    i2s_mclk_pin: GPIO2
+
+audio_adc:
+  - platform: es7210
+    i2c_id: i2c_adc_dac
+    id: es7210_adc
+    bits_per_sample: 16bit
+    sample_rate: 16000
+
+audio_dac:
+  - platform: es8311
+    i2c_id: i2c_adc_dac
+    id: es8311_dac
+    bits_per_sample: 16bit
+    sample_rate: 48000
+
+microphone:
+  - platform: i2s_audio
+    id: box_mic
+    sample_rate: 16000
+    i2s_din_pin: GPIO16
+    bits_per_sample: 16bit
+    adc_type: external
+
+speaker:
+  - platform: i2s_audio
+    id: box_speaker
+    i2s_dout_pin: GPIO15
+    dac_type: external
+    sample_rate: 48000
+    bits_per_sample: 16bit
+    channel: left
+    audio_dac: es8311_dac
+    buffer_duration: 100ms
+
+media_player:
+  - platform: speaker
+    id: speaker_media_player
+    name: None
+    volume_min: 0.5
+    volume_max: 0.8
+    announcement_pipeline:
+      speaker: box_speaker
+    on_announcement:
+      - if:
+          condition:
+            - microphone.is_capturing:
+          then:
+            - micro_wake_word.stop:
+    on_idle:
+      - if:
+          condition:
+            and:
+              - not:
+                  voice_assistant.is_running:
+              - switch.is_off: master_mute_switch
+              - lambda: return id(wake_engine_select).state == "microwakeword";
+          then:
+            - micro_wake_word.start:
+            - script.execute: show_home_if_no_event
+
+spi:
+  - id: spi_bus
+    clk_pin: GPIO7
+    mosi_pin: GPIO6
+
+output:
+  - platform: ledc
+    pin: GPIO47
+    id: backlight_output
+
+light:
+  - platform: monochromatic
+    id: lcd_backlight
+    name: LCD Backlight
+    entity_category: config
+    output: backlight_output
+    restore_mode: ALWAYS_ON
+    default_transition_length: 120ms
+
+globals:
+  - id: last_event_seq
+    type: int
+    restore_value: no
+    initial_value: "0"
+  - id: tater_http_failures
+    type: int
+    restore_value: no
+    initial_value: "0"
+  - id: display_poll_tick
+    type: int
+    restore_value: no
+    initial_value: "0"
+  - id: event_visible
+    type: bool
+    restore_value: no
+    initial_value: "false"
+  - id: event_until_ms
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+  - id: tool_animation_frame
+    type: int
+    restore_value: no
+    initial_value: "0"
+  - id: voice_animation_frame
+    type: int
+    restore_value: no
+    initial_value: "0"
+  - id: voice_assistant_phase
+    type: int
+    restore_value: no
+    initial_value: "10"
+  - id: openwakeword_wake_detected
+    type: bool
+    restore_value: no
+    initial_value: "false"
+  - id: voice_api_connected
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+micro_wake_word:
+  id: mww
+  models:
+    - model: ${wake_word_model_url}
+      id: ${wake_word_name}
+  vad:
+  microphone:
+    microphone: box_mic
+    channels: 0
+    gain_factor: 4
+  on_wake_word_detected:
+    - logger.log:
+        level: INFO
+        tag: tater.voice
+        format: "Wake word detected: %s"
+        args: ["wake_word.c_str()"]
+    - if:
+        condition:
+          switch.is_off: master_mute_switch
+        then:
+          - if:
+              condition:
+                voice_assistant.is_running:
+              then:
+                - voice_assistant.stop:
+              else:
+                - lambda: |-
+                    id(openwakeword_wake_detected) = false;
+                    id(voice_assistant_phase) = 2;
+                - text_sensor.template.publish:
+                    id: connection_status_text
+                    state: "Listening"
+                - script.execute: show_voice_page
+                - voice_assistant.start:
+                    wake_word: !lambda return wake_word;
+
+remote_wake_word:
+  id: oww
+  microphone:
+    microphone: box_mic
+    channels: 0
+    gain_factor: 4
+  url: ${openwakeword_server_url}
+  stream_path: /api/openwakeword/stream
+  source_device: ${device_name}
+  wake_word: ${wake_word_name}
+  chunk_duration_ms: 500
+  max_failures: ${openwakeword_max_failures}
+  http_timeout_ms: ${openwakeword_http_timeout_ms}
+  on_wake_word_detected:
+    - logger.log:
+        level: INFO
+        tag: tater.voice
+        format: "Remote wake word detected: %s"
+        args: ["wake_word.c_str()"]
+    - if:
+        condition:
+          switch.is_off: master_mute_switch
+        then:
+          - if:
+              condition:
+                voice_assistant.is_running:
+              then:
+                - voice_assistant.stop:
+              else:
+                - lambda: |-
+                    id(openwakeword_wake_detected) = true;
+                    id(voice_assistant_phase) = 2;
+                - text_sensor.template.publish:
+                    id: connection_status_text
+                    state: "Listening"
+                - script.execute: show_voice_page
+                - voice_assistant.start:
+                    wake_word: !lambda return wake_word;
+  on_error:
+    - logger.log:
+        level: WARN
+        tag: tater.voice
+        format: "Remote wake word unavailable, temporarily using microWakeWord: %s"
+        args: ["message.c_str()"]
+    - script.execute: recover_openwakeword_after_fallback
+    - text_sensor.template.publish:
+        id: connection_status_text
+        state: "Using local wake"
+
+voice_assistant:
+  id: va
+  microphone: box_mic
+  media_player: speaker_media_player
+  micro_wake_word: mww
+  use_wake_word: false
+  noise_suppression_level: 2
+  auto_gain: 31dBFS
+  volume_multiplier: 2.0
+  on_client_connected:
+    - logger.log:
+        level: INFO
+        tag: tater.voice
+        format: "Voice assistant client connected; starting wake word detection."
+    - lambda: |-
+        id(voice_api_connected) = true;
+        id(openwakeword_wake_detected) = false;
+    - lambda: |-
+        id(mww).set_capture_upload_enabled(id(capture_wake_audio).state);
+        id(mww).set_capture_close_misses_enabled(id(capture_close_misses).state);
+        id(mww).set_capture_close_miss_probability_cutoff(id(close_miss_threshold).state);
+        id(mww).set_capture_upload_url(id(trainer_app_url).state);
+        if (id(wake_engine_select).state == "nanowakeword") {
+          id(oww).set_url(id(nanowakeword_server_url).state);
+          id(oww).set_stream_path("/api/nanowakeword/stream");
+        } else {
+          id(oww).set_url(id(openwakeword_server_url).state);
+          id(oww).set_stream_path("/api/openwakeword/stream");
+        }
+    - script.execute: apply_wake_engine
+    - lambda: id(voice_assistant_phase) = 1;
+    - text_sensor.template.publish:
+        id: connection_status_text
+        state: "Voice ready"
+  on_client_disconnected:
+    - logger.log:
+        level: WARN
+        tag: tater.voice
+        format: "Voice assistant client disconnected; stopping wake word detection."
+    - lambda: id(voice_api_connected) = false;
+    - voice_assistant.stop:
+    - micro_wake_word.stop:
+    - remote_wake_word.stop:
+    - lambda: |-
+        id(openwakeword_wake_detected) = false;
+        id(voice_assistant_phase) = 10;
+    - text_sensor.template.publish:
+        id: connection_status_text
+        state: "Voice offline"
+    - script.execute: show_home_if_no_event
+  on_error:
+    - lambda: id(openwakeword_wake_detected) = false;
+    - if:
+        condition:
+          or:
+            - lambda: return code == "duplicate_wake_up_detected";
+            - lambda: return code == "stt-no-text-recognized";
+        then:
+          - if:
+              condition:
+                voice_assistant.is_running:
+              then:
+                - voice_assistant.stop:
+          - lambda: id(voice_assistant_phase) = 1;
+          - text_sensor.template.publish:
+              id: connection_status_text
+              state: "Voice ready"
+          - script.execute: show_home_if_no_event
+    - if:
+        condition:
+          and:
+            - lambda: return code != "duplicate_wake_up_detected";
+            - lambda: return code != "stt-no-text-recognized";
+        then:
+          - lambda: id(voice_assistant_phase) = 11;
+          - text_sensor.template.publish:
+              id: connection_status_text
+              state: "Voice error"
+          - script.execute: show_voice_page
+  on_wake_word_detected:
+    - if:
+        condition:
+          lambda: return id(wake_engine_select).state != "microwakeword";
+        then:
+          - lambda: |-
+              id(openwakeword_wake_detected) = true;
+              id(voice_assistant_phase) = 2;
+          - text_sensor.template.publish:
+              id: connection_status_text
+              state: "Listening"
+          - script.execute: show_voice_page
+  on_start:
+    - remote_wake_word.stop:
+    - if:
+        condition:
+          lambda: return id(wake_engine_select).state == "microwakeword" || id(openwakeword_wake_detected);
+        then:
+          - lambda: id(voice_assistant_phase) = 2;
+          - text_sensor.template.publish:
+              id: connection_status_text
+              state: "Voice active"
+          - script.execute: show_voice_page
+        else:
+          - lambda: id(voice_assistant_phase) = 1;
+          - script.execute: show_home_if_no_event
+  on_listening:
+    - if:
+        condition:
+          lambda: return id(wake_engine_select).state == "microwakeword" || id(openwakeword_wake_detected);
+        then:
+          - lambda: id(voice_assistant_phase) = 2;
+          - text_sensor.template.publish:
+              id: connection_status_text
+              state: "Listening"
+          - script.execute: show_voice_page
+        else:
+          - lambda: id(voice_assistant_phase) = 1;
+          - script.execute: show_home_if_no_event
+  on_stt_vad_start:
+    - if:
+        condition:
+          lambda: return id(wake_engine_select).state == "microwakeword" || id(openwakeword_wake_detected);
+        then:
+          - lambda: id(voice_assistant_phase) = 3;
+          - text_sensor.template.publish:
+              id: connection_status_text
+              state: "Hearing you"
+          - script.execute: show_voice_page
+  on_stt_vad_end:
+    - if:
+        condition:
+          lambda: return id(wake_engine_select).state == "microwakeword" || id(openwakeword_wake_detected);
+        then:
+          - lambda: id(voice_assistant_phase) = 4;
+          - text_sensor.template.publish:
+              id: connection_status_text
+              state: "Thinking"
+          - script.execute: show_voice_page
+  on_tool_call_start:
+    - if:
+        condition:
+          lambda: return id(wake_engine_select).state == "microwakeword" || id(openwakeword_wake_detected);
+        then:
+          - lambda: id(voice_assistant_phase) = 6;
+    - lambda: |-
+        id(event_visible) = true;
+        id(event_until_ms) = millis() + 30000U;
+    - text_sensor.template.publish:
+        id: event_kind_text
+        state: "tool_call"
+    - text_sensor.template.publish:
+        id: tool_name_text
+        state: !lambda |-
+          if (!x.empty()) {
+            return x;
+          }
+          return std::string("${tater_first_name} is working");
+    - text_sensor.template.publish:
+        id: event_message_text
+        state: "I'm working on that now."
+    - text_sensor.template.publish:
+        id: tool_step_text
+        state: "running"
+  on_intent_progress:
+    - if:
+        condition:
+          and:
+            - lambda: "return !x.empty();"
+            - lambda: return id(wake_engine_select).state == "microwakeword" || id(openwakeword_wake_detected);
+        then:
+          - lambda: id(voice_assistant_phase) = 5;
+          - text_sensor.template.publish:
+              id: connection_status_text
+              state: "Replying"
+          - script.execute: show_voice_page
+  on_tts_start:
+    - if:
+        condition:
+          lambda: return id(wake_engine_select).state == "microwakeword" || id(openwakeword_wake_detected);
+        then:
+          - lambda: id(voice_assistant_phase) = 5;
+          - text_sensor.template.publish:
+              id: connection_status_text
+              state: "Replying"
+          - script.execute: show_voice_page
+  on_end:
+    - wait_until:
+        condition:
+          - media_player.is_announcing:
+              id: speaker_media_player
+        timeout: 0.5s
+    - wait_until:
+        condition:
+          and:
+            - not:
+                media_player.is_announcing:
+                  id: speaker_media_player
+            - not:
+                speaker.is_playing:
+                  id: box_speaker
+    - script.execute: apply_wake_engine
+    - lambda: |-
+        id(openwakeword_wake_detected) = false;
+        id(voice_assistant_phase) = 1;
+    - text_sensor.template.publish:
+        id: connection_status_text
+        state: "Voice ready"
+    - script.execute: show_home_if_no_event
+
+switch:
+  - platform: gpio
+    id: speaker_enable_switch
+    name: Speaker Enable
+    pin:
+      number: GPIO46
+      ignore_strapping_warning: true
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
+    disabled_by_default: true
+
+  - platform: template
+    id: master_mute_switch
+    name: Microphone Mute
+    icon: mdi:microphone-off
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - microphone.mute:
+      - text_sensor.template.publish:
+          id: connection_status_text
+          state: "Muted"
+    turn_off_action:
+      - microphone.unmute:
+      - text_sensor.template.publish:
+          id: connection_status_text
+          state: "Voice ready"
+
+  - platform: template
+    id: capture_wake_audio
+    name: Capture Wake Audio
+    icon: mdi:waveform
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - lambda: id(mww).set_capture_upload_enabled(true);
+    turn_off_action:
+      - lambda: id(mww).set_capture_upload_enabled(false);
+
+  - platform: template
+    id: capture_close_misses
+    name: Capture Close Misses
+    icon: mdi:target
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - lambda: id(mww).set_capture_close_misses_enabled(true);
+    turn_off_action:
+      - lambda: id(mww).set_capture_close_misses_enabled(false);
+
+text:
+  - platform: template
+    id: trainer_app_url
+    name: Trainer App URL
+    icon: mdi:lan-connect
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: "http://trainer.local:8789"
+    mode: TEXT
+    max_length: 255
+    set_action:
+      - lambda: id(mww).set_capture_upload_url(x);
+
+  - platform: template
+    id: microwakeword_model_url
+    name: microWakeWord Model URL
+    icon: mdi:file-cloud
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: "${wake_word_model_url}"
+    mode: TEXT
+    max_length: 255
+    set_action:
+      - lambda: id(mww).set_runtime_model_url(x);
+
+  - platform: template
+    id: openwakeword_server_url
+    name: openWakeWord Server URL
+    icon: mdi:server-network
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: "${openwakeword_server_url}"
+    mode: TEXT
+    max_length: 255
+    set_action:
+      - lambda: |-
+          if (id(wake_engine_select).state == "openwakeword") {
+            id(oww).set_url(x);
+          }
+
+  - platform: template
+    id: nanowakeword_server_url
+    name: NanoWakeWord Server URL
+    icon: mdi:server-network
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: "${nanowakeword_server_url}"
+    mode: TEXT
+    max_length: 255
+    set_action:
+      - lambda: |-
+          if (id(wake_engine_select).state == "nanowakeword") {
+            id(oww).set_url(x);
+          }
+
+number:
+  - platform: template
+    id: display_brightness
+    name: Display Brightness
+    icon: mdi:brightness-6
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: 100
+    min_value: 10
+    max_value: 100
+    step: 5
+    unit_of_measurement: "%"
+    set_action:
+      - light.turn_on:
+          id: lcd_backlight
+          brightness: !lambda |-
+            float brightness = x;
+            if (brightness < 10.0f) {
+              brightness = 10.0f;
+            }
+            if (brightness > 100.0f) {
+              brightness = 100.0f;
+            }
+            return brightness / 100.0f;
+
+  - platform: template
+    id: close_miss_threshold
+    name: Close Miss Threshold
+    icon: mdi:target-variant
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: 0.78
+    min_value: 0.50
+    max_value: 0.95
+    step: 0.01
+    set_action:
+      - lambda: id(mww).set_capture_close_miss_probability_cutoff(x);
+
+  - platform: template
+    id: openwakeword_http_timeout_ms
+    name: Remote Wake Transport Timeout
+    icon: mdi:timer-outline
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: ${openwakeword_http_timeout_ms}
+    min_value: 250
+    max_value: 10000
+    step: 50
+    unit_of_measurement: ms
+    set_action:
+      - lambda: id(oww).set_http_timeout_ms((uint32_t) x);
+
+  - platform: template
+    id: openwakeword_max_failures
+    name: Remote Wake Max Failures
+    icon: mdi:alert-circle-outline
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: ${openwakeword_max_failures}
+    min_value: 1
+    max_value: 20
+    step: 1
+    set_action:
+      - lambda: id(oww).set_max_failures((uint8_t) x);
+
+select:
+  - platform: template
+    id: wake_engine_select
+    name: Wake Engine
+    icon: mdi:ear-hearing
+    entity_category: config
+    optimistic: true
+    initial_option: ${wake_engine}
+    restore_value: true
+    options:
+      - microwakeword
+      - openwakeword
+      - nanowakeword
+    on_value:
+      - script.execute: apply_wake_engine
+
+  - platform: template
+    id: wake_word_sensitivity
+    name: Wake Word Sensitivity
+    entity_category: config
+    optimistic: true
+    initial_option: Slightly sensitive
+    restore_value: true
+    options:
+      - Slightly sensitive
+      - Moderately sensitive
+      - Very sensitive
+    on_value:
+      lambda: |-
+        if (x == "Slightly sensitive") {
+          id(${wake_word_name}).set_probability_cutoff(${wake_cutoff_slight});
+        } else if (x == "Moderately sensitive") {
+          id(${wake_word_name}).set_probability_cutoff(${wake_cutoff_moderate});
+        } else if (x == "Very sensitive") {
+          id(${wake_word_name}).set_probability_cutoff(${wake_cutoff_very});
+        }
+
+font:
+  - file:
+      type: gfonts
+      family: Roboto Mono
+    id: tater_font_14
+    size: 14
+  - file:
+      type: gfonts
+      family: Roboto Mono
+    id: tater_font_16
+    size: 16
+  - file:
+      type: gfonts
+      family: Roboto Mono
+    id: tater_font_18
+    size: 18
+  - file:
+      type: gfonts
+      family: Roboto Mono
+    id: tater_font_24
+    size: 24
+  - file:
+      type: gfonts
+      family: Roboto Mono
+    id: tater_font_36
+    size: 36
+  - file:
+      type: gfonts
+      family: Roboto Mono
+    id: tater_font_56
+    size: 56
+
+text_sensor:
+  - platform: template
+    id: connection_status_text
+    internal: true
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: status_label
+            text: !lambda return x;
+        - lvgl.label.update:
+            id: voice_status_label
+            text: !lambda return x;
+
+  - platform: template
+    id: temp_out_text
+    internal: true
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: temp_out_value
+            text: !lambda return x;
+
+  - platform: template
+    id: temp_in_text
+    internal: true
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: temp_in_value
+            text: !lambda return x;
+
+  - platform: template
+    id: humidity_out_text
+    internal: true
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: humidity_out_value
+            text: !lambda return x;
+
+  - platform: template
+    id: humidity_in_text
+    internal: true
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: humidity_in_value
+            text: !lambda return x;
+
+  - platform: template
+    id: wind_text
+    internal: true
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: wind_value
+            text: !lambda return x;
+
+  - platform: template
+    id: rain_text
+    internal: true
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: rain_value
+            text: !lambda return x;
+
+  - platform: template
+    id: lightning_text
+    internal: true
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lightning_value
+            text: !lambda return x;
+
+  - platform: template
+    id: event_kind_text
+    internal: true
+    on_value:
+      then:
+        - if:
+            condition:
+              lambda: return x == "tool_call";
+            then:
+              - lvgl.page.show: tool_page
+            else:
+              - if:
+                  condition:
+                    lambda: return !id(event_image_url_text).state.empty();
+                  then:
+                    - lvgl.page.show: event_image_page
+                  else:
+                    - lvgl.page.show: event_page
+
+  - platform: template
+    id: event_title_text
+    internal: true
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: event_title_label
+            text: !lambda return x;
+        - lvgl.label.update:
+            id: event_image_title_label
+            text: !lambda return x;
+
+  - platform: template
+    id: event_message_text
+    internal: true
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: event_message_label
+            text: !lambda return x;
+        - lvgl.label.update:
+            id: event_image_message_label
+            text: !lambda return x;
+        - lvgl.label.update:
+            id: tool_message_label
+            text: !lambda return x;
+
+  - platform: template
+    id: event_description_text
+    internal: true
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: event_description_label
+            text: !lambda return x;
+        - lvgl.label.update:
+            id: event_image_description_label
+            text: !lambda return x;
+
+  - platform: template
+    id: event_priority_text
+    internal: true
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: event_priority_label
+            text: !lambda return x;
+        - lvgl.label.update:
+            id: event_image_priority_label
+            text: !lambda return x;
+
+  - platform: template
+    id: event_image_url_text
+    internal: true
+    on_value:
+      then:
+        - if:
+            condition:
+              lambda: return !x.empty();
+            then:
+              - lvgl.widget.hide: event_image_widget
+              - lvgl.label.update:
+                  id: event_image_status_label
+                  text: "Loading snapshot..."
+              - lvgl.widget.show: event_image_status_label
+              - online_image.set_url:
+                  id: event_snapshot_image
+                  url: !lambda return x;
+                  update: true
+            else:
+              - lvgl.widget.hide: event_image_widget
+              - lvgl.widget.hide: event_image_status_label
+              - online_image.release: event_snapshot_image
+
+  - platform: template
+    id: tool_name_text
+    internal: true
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: tool_name_label
+            text: !lambda return x;
+
+  - platform: template
+    id: tool_step_text
+    internal: true
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: tool_step_label
+            text: !lambda return x;
+
+script:
+  - id: apply_wake_engine
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: return id(voice_api_connected);
+          then:
+            - if:
+                condition:
+                  lambda: return id(wake_engine_select).state != "microwakeword";
+                then:
+                  - micro_wake_word.stop:
+                  - wait_until:
+                      condition:
+                        lambda: return !id(mww).is_running();
+                  - if:
+                      condition:
+                        voice_assistant.is_running:
+                      then:
+                        - voice_assistant.stop:
+                        - delay: 150ms
+                  - remote_wake_word.stop:
+                  - wait_until:
+                      condition:
+                        lambda: return !id(oww).is_running();
+                  - lambda: |-
+                      id(openwakeword_wake_detected) = false;
+                      id(voice_assistant_phase) = 1;
+                      id(va).set_use_wake_word(false);
+                      if (id(wake_engine_select).state == "nanowakeword") {
+                        id(oww).set_url(id(nanowakeword_server_url).state);
+                        id(oww).set_stream_path("/api/nanowakeword/stream");
+                      } else {
+                        id(oww).set_url(id(openwakeword_server_url).state);
+                        id(oww).set_stream_path("/api/openwakeword/stream");
+                      }
+                  - logger.log:
+                      level: INFO
+                      tag: tater.voice
+                      format: "Using remote wake endpoint (%s)."
+                      args: ['(id(wake_engine_select).state == "nanowakeword" ? id(nanowakeword_server_url).state : id(openwakeword_server_url).state).c_str()']
+                  - remote_wake_word.start:
+                else:
+                  - if:
+                      condition:
+                        voice_assistant.is_running:
+                      then:
+                        - voice_assistant.stop:
+                  - delay: 150ms
+                  - remote_wake_word.stop:
+                  - wait_until:
+                      condition:
+                        lambda: return !id(oww).is_running();
+                  - lambda: |-
+                      id(openwakeword_wake_detected) = false;
+                      id(va).set_use_wake_word(false);
+                  - if:
+                      condition:
+                        switch.is_off: master_mute_switch
+                      then:
+                        - micro_wake_word.start:
+
+  - id: recover_openwakeword_after_fallback
+    mode: restart
+    then:
+      - lambda: |-
+          id(openwakeword_wake_detected) = false;
+          id(voice_assistant_phase) = 1;
+          id(va).set_use_wake_word(false);
+      - remote_wake_word.stop:
+      - wait_until:
+          condition:
+            lambda: return !id(oww).is_running();
+      - if:
+          condition:
+            lambda: return id(wake_engine_select).state != "microwakeword";
+          then:
+            - if:
+                condition:
+                  switch.is_off: master_mute_switch
+                then:
+                  - micro_wake_word.start:
+            - delay: 60s
+            - if:
+                condition:
+                  lambda: return id(wake_engine_select).state != "microwakeword";
+                then:
+                  - logger.log:
+                      level: INFO
+                      tag: tater.voice
+                      format: "Retrying remote wake endpoint (%s)."
+                      args: ['(id(wake_engine_select).state == "nanowakeword" ? id(nanowakeword_server_url).state : id(openwakeword_server_url).state).c_str()']
+                  - script.execute: apply_wake_engine
+
+  - id: refresh_clock
+    mode: restart
+    then:
+      - lvgl.label.update:
+          id: clock_label
+          text:
+            time_format: "%I:%M"
+            time: local_time
+      - lvgl.label.update:
+          id: date_label
+          text:
+            time_format: "%a %b %d"
+            time: local_time
+
+  - id: mark_tater_http_success
+    mode: restart
+    then:
+      - lambda: |-
+          id(tater_http_failures) = 0;
+      - if:
+          condition:
+            lambda: return id(voice_assistant_phase) <= 1 || id(voice_assistant_phase) >= 10;
+          then:
+            - text_sensor.template.publish:
+                id: connection_status_text
+                state: "Tater online"
+
+  - id: mark_tater_http_failure
+    mode: restart
+    then:
+      - lambda: |-
+          if (id(tater_http_failures) < 1000) {
+            id(tater_http_failures) += 1;
+          }
+          ESP_LOGW("tater.display", "Display HTTP miss %d/3; keeping last known screen data.", id(tater_http_failures));
+      - if:
+          condition:
+            lambda: return id(tater_http_failures) >= 3 && (id(voice_assistant_phase) <= 1 || id(voice_assistant_phase) >= 10);
+          then:
+            - text_sensor.template.publish:
+                id: connection_status_text
+                state: "Tater offline"
+
+  - id: update_voice_visual
+    mode: restart
+    then:
+      - lvgl.label.update:
+          id: voice_title_label
+          text: !lambda |-
+            switch (id(voice_assistant_phase)) {
+              case 3:
+                return "Hearing you";
+              case 4:
+                return "Thinking";
+              case 5:
+                return "Replying";
+              case 11:
+                return "Voice error";
+              case 2:
+              default:
+                return "Listening";
+            }
+      - lvgl.label.update:
+          id: voice_subtitle_label
+          text: !lambda |-
+            switch (id(voice_assistant_phase)) {
+              case 3:
+                return "Keep talking.";
+              case 4:
+                return "Working through it.";
+              case 5:
+                return "Sending the answer.";
+              case 11:
+                return "Voice needs attention.";
+              case 2:
+              default:
+                return "Say it, I'm listening.";
+            }
+      - lvgl.label.update:
+          id: voice_motion_label
+          text: !lambda |-
+            static const char * const listening[] = {
+              "o        .        o",
+              "  o      .      o  ",
+              "    o    .    o    ",
+              "      o  .  o      ",
+              "        o.o        ",
+              "      o  .  o      "
+            };
+            static const char * const hearing[] = {
+              "|  ||  |||  ||  |",
+              "|| ||| |||| ||| ||",
+              "||| ||||||||| |||",
+              "|| ||| |||| ||| ||",
+              "|  ||  |||  ||  |",
+              "   |   |||   |   "
+            };
+            static const char * const thinking[] = {
+              "o  --------    ",
+              "  o  ------    ",
+              "    o  ----    ",
+              "      o  --    ",
+              "        o      ",
+              "      --  o    "
+            };
+            static const char * const replying[] = {
+              "--__--__--__--",
+              "__--__--__--__",
+              "-_--_--_--_--",
+              "_--_--_--_--_",
+              "--__--__--__--",
+              "__--__--__--__"
+            };
+            static const char * const error[] = {
+              "x      x      x",
+              "  x    x    x  ",
+              "    x  x  x    ",
+              "      xxx      ",
+              "    x  x  x    ",
+              "  x    x    x  "
+            };
+            int frame = id(voice_animation_frame) % 6;
+            switch (id(voice_assistant_phase)) {
+              case 3:
+                return hearing[frame];
+              case 4:
+                return thinking[frame];
+              case 5:
+                return replying[frame];
+              case 11:
+                return error[frame];
+              case 2:
+              default:
+                return listening[frame];
+            }
+
+  - id: show_voice_page
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: return !id(event_visible);
+          then:
+            - script.execute: update_voice_visual
+            - lvgl.page.show: voice_page
+
+  - id: show_home_if_no_event
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: return !id(event_visible) && ((id(voice_assistant_phase) >= 2 && id(voice_assistant_phase) <= 5) || id(voice_assistant_phase) == 11);
+          then:
+            - script.execute: show_voice_page
+          else:
+            - if:
+                condition:
+                  lambda: return !id(event_visible);
+                then:
+                  - lvgl.page.show: home_page
+
+  - id: fetch_tater_feed
+    mode: single
+    then:
+      - http_request.get:
+          url: !lambda |-
+            std::string base = "${tater_base_url}";
+            if (base.compare(0, 5, "http:") == 0 && base.compare(0, 7, "http://") != 0) {
+              std::string rest = base.substr(5);
+              while (!rest.empty() && rest.front() == '/') {
+                rest.erase(0, 1);
+              }
+              base = "http://" + rest;
+            } else if (base.compare(0, 6, "https:") == 0 && base.compare(0, 8, "https://") != 0) {
+              std::string rest = base.substr(6);
+              while (!rest.empty() && rest.front() == '/') {
+                rest.erase(0, 1);
+              }
+              base = "https://" + rest;
+            } else if (base.compare(0, 7, "http://") != 0 && base.compare(0, 8, "https://") != 0) {
+              base = "http://" + base;
+            }
+            while (!base.empty() && base.back() == '/') {
+              base.pop_back();
+            }
+            return base + "/tater-ha/v1/display/feed"
+              + "?target=${display_target}"
+              + "&selector=${display_target}"
+              + "&format=compact";
+          request_headers:
+            X-Tater-Token: "${tater_token}"
+          capture_response: true
+          max_response_buffer_size: 2048
+          on_response:
+            then:
+              - if:
+                  condition:
+                    lambda: return response->status_code == 200 && !body.empty();
+                  then:
+                    - script.execute: mark_tater_http_success
+                    - lambda: |-
+                        json::parse_json(body, [](JsonObject root) -> bool {
+                          JsonObject text = root["text"].as<JsonObject>();
+                          auto get_text = [&](const char *key) -> const char * {
+                            const char *value = text[key] | "";
+                            if (value == nullptr || value[0] == '\0') {
+                              return "--";
+                            }
+                            return value;
+                          };
+                          id(temp_out_text).publish_state(get_text("temp_out"));
+                          id(temp_in_text).publish_state(get_text("temp_in"));
+                          id(humidity_out_text).publish_state(get_text("humidity_out"));
+                          id(humidity_in_text).publish_state(get_text("humidity_in"));
+                          id(wind_text).publish_state(get_text("wind_speed"));
+                          id(rain_text).publish_state(get_text("rain_rate"));
+                          id(lightning_text).publish_state(get_text("lightning_strikes"));
+                          return true;
+                        });
+                  else:
+                    - script.execute: mark_tater_http_failure
+          on_error:
+            then:
+              - script.execute: mark_tater_http_failure
+
+  - id: fetch_tater_events
+    mode: single
+    then:
+      - http_request.get:
+          url: !lambda |-
+            std::string base = "${tater_base_url}";
+            if (base.compare(0, 5, "http:") == 0 && base.compare(0, 7, "http://") != 0) {
+              std::string rest = base.substr(5);
+              while (!rest.empty() && rest.front() == '/') {
+                rest.erase(0, 1);
+              }
+              base = "http://" + rest;
+            } else if (base.compare(0, 6, "https:") == 0 && base.compare(0, 8, "https://") != 0) {
+              std::string rest = base.substr(6);
+              while (!rest.empty() && rest.front() == '/') {
+                rest.erase(0, 1);
+              }
+              base = "https://" + rest;
+            } else if (base.compare(0, 7, "http://") != 0 && base.compare(0, 8, "https://") != 0) {
+              base = "http://" + base;
+            }
+            while (!base.empty() && base.back() == '/') {
+              base.pop_back();
+            }
+            return base + "/tater-ha/v1/display/events"
+              + "?target=${display_target}"
+              + "&after_seq=" + std::to_string(id(last_event_seq))
+              + "&limit=4";
+          request_headers:
+            X-Tater-Token: "${tater_token}"
+          capture_response: true
+          on_response:
+            then:
+              - if:
+                  condition:
+                    lambda: return response->status_code == 200 && !body.empty();
+                  then:
+                    - script.execute: mark_tater_http_success
+                    - lambda: |-
+                        json::parse_json(body, [](JsonObject root) -> bool {
+                          int last_seq = root["last_seq"] | id(last_event_seq);
+                          if (last_seq > id(last_event_seq)) {
+                            id(last_event_seq) = last_seq;
+                          }
+
+                          JsonArray events = root["events"].as<JsonArray>();
+                          if (events.size() == 0) {
+                            return true;
+                          }
+
+                          JsonObject event = events[events.size() - 1].as<JsonObject>();
+                          const char *kind = event["kind"] | "notification";
+                          const char *title = event["title"] | "";
+                          const char *message = event["message"] | "";
+                          const char *description = event["description"] | "";
+                          const char *priority = event["priority"] | "normal";
+                          const char *image_url = event["image_url"] | "";
+                          const char *tool = event["tool"] | "";
+                          int step_index = event["step_index"] | 0;
+                          int step_total = event["step_total"] | 0;
+                          int ttl = event["ttl_seconds"] | 18;
+
+                          std::string kind_text = kind == nullptr ? "notification" : std::string(kind);
+                          if (title == nullptr || title[0] == '\0') {
+                            title = kind_text == "tool_call" ? "Tool Call" : "${tater_first_name}";
+                          }
+                          std::string message_text = message == nullptr ? "" : std::string(message);
+                          std::string description_text = description == nullptr ? "" : std::string(description);
+                          if (message_text.empty() && !description_text.empty()) {
+                            message_text = description_text;
+                          }
+                          if (description_text == message_text) {
+                            description_text.clear();
+                          }
+
+                          id(event_title_text).publish_state(title);
+                          id(event_message_text).publish_state(message_text);
+                          id(event_description_text).publish_state(description_text);
+                          id(event_priority_text).publish_state(priority == nullptr ? "normal" : priority);
+
+                          std::string image_url_text = image_url == nullptr ? "" : std::string(image_url);
+                          auto set_image_if_empty = [&](const char *value) {
+                            if (!image_url_text.empty() || value == nullptr || value[0] == '\0') {
+                              return;
+                            }
+                            image_url_text = value;
+                          };
+                          set_image_if_empty(event["snapshot_url"] | "");
+                          set_image_if_empty(event["thumbnail_url"] | "");
+                          JsonObject meta = event["meta"].as<JsonObject>();
+                          if (!meta.isNull()) {
+                            set_image_if_empty(meta["image_url"] | "");
+                            set_image_if_empty(meta["snapshot_url"] | "");
+                            set_image_if_empty(meta["thumbnail_url"] | "");
+                          }
+                          JsonObject data = event["data"].as<JsonObject>();
+                          if (!data.isNull()) {
+                            set_image_if_empty(data["image_url"] | "");
+                            set_image_if_empty(data["snapshot_url"] | "");
+                            set_image_if_empty(data["thumbnail_url"] | "");
+                          }
+                          if (image_url_text.empty()) {
+                            const char *snapshot_id = event["snapshot_id"] | "";
+                            if ((snapshot_id == nullptr || snapshot_id[0] == '\0') && !data.isNull()) {
+                              snapshot_id = data["snapshot_id"] | "";
+                            }
+                            if ((snapshot_id == nullptr || snapshot_id[0] == '\0') && !meta.isNull()) {
+                              snapshot_id = meta["snapshot_id"] | "";
+                            }
+                            if (snapshot_id != nullptr && snapshot_id[0] != '\0') {
+                              image_url_text = std::string("/tater-ha/v1/display/snapshots/") + snapshot_id;
+                            }
+                          }
+                          if (!image_url_text.empty()) {
+                            auto normalize_base = []() -> std::string {
+                              std::string base = "${tater_base_url}";
+                              if (base.compare(0, 5, "http:") == 0 && base.compare(0, 7, "http://") != 0) {
+                                std::string rest = base.substr(5);
+                                while (!rest.empty() && rest.front() == '/') {
+                                  rest.erase(0, 1);
+                                }
+                                base = "http://" + rest;
+                              } else if (base.compare(0, 6, "https:") == 0 && base.compare(0, 8, "https://") != 0) {
+                                std::string rest = base.substr(6);
+                                while (!rest.empty() && rest.front() == '/') {
+                                  rest.erase(0, 1);
+                                }
+                                base = "https://" + rest;
+                              } else if (base.compare(0, 7, "http://") != 0 && base.compare(0, 8, "https://") != 0) {
+                                base = "http://" + base;
+                              }
+                              while (!base.empty() && base.back() == '/') {
+                                base.pop_back();
+                              }
+                              return base;
+                            };
+                            if (image_url_text.compare(0, 5, "http:") == 0 && image_url_text.compare(0, 7, "http://") != 0) {
+                              std::string rest = image_url_text.substr(5);
+                              while (!rest.empty() && rest.front() == '/') {
+                                rest.erase(0, 1);
+                              }
+                              image_url_text = "http://" + rest;
+                            } else if (image_url_text.compare(0, 6, "https:") == 0 && image_url_text.compare(0, 8, "https://") != 0) {
+                              std::string rest = image_url_text.substr(6);
+                              while (!rest.empty() && rest.front() == '/') {
+                                rest.erase(0, 1);
+                              }
+                              image_url_text = "https://" + rest;
+                            } else if (image_url_text.front() == '/') {
+                              image_url_text = normalize_base() + image_url_text;
+                            } else if (image_url_text.compare(0, 7, "http://") != 0 && image_url_text.compare(0, 8, "https://") != 0) {
+                              image_url_text = normalize_base() + "/" + image_url_text;
+                            }
+                          }
+                          id(event_image_url_text).publish_state(image_url_text);
+                          id(tool_name_text).publish_state(
+                            tool != nullptr && tool[0] != '\0' ? tool : "${tater_first_name} is working"
+                          );
+
+                          static char step_buf[16];
+                          if (step_index > 0 && step_total > 0) {
+                            snprintf(step_buf, sizeof(step_buf), "%d/%d", step_index, step_total);
+                          } else {
+                            snprintf(step_buf, sizeof(step_buf), "running");
+                          }
+                          id(tool_step_text).publish_state(step_buf);
+
+                          id(event_visible) = true;
+                          if (ttl < 6) {
+                            ttl = 6;
+                          }
+                          if (ttl > 90) {
+                            ttl = 90;
+                          }
+                          id(event_until_ms) = millis() + (uint32_t) ttl * 1000U;
+                          id(event_kind_text).publish_state(kind);
+                          return true;
+                        });
+                  else:
+                    - script.execute: mark_tater_http_failure
+          on_error:
+            then:
+              - script.execute: mark_tater_http_failure
+
+  - id: animate_tool_call
+    mode: restart
+    then:
+      - lambda: |-
+          id(tool_animation_frame) = (id(tool_animation_frame) + 1) % 6;
+      - lvgl.label.update:
+          id: tool_motion_label
+          text: !lambda |-
+            static const char * const frames[] = {
+              "o                o",
+              "  o            o  ",
+              "    o        o    ",
+              "      o    o      ",
+              "        oo        ",
+              "      o    o      "
+            };
+            return frames[id(tool_animation_frame)];
+
+  - id: animate_voice_pipeline
+    mode: restart
+    then:
+      - lambda: |-
+          id(voice_animation_frame) = (id(voice_animation_frame) + 1) % 6;
+      - script.execute: update_voice_visual
+
+interval:
+  - interval: 500ms
+    then:
+      - if:
+          condition:
+            lambda: return !id(event_visible) && ((id(voice_assistant_phase) >= 2 && id(voice_assistant_phase) <= 5) || id(voice_assistant_phase) == 11);
+          then:
+            - script.execute: animate_voice_pipeline
+
+  - interval: 1s
+    then:
+      - script.execute: refresh_clock
+      - if:
+          condition:
+            lambda: return id(event_visible) && id(event_until_ms) != 0 && millis() > id(event_until_ms);
+          then:
+            - lambda: |-
+                id(event_visible) = false;
+                id(event_until_ms) = 0;
+            - script.execute: show_home_if_no_event
+      - if:
+          condition:
+            lambda: return id(event_visible) && id(event_kind_text).state == "tool_call";
+          then:
+            - script.execute: animate_tool_call
+
+  - interval: 15s
+    then:
+      - if:
+          condition:
+            wifi.connected:
+          then:
+            - lambda: |-
+                id(display_poll_tick) = (id(display_poll_tick) + 1) % 4;
+            - if:
+                condition:
+                  lambda: return id(display_poll_tick) == 0;
+                then:
+                  - script.execute: fetch_tater_feed
+                else:
+                  - script.execute: fetch_tater_events
+
+display:
+  - platform: mipi_spi
+    id: s3_box_lcd
+    model: S3BOX
+    data_rate: 40MHz
+    cs_pin: GPIO5
+    dc_pin: GPIO4
+    reset_pin:
+      number: GPIO48
+      inverted: true
+    invert_colors: false
+    auto_clear_enabled: false
+    update_interval: never
+
+lvgl:
+  displays:
+    - s3_box_lcd
+  buffer_size: 25%
+  log_level: WARN
+  style_definitions:
+    - id: screen_style
+      bg_color: 0x000000
+      bg_opa: COVER
+      border_width: 0
+      pad_all: 0
+    - id: panel_style
+      bg_color: 0x0B0B0B
+      bg_opa: COVER
+      border_color: 0x303030
+      border_width: 1
+      radius: 8
+      pad_all: 8
+    - id: rail_style
+      bg_color: 0x303030
+      bg_opa: COVER
+      border_width: 0
+      radius: 2
+      pad_all: 0
+  pages:
+    - id: home_page
+      styles: screen_style
+      widgets:
+        - obj:
+            x: 0
+            y: 0
+            width: 320
+            height: 34
+            bg_color: 0x050505
+            bg_opa: COVER
+            border_width: 0
+            radius: 0
+            pad_all: 0
+            widgets:
+              - label:
+                  x: 10
+                  y: 8
+                  width: 86
+                  text: "${tater_first_name}"
+                  long_mode: DOT
+                  text_font: tater_font_18
+                  text_color: 0xFF8A00
+              - label:
+                  id: status_label
+                  x: 100
+                  y: 10
+                  width: 210
+                  text: "starting"
+                  text_align: RIGHT
+                  long_mode: DOT
+                  text_font: tater_font_14
+                  text_color: 0xC8C8C8
+        - label:
+            id: date_label
+            x: 0
+            y: 44
+            width: 320
+            text: "--- --"
+            text_align: CENTER
+            text_font: tater_font_18
+            text_color: 0xC8C8C8
+        - label:
+            id: clock_label
+            x: 0
+            y: 62
+            width: 320
+            text: "--:--"
+            text_align: CENTER
+            text_font: tater_font_56
+            text_color: 0xFFFFFF
+        - obj:
+            x: 12
+            y: 128
+            width: 142
+            height: 62
+            styles: panel_style
+            scrollbar_mode: "OFF"
+            scrollable: false
+            widgets:
+              - label:
+                  x: 0
+                  y: 0
+                  width: 126
+                  text: "Inside"
+                  text_font: tater_font_14
+                  text_color: 0xC8C8C8
+              - label:
+                  id: temp_in_value
+                  x: 0
+                  y: 18
+                  width: 70
+                  text: "--"
+                  text_font: tater_font_24
+                  text_color: 0xFF8A00
+              - label:
+                  id: humidity_in_value
+                  x: 74
+                  y: 23
+                  width: 52
+                  text: "--"
+                  text_align: RIGHT
+                  text_font: tater_font_18
+                  text_color: 0xFFFFFF
+        - obj:
+            x: 166
+            y: 128
+            width: 142
+            height: 62
+            styles: panel_style
+            scrollbar_mode: "OFF"
+            scrollable: false
+            widgets:
+              - label:
+                  x: 0
+                  y: 0
+                  width: 126
+                  text: "Outside"
+                  text_font: tater_font_14
+                  text_color: 0xC8C8C8
+              - label:
+                  id: temp_out_value
+                  x: 0
+                  y: 18
+                  width: 70
+                  text: "--"
+                  text_font: tater_font_24
+                  text_color: 0xFF8A00
+              - label:
+                  id: humidity_out_value
+                  x: 74
+                  y: 23
+                  width: 52
+                  text: "--"
+                  text_align: RIGHT
+                  text_font: tater_font_18
+                  text_color: 0xFFFFFF
+        - obj:
+            x: 12
+            y: 202
+            width: 90
+            height: 28
+            styles: panel_style
+            pad_all: 6
+            scrollbar_mode: "OFF"
+            scrollable: false
+            widgets:
+              - label:
+                  x: 0
+                  y: 0
+                  text: "Wind"
+                  text_font: tater_font_14
+                  text_color: 0xC8C8C8
+              - label:
+                  id: wind_value
+                  x: 40
+                  y: 0
+                  width: 34
+                  text: "--"
+                  text_align: RIGHT
+                  text_font: tater_font_14
+                  text_color: 0xFFFFFF
+        - obj:
+            x: 114
+            y: 202
+            width: 90
+            height: 28
+            styles: panel_style
+            pad_all: 6
+            scrollbar_mode: "OFF"
+            scrollable: false
+            widgets:
+              - label:
+                  x: 0
+                  y: 0
+                  text: "Rain"
+                  text_font: tater_font_14
+                  text_color: 0xC8C8C8
+              - label:
+                  id: rain_value
+                  x: 40
+                  y: 0
+                  width: 34
+                  text: "--"
+                  text_align: RIGHT
+                  text_font: tater_font_14
+                  text_color: 0xFFFFFF
+        - obj:
+            x: 216
+            y: 202
+            width: 92
+            height: 28
+            styles: panel_style
+            pad_all: 6
+            scrollbar_mode: "OFF"
+            scrollable: false
+            widgets:
+              - label:
+                  x: 0
+                  y: 0
+                  text: "Storm"
+                  text_font: tater_font_14
+                  text_color: 0xC8C8C8
+              - label:
+                  id: lightning_value
+                  x: 48
+                  y: 0
+                  width: 28
+                  text: "--"
+                  text_align: RIGHT
+                  text_font: tater_font_14
+                  text_color: 0xFFFFFF
+
+    - id: voice_page
+      styles: screen_style
+      widgets:
+        - obj:
+            x: 0
+            y: 0
+            width: 320
+            height: 34
+            bg_color: 0x050505
+            bg_opa: COVER
+            border_width: 0
+            radius: 0
+            pad_all: 0
+            widgets:
+              - label:
+                  x: 10
+                  y: 8
+                  width: 86
+                  text: "${tater_first_name}"
+                  long_mode: DOT
+                  text_font: tater_font_18
+                  text_color: 0xFF8A00
+              - label:
+                  id: voice_status_label
+                  x: 100
+                  y: 10
+                  width: 210
+                  text: "Voice active"
+                  text_align: RIGHT
+                  long_mode: DOT
+                  text_font: tater_font_14
+                  text_color: 0xC8C8C8
+        - label:
+            id: voice_title_label
+            x: 0
+            y: 54
+            width: 320
+            text: "Listening"
+            text_align: CENTER
+            long_mode: DOT
+            text_font: tater_font_36
+            text_color: 0xFF8A00
+        - obj:
+            x: 58
+            y: 108
+            width: 204
+            height: 4
+            styles: rail_style
+        - label:
+            id: voice_motion_label
+            x: 20
+            y: 88
+            width: 280
+            text: "o        .        o"
+            text_align: CENTER
+            long_mode: DOT
+            text_font: tater_font_24
+            text_color: 0xFF8A00
+        - obj:
+            x: 82
+            y: 124
+            width: 156
+            height: 2
+            bg_color: 0xFF8A00
+            bg_opa: COVER
+            border_width: 0
+            radius: 1
+            pad_all: 0
+        - label:
+            id: voice_subtitle_label
+            x: 24
+            y: 148
+            width: 272
+            height: 46
+            text: "Say it, I'm listening."
+            text_align: CENTER
+            long_mode: WRAP
+            text_font: tater_font_18
+            text_color: 0xFFFFFF
+
+    - id: event_page
+      styles: screen_style
+      widgets:
+        - obj:
+            x: 0
+            y: 0
+            width: 320
+            height: 34
+            bg_color: 0x050505
+            bg_opa: COVER
+            border_width: 0
+            radius: 0
+            pad_all: 0
+            widgets:
+              - label:
+                  x: 10
+                  y: 8
+                  width: 86
+                  text: "${tater_first_name}"
+                  long_mode: DOT
+                  text_font: tater_font_18
+                  text_color: 0xFF8A00
+              - label:
+                  id: event_priority_label
+                  x: 218
+                  y: 10
+                  width: 92
+                  text: "normal"
+                  text_align: RIGHT
+                  long_mode: DOT
+                  text_font: tater_font_14
+                  text_color: 0xC8C8C8
+        - obj:
+            x: 12
+            y: 48
+            width: 296
+            height: 180
+            styles: panel_style
+            scrollbar_mode: "OFF"
+            scrollable: false
+            widgets:
+              - label:
+                  id: event_title_label
+                  x: 0
+                  y: 0
+                  width: 280
+                  text: "Notification"
+                  long_mode: DOT
+                  text_font: tater_font_24
+                  text_color: 0xFF8A00
+              - obj:
+                  x: 0
+                  y: 42
+                  width: 280
+                  height: 3
+                  styles: rail_style
+              - label:
+                  id: event_message_label
+                  x: 0
+                  y: 58
+                  width: 280
+                  height: 52
+                  text: ""
+                  long_mode: WRAP
+                  text_font: tater_font_18
+                  text_color: 0xFFFFFF
+              - label:
+                  id: event_description_label
+                  x: 0
+                  y: 118
+                  width: 280
+                  height: 44
+                  text: ""
+                  long_mode: WRAP
+                  text_font: tater_font_14
+                  text_color: 0xC8C8C8
+
+    - id: event_image_page
+      styles: screen_style
+      widgets:
+        - obj:
+            x: 0
+            y: 0
+            width: 320
+            height: 34
+            bg_color: 0x050505
+            bg_opa: COVER
+            border_width: 0
+            radius: 0
+            pad_all: 0
+            widgets:
+              - label:
+                  x: 10
+                  y: 8
+                  width: 86
+                  text: "${tater_first_name}"
+                  long_mode: DOT
+                  text_font: tater_font_18
+                  text_color: 0xFF8A00
+              - label:
+                  id: event_image_priority_label
+                  x: 218
+                  y: 10
+                  width: 92
+                  text: "normal"
+                  text_align: RIGHT
+                  long_mode: DOT
+                  text_font: tater_font_14
+                  text_color: 0xC8C8C8
+        - obj:
+            x: 12
+            y: 42
+            width: 296
+            height: 122
+            bg_color: 0x000000
+            bg_opa: COVER
+            border_color: 0x303030
+            border_width: 1
+            radius: 8
+            pad_all: 0
+            clip_corner: true
+            scrollbar_mode: "OFF"
+            scrollable: false
+            widgets:
+              - image:
+                  id: event_image_widget
+                  x: 0
+                  y: 0
+                  width: 296
+                  height: 122
+                  src: event_snapshot_image
+                  hidden: true
+              - label:
+                  id: event_image_status_label
+                  x: 0
+                  y: 49
+                  width: 296
+                  text: "Loading snapshot..."
+                  text_align: CENTER
+                  long_mode: DOT
+                  text_font: tater_font_14
+                  text_color: 0xC8C8C8
+                  hidden: true
+        - label:
+            id: event_image_title_label
+            x: 12
+            y: 170
+            width: 296
+            text: "Camera Event"
+            long_mode: DOT
+            text_font: tater_font_18
+            text_color: 0xFF8A00
+        - label:
+            id: event_image_message_label
+            x: 12
+            y: 194
+            width: 296
+            height: 42
+            text: ""
+            long_mode: WRAP
+            text_font: tater_font_18
+            text_color: 0xFFFFFF
+        - label:
+            id: event_image_description_label
+            x: 12
+            y: 224
+            width: 296
+            height: 16
+            text: ""
+            long_mode: DOT
+            text_font: tater_font_14
+            text_color: 0xC8C8C8
+            hidden: true
+
+    - id: tool_page
+      styles: screen_style
+      widgets:
+        - obj:
+            x: 0
+            y: 0
+            width: 320
+            height: 34
+            bg_color: 0x050505
+            bg_opa: COVER
+            border_width: 0
+            radius: 0
+            pad_all: 0
+            widgets:
+              - label:
+                  x: 10
+                  y: 8
+                  width: 86
+                  text: "${tater_first_name}"
+                  long_mode: DOT
+                  text_font: tater_font_18
+                  text_color: 0xFF8A00
+              - label:
+                  id: tool_step_label
+                  x: 244
+                  y: 10
+                  width: 66
+                  text: "running"
+                  text_align: RIGHT
+                  long_mode: DOT
+                  text_font: tater_font_14
+                  text_color: 0xC8C8C8
+        - label:
+            x: 0
+            y: 56
+            width: 320
+            text: "Tool Call"
+            text_align: CENTER
+            text_font: tater_font_24
+            text_color: 0xFF8A00
+        - obj:
+            x: 52
+            y: 100
+            width: 216
+            height: 4
+            styles: rail_style
+        - label:
+            id: tool_motion_label
+            x: 52
+            y: 82
+            width: 216
+            text: "o                o"
+            text_align: CENTER
+            text_font: tater_font_24
+            text_color: 0xFF8A00
+        - label:
+            id: tool_name_label
+            x: 20
+            y: 124
+            width: 280
+            text: "${tater_first_name} is working"
+            text_align: CENTER
+            long_mode: DOT
+            text_font: tater_font_18
+            text_color: 0xFFFFFF
+        - label:
+            id: tool_message_label
+            x: 24
+            y: 158
+            width: 272
+            height: 52
+            text: "I'm working on that now."
+            text_align: CENTER
+            long_mode: WRAP
+            text_font: tater_font_16
+            text_color: 0xC8C8C8

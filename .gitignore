@@ -11,6 +11,7 @@ sat1/components.local/
 voicePE-local*.yaml
 voicepe/*.local.yaml
 voicepe/components.local/
+s3box/secrets.yaml
 
 sat1/xmos_firmware/
 voicepe/xmos_firmware/
