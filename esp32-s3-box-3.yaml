@@ -698,6 +698,21 @@ switch:
 
 text:
   - platform: template
+    id: tater_display_url
+    name: Tater Display URL
+    icon: mdi:monitor-dashboard
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: "${tater_base_url}"
+    mode: TEXT
+    max_length: 255
+    set_action:
+      - script.execute: fetch_tater_feed
+      - script.wait: fetch_tater_feed
+      - script.execute: fetch_tater_events
+
+  - platform: template
     id: trainer_app_url
     name: Trainer App URL
     icon: mdi:lan-connect
@@ -1341,7 +1356,10 @@ script:
     then:
       - http_request.get:
           url: !lambda |-
-            std::string base = "${tater_base_url}";
+            std::string base = id(tater_display_url).state;
+            if (base.empty()) {
+              base = "${tater_base_url}";
+            }
             if (base.compare(0, 5, "http:") == 0 && base.compare(0, 7, "http://") != 0) {
               std::string rest = base.substr(5);
               while (!rest.empty() && rest.front() == '/') {
@@ -1405,7 +1423,10 @@ script:
     then:
       - http_request.get:
           url: !lambda |-
-            std::string base = "${tater_base_url}";
+            std::string base = id(tater_display_url).state;
+            if (base.empty()) {
+              base = "${tater_base_url}";
+            }
             if (base.compare(0, 5, "http:") == 0 && base.compare(0, 7, "http://") != 0) {
               std::string rest = base.substr(5);
               while (!rest.empty() && rest.front() == '/') {
@@ -1515,7 +1536,10 @@ script:
                           }
                           if (!image_url_text.empty()) {
                             auto normalize_base = []() -> std::string {
-                              std::string base = "${tater_base_url}";
+                              std::string base = id(tater_display_url).state;
+                              if (base.empty()) {
+                                base = "${tater_base_url}";
+                              }
                               if (base.compare(0, 5, "http:") == 0 && base.compare(0, 7, "http://") != 0) {
                                 std::string rest = base.substr(5);
                                 while (!rest.empty() && rest.front() == '/') {
