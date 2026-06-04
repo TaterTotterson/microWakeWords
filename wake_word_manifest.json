@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 139
+      "count": 140
     }
   ],
-  "count": 541,
+  "count": 542,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -9319,6 +9319,24 @@
       "model_path": "microWakeWordsV3/ok_curt.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/ok_curt.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/ok_curt.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:ok_fairy",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "ok_fairy",
+      "name": "ok_fairy",
+      "label": "Ok Fairy",
+      "path": "microWakeWordsV3/ok_fairy.json",
+      "model_path": "microWakeWordsV3/ok_fairy.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/ok_fairy.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/ok_fairy.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
