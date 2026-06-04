@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 144
+      "count": 145
     }
   ],
-  "count": 546,
+  "count": 547,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -8905,6 +8905,24 @@
       "model_path": "microWakeWordsV3/hey_vision.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_vision.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_vision.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:hey_yellena",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "hey_yellena",
+      "name": "hey_yellena",
+      "label": "Hey Yellena",
+      "path": "microWakeWordsV3/hey_yellena.json",
+      "model_path": "microWakeWordsV3/hey_yellena.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_yellena.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_yellena.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
