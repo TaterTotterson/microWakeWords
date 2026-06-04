@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 145
+      "count": 146
     }
   ],
-  "count": 547,
+  "count": 548,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -9463,6 +9463,24 @@
       "model_path": "microWakeWordsV3/ok_sandook.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/ok_sandook.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/ok_sandook.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:okay_cloud",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "okay_cloud",
+      "name": "okay_cloud",
+      "label": "Okay Cloud",
+      "path": "microWakeWordsV3/okay_cloud.json",
+      "model_path": "microWakeWordsV3/okay_cloud.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/okay_cloud.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/okay_cloud.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
