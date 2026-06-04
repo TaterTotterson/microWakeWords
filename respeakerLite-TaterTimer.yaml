@@ -11,13 +11,13 @@ substitutions:
   hidden_ssid: "false"
 
   # WAKE WORD CONFIG
-  wake_engine: openwakeword
+  wake_engine: microwakeword
   openwakeword_server_url: ws://tater.local:8501
   nanowakeword_server_url: ws://tater.local:8501
   openwakeword_http_timeout_ms: "3000"
   openwakeword_max_failures: "3"
   wake_word_name: hey_tater
-  wake_word_model_url: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWords/hey_tater.json
+  wake_word_model_url: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/microWakeWordsV3/hey_tater.json
   wake_model_stop_url: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/wake_words/stop.json
 
   # WAKE WORD SENSITIVITY

@@ -16,14 +16,14 @@
         "ota": {
           "kind": "ota",
           "path": "prebuilt_firmware/3.0.5/satellite1/tater-satellite1-3.0.5.ota.bin",
-          "size_bytes": 2776768,
-          "sha256": "016f0fb5113dc3bff0f4a18b0403b8be4b1e8070c462be84fa22c1fe4f177d3b"
+          "size_bytes": 2776864,
+          "sha256": "dfb23f003a7c73beaee033da49669075bb3298036fc3f610bf3bc7dd8936d604"
         },
         "factory": {
           "kind": "factory",
           "path": "prebuilt_firmware/3.0.5/satellite1/tater-satellite1-3.0.5.factory.bin",
-          "size_bytes": 2842304,
-          "sha256": "905fd3ac0fb9cdb0693130f35c63adf285a4acd4b497574d36d607511edbd126"
+          "size_bytes": 2842400,
+          "sha256": "78edc93a5e6c8d37f21b38cec04637fd5b5e437f513694e611b53c0956375348"
         }
       }
     },
@@ -35,14 +35,14 @@
         "ota": {
           "kind": "ota",
           "path": "prebuilt_firmware/3.0.5/voicepe/tater-voicepe-3.0.5.ota.bin",
-          "size_bytes": 2788608,
-          "sha256": "1fffa3e849f036f20c0e22b3d88f9a29e36af9583b7f8d007cd51188b4cd573b"
+          "size_bytes": 2788896,
+          "sha256": "92364882c3821009fa6860afdc68afd0bf963878386402f01fd85ad64215bb78"
         },
         "factory": {
           "kind": "factory",
           "path": "prebuilt_firmware/3.0.5/voicepe/tater-voicepe-3.0.5.factory.bin",
-          "size_bytes": 2854144,
-          "sha256": "c54e255a9513be5d2d28824930c95d942a26eaf9fcbb930726c4ce6c6624d058"
+          "size_bytes": 2854432,
+          "sha256": "7efec9ceed39b922e9b6b3427a5bfb3497e9835e8a613a5d906f9df950c49f02"
         }
       }
     },
@@ -54,14 +54,14 @@
         "ota": {
           "kind": "ota",
           "path": "prebuilt_firmware/3.0.5/respeaker_lite/tater-respeaker-lite-3.0.5.ota.bin",
-          "size_bytes": 2652736,
-          "sha256": "763c9c996b381842ec2d5d9d823e59928d8b945955d54ed430d0b001740794d0"
+          "size_bytes": 2652928,
+          "sha256": "cf496073df2f05b7386f5d358609fc732a9ee90e6f66bdc96d04a67068cfa643"
         },
         "factory": {
           "kind": "factory",
           "path": "prebuilt_firmware/3.0.5/respeaker_lite/tater-respeaker-lite-3.0.5.factory.bin",
-          "size_bytes": 2718272,
-          "sha256": "8b33f446ddb9483939bf20b08ecd288bfc60206d3fd5fd40a40878ae84cf4246"
+          "size_bytes": 2718464,
+          "sha256": "fca266453793f27ae28a11a24a0c3d60222d7cc24a677c65c6c014d6cc20fd3d"
         }
       }
     },
@@ -73,14 +73,14 @@
         "ota": {
           "kind": "ota",
           "path": "prebuilt_firmware/3.0.5/koala/tater-koala-3.0.5.ota.bin",
-          "size_bytes": 2663536,
-          "sha256": "13b59632e16c428f76b62a3d33710a5effc408f607b3d7b03951d56e0526a59a"
+          "size_bytes": 2663648,
+          "sha256": "0f0ad05f0a3d0c7240eb02a0c448f6dc21359661a2527caf7cf46e74112a6ee6"
         },
         "factory": {
           "kind": "factory",
           "path": "prebuilt_firmware/3.0.5/koala/tater-koala-3.0.5.factory.bin",
-          "size_bytes": 2729072,
-          "sha256": "64f465a88a9a6a92186934aaf45f44377075af92bd51c4917b09fcf6842c8834"
+          "size_bytes": 2729184,
+          "sha256": "cb06aedb7d44b9b1300cd5927d0a99dc7146443d75a554f7f77df000b84d73b0"
         }
       }
     },
@@ -92,14 +92,14 @@
         "ota": {
           "kind": "ota",
           "path": "prebuilt_firmware/3.0.5/respeaker_xvf3800/tater-respeaker-xvf3800-3.0.5.ota.bin",
-          "size_bytes": 3169904,
-          "sha256": "87dce42f2bcd6584b659e2f49f15c317e515f398ee7b7f9566da5740d99cde93"
+          "size_bytes": 3170016,
+          "sha256": "9ddb6449ad43197b63775f749c54c1d48049c37fb61c817d53d94c9aa35d4749"
         },
         "factory": {
           "kind": "factory",
           "path": "prebuilt_firmware/3.0.5/respeaker_xvf3800/tater-respeaker-xvf3800-3.0.5.factory.bin",
-          "size_bytes": 3235440,
-          "sha256": "ba3091e5caab1f41661acb112776c1952fdc7bd50c46be22d7f7ff743ac40074"
+          "size_bytes": 3235552,
+          "sha256": "31ab2989a583f909fd7f6fe653bfaaccbfef40ae9f2b65b86f860281ad23e4f3"
         }
       }
     }
