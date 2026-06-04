@@ -25,7 +25,7 @@ substitutions:
   # -----------------------------
   # FIRMWARE VERSIONS
   # -----------------------------
-  esp32_fw_version: "3.0.4"
+  esp32_fw_version: "3.0.5"
   xmos_fw_version: "v1.0.4-dev"
 
   # -----------------------------
@@ -60,6 +60,9 @@ substitutions:
   mute_switch_off_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/mute_switch_off.flac
   timer_finished_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/timer_finished.flac
   wake_word_triggered_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/wake_word_triggered.flac
+  wake_sound: "No Sound" # Initial Wake Sound select option. Users can change this live after boot.
+  wake_sound_catalog_package: github://TaterTotterson/microWakeWords/shared/wake_sounds.yaml@main
+  wake_sound_script_package: github://TaterTotterson/microWakeWords/sat1/wake_sound_scripts.yaml@main
   jack_connected_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/jack_connected.flac
   jack_disconnected_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/jack_disconnected.flac
 
@@ -262,6 +265,8 @@ packages:
       # - sat1/mmwave_ld2450.yaml
       # - sat1/debug.yaml
       # - sat1/developer.yaml
+  TaterTotterson.WakeSoundCatalog: ${wake_sound_catalog_package}
+  TaterTotterson.WakeSoundScript: ${wake_sound_script_package}
 
 wifi:
   ssid: ${wifi_ssid}

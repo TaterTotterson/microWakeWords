@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "version": "3.0.5",
+  "generated_date": "2026-06-03",
+  "default_install_artifact": "ota",
+  "notes": [
+    "Use ota artifacts for ESPHome OTA updates from Tater app.",
+    "Use factory artifacts for first USB/serial flash or recovery flashes at offset 0x0."
+  ],
+  "devices": [
+    {
+      "key": "satellite1",
+      "name": "Satellite1 / Sat1",
+      "config": "satellite1-TaterTimer.yaml",
+      "artifacts": {
+        "ota": {
+          "kind": "ota",
+          "path": "prebuilt_firmware/3.0.5/satellite1/tater-satellite1-3.0.5.ota.bin",
+          "size_bytes": 2776768,
+          "sha256": "016f0fb5113dc3bff0f4a18b0403b8be4b1e8070c462be84fa22c1fe4f177d3b"
+        },
+        "factory": {
+          "kind": "factory",
+          "path": "prebuilt_firmware/3.0.5/satellite1/tater-satellite1-3.0.5.factory.bin",
+          "size_bytes": 2842304,
+          "sha256": "905fd3ac0fb9cdb0693130f35c63adf285a4acd4b497574d36d607511edbd126"
+        }
+      }
+    },
+    {
+      "key": "voicepe",
+      "name": "Voice PE",
+      "config": "voicePE-TaterTimer.yaml",
+      "artifacts": {
+        "ota": {
+          "kind": "ota",
+          "path": "prebuilt_firmware/3.0.5/voicepe/tater-voicepe-3.0.5.ota.bin",
+          "size_bytes": 2788608,
+          "sha256": "1fffa3e849f036f20c0e22b3d88f9a29e36af9583b7f8d007cd51188b4cd573b"
+        },
+        "factory": {
+          "kind": "factory",
+          "path": "prebuilt_firmware/3.0.5/voicepe/tater-voicepe-3.0.5.factory.bin",
+          "size_bytes": 2854144,
+          "sha256": "c54e255a9513be5d2d28824930c95d942a26eaf9fcbb930726c4ce6c6624d058"
+        }
+      }
+    },
+    {
+      "key": "respeaker_lite",
+      "name": "Respeaker Lite",
+      "config": "respeakerLite-TaterTimer.yaml",
+      "artifacts": {
+        "ota": {
+          "kind": "ota",
+          "path": "prebuilt_firmware/3.0.5/respeaker_lite/tater-respeaker-lite-3.0.5.ota.bin",
+          "size_bytes": 2652736,
+          "sha256": "763c9c996b381842ec2d5d9d823e59928d8b945955d54ed430d0b001740794d0"
+        },
+        "factory": {
+          "kind": "factory",
+          "path": "prebuilt_firmware/3.0.5/respeaker_lite/tater-respeaker-lite-3.0.5.factory.bin",
+          "size_bytes": 2718272,
+          "sha256": "8b33f446ddb9483939bf20b08ecd288bfc60206d3fd5fd40a40878ae84cf4246"
+        }
+      }
+    },
+    {
+      "key": "koala",
+      "name": "Koala",
+      "config": "koala-TaterTimer.yaml",
+      "artifacts": {
+        "ota": {
+          "kind": "ota",
+          "path": "prebuilt_firmware/3.0.5/koala/tater-koala-3.0.5.ota.bin",
+          "size_bytes": 2663536,
+          "sha256": "13b59632e16c428f76b62a3d33710a5effc408f607b3d7b03951d56e0526a59a"
+        },
+        "factory": {
+          "kind": "factory",
+          "path": "prebuilt_firmware/3.0.5/koala/tater-koala-3.0.5.factory.bin",
+          "size_bytes": 2729072,
+          "sha256": "64f465a88a9a6a92186934aaf45f44377075af92bd51c4917b09fcf6842c8834"
+        }
+      }
+    },
+    {
+      "key": "respeaker_xvf3800",
+      "name": "Respeaker XVF3800",
+      "config": "respeakerXVF3800-TaterTimer.yaml",
+      "artifacts": {
+        "ota": {
+          "kind": "ota",
+          "path": "prebuilt_firmware/3.0.5/respeaker_xvf3800/tater-respeaker-xvf3800-3.0.5.ota.bin",
+          "size_bytes": 3169904,
+          "sha256": "87dce42f2bcd6584b659e2f49f15c317e515f398ee7b7f9566da5740d99cde93"
+        },
+        "factory": {
+          "kind": "factory",
+          "path": "prebuilt_firmware/3.0.5/respeaker_xvf3800/tater-respeaker-xvf3800-3.0.5.factory.bin",
+          "size_bytes": 3235440,
+          "sha256": "ba3091e5caab1f41661acb112776c1952fdc7bd50c46be22d7f7ff743ac40074"
+        }
+      }
+    }
+  ]
+}
