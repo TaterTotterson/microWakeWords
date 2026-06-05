@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "3.0.5",
-  "generated_date": "2026-06-03",
+  "generated_date": "2026-06-04",
   "default_install_artifact": "ota",
   "notes": [
     "Use ota artifacts for ESPHome OTA updates from Tater app.",
@@ -111,14 +111,14 @@
         "ota": {
           "kind": "ota",
           "path": "prebuilt_firmware/3.0.5/s3box_display/tater-s3box-display-3.0.5.ota.bin",
-          "size_bytes": 1757744,
-          "sha256": "4673da723b544a4e49d6cfb25645edd827a692a65fc2120f3af077d440688549"
+          "size_bytes": 1758416,
+          "sha256": "7fccd70ee80e3a595e60ae9684d2d17bb07fe469ea90712b6eb185b3e11cdc10"
         },
         "factory": {
           "kind": "factory",
           "path": "prebuilt_firmware/3.0.5/s3box_display/tater-s3box-display-3.0.5.factory.bin",
-          "size_bytes": 1823280,
-          "sha256": "76611368cdeaf7c52dfcfe2c0fb4cce892fa27e0c28413aca4e41fb0dd9c7210"
+          "size_bytes": 1823952,
+          "sha256": "6ee06ff3476c9dde3fbc91744801e9b666d32536c229eb8a8e157651baf57cc5"
         }
       }
     }
