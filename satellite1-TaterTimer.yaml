@@ -26,7 +26,7 @@ substitutions:
   # FIRMWARE VERSIONS
   # -----------------------------
   esp32_fw_version: "3.0.5"
-  xmos_fw_version: "v1.0.4-dev"
+  xmos_fw_version: "v1.0.4-dev.9"
 
   # -----------------------------
   # WAKE WORD CONFIG
@@ -309,7 +309,7 @@ memory_flasher:
     auto_flash: true
     embed_flash_image:
       image_version: ${xmos_fw_version}
-      image_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/sat1/firmware/xmos/satellite1_firmware_fixed_delay-v1.0.4-dev.factory.bin
+      image_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/sat1/firmware/xmos/satellite1_firmware_fixed_delay-v1.0.4-dev.9.factory.bin
       md5: 25babfee1e1eb1252e4855a00a5e2ed9
 
     on_flashing_start:
