@@ -139,6 +139,8 @@ ota:
 
 captive_portal:
 
+improv_serial:
+
 external_components:
   - source:
       type: git
