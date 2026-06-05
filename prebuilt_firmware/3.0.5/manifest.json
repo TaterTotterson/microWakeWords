@@ -111,14 +111,14 @@
         "ota": {
           "kind": "ota",
           "path": "prebuilt_firmware/3.0.5/s3box_display/tater-s3box-display-3.0.5.ota.bin",
-          "size_bytes": 1752240,
-          "sha256": "9736554ce6504ab6d3b82b7ab1ef19e5cc8ec1c80ae2f12a0c964638c55e5528"
+          "size_bytes": 1752128,
+          "sha256": "566f3ee04d8cb1de6df6a7654ba66e04e4e8c15c6c666a01276bfe1bd0b1dd3e"
         },
         "factory": {
           "kind": "factory",
           "path": "prebuilt_firmware/3.0.5/s3box_display/tater-s3box-display-3.0.5.factory.bin",
-          "size_bytes": 1817776,
-          "sha256": "928b491fc643488550ce844089a1a6be55805c2cdb05a84cc6d5049ca710a28a"
+          "size_bytes": 1817664,
+          "sha256": "91c2f0ba95a0886ce5e780f5281245789085f78f36fe2e5e933b12d1efb52d5c"
         }
       }
     }

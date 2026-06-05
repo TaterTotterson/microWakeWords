@@ -104,8 +104,8 @@ wifi:
       - text_sensor.template.publish:
           id: connection_status_text
           state: "Wi-Fi online"
+      - delay: 5s
       - script.execute: fetch_tater_feed
-      - script.wait: fetch_tater_feed
       - delay: 1s
       - script.execute: fetch_tater_events
   on_disconnect:
@@ -131,7 +131,7 @@ button:
     on_press:
       then:
         - script.execute: fetch_tater_feed
-        - script.wait: fetch_tater_feed
+        - delay: 1s
         - script.execute: fetch_tater_events
 
 ota:
@@ -709,7 +709,7 @@ text:
     max_length: 255
     set_action:
       - script.execute: fetch_tater_feed
-      - script.wait: fetch_tater_feed
+      - delay: 1s
       - script.execute: fetch_tater_events
 
   - platform: template
@@ -1354,259 +1354,290 @@ script:
   - id: fetch_tater_feed
     mode: single
     then:
-      - http_request.get:
-          url: !lambda |-
-            std::string base = id(tater_display_url).state;
-            if (base.empty()) {
-              base = "${tater_base_url}";
-            }
-            if (base.compare(0, 5, "http:") == 0 && base.compare(0, 7, "http://") != 0) {
-              std::string rest = base.substr(5);
-              while (!rest.empty() && rest.front() == '/') {
-                rest.erase(0, 1);
+      - if:
+          condition:
+            lambda: |-
+              std::string base = id(tater_display_url).state;
+              if (base.empty()) {
+                base = "${tater_base_url}";
               }
-              base = "http://" + rest;
-            } else if (base.compare(0, 6, "https:") == 0 && base.compare(0, 8, "https://") != 0) {
-              std::string rest = base.substr(6);
-              while (!rest.empty() && rest.front() == '/') {
-                rest.erase(0, 1);
-              }
-              base = "https://" + rest;
-            } else if (base.compare(0, 7, "http://") != 0 && base.compare(0, 8, "https://") != 0) {
-              base = "http://" + base;
-            }
-            while (!base.empty() && base.back() == '/') {
-              base.pop_back();
-            }
-            return base + "/tater-ha/v1/display/feed"
-              + "?target=${display_target}"
-              + "&selector=${display_target}"
-              + "&format=compact";
-          request_headers:
-            X-Tater-Token: "${tater_token}"
-          capture_response: true
-          max_response_buffer_size: 2048
-          on_response:
-            then:
-              - if:
-                  condition:
-                    lambda: return response->status_code == 200 && !body.empty();
+              return !base.empty()
+                && base != "http://tater.local:8501"
+                && base != "https://tater.local:8501"
+                && base != "tater.local:8501"
+                && base != "tater.local";
+          then:
+            - http_request.get:
+                url: !lambda |-
+                  std::string base = id(tater_display_url).state;
+                  if (base.empty()) {
+                    base = "${tater_base_url}";
+                  }
+                  if (base.compare(0, 5, "http:") == 0 && base.compare(0, 7, "http://") != 0) {
+                    std::string rest = base.substr(5);
+                    while (!rest.empty() && rest.front() == '/') {
+                      rest.erase(0, 1);
+                    }
+                    base = "http://" + rest;
+                  } else if (base.compare(0, 6, "https:") == 0 && base.compare(0, 8, "https://") != 0) {
+                    std::string rest = base.substr(6);
+                    while (!rest.empty() && rest.front() == '/') {
+                      rest.erase(0, 1);
+                    }
+                    base = "https://" + rest;
+                  } else if (base.compare(0, 7, "http://") != 0 && base.compare(0, 8, "https://") != 0) {
+                    base = "http://" + base;
+                  }
+                  while (!base.empty() && base.back() == '/') {
+                    base.pop_back();
+                  }
+                  return base + "/tater-ha/v1/display/feed"
+                    + "?target=${display_target}"
+                    + "&selector=${display_target}"
+                    + "&format=compact";
+                request_headers:
+                  X-Tater-Token: "${tater_token}"
+                capture_response: true
+                max_response_buffer_size: 2048
+                on_response:
                   then:
-                    - script.execute: mark_tater_http_success
-                    - lambda: |-
-                        json::parse_json(body, [](JsonObject root) -> bool {
-                          JsonObject text = root["text"].as<JsonObject>();
-                          auto get_text = [&](const char *key) -> const char * {
-                            const char *value = text[key] | "";
-                            if (value == nullptr || value[0] == '\0') {
-                              return "--";
-                            }
-                            return value;
-                          };
-                          id(temp_out_text).publish_state(get_text("temp_out"));
-                          id(temp_in_text).publish_state(get_text("temp_in"));
-                          id(humidity_out_text).publish_state(get_text("humidity_out"));
-                          id(humidity_in_text).publish_state(get_text("humidity_in"));
-                          id(wind_text).publish_state(get_text("wind_speed"));
-                          id(rain_text).publish_state(get_text("rain_rate"));
-                          id(lightning_text).publish_state(get_text("lightning_strikes"));
-                          return true;
-                        });
-                  else:
+                    - if:
+                        condition:
+                          lambda: return response->status_code == 200 && !body.empty();
+                        then:
+                          - script.execute: mark_tater_http_success
+                          - lambda: |-
+                              json::parse_json(body, [](JsonObject root) -> bool {
+                                JsonObject text = root["text"].as<JsonObject>();
+                                auto get_text = [&](const char *key) -> const char * {
+                                  const char *value = text[key] | "";
+                                  if (value == nullptr || value[0] == '\0') {
+                                    return "--";
+                                  }
+                                  return value;
+                                };
+                                id(temp_out_text).publish_state(get_text("temp_out"));
+                                id(temp_in_text).publish_state(get_text("temp_in"));
+                                id(humidity_out_text).publish_state(get_text("humidity_out"));
+                                id(humidity_in_text).publish_state(get_text("humidity_in"));
+                                id(wind_text).publish_state(get_text("wind_speed"));
+                                id(rain_text).publish_state(get_text("rain_rate"));
+                                id(lightning_text).publish_state(get_text("lightning_strikes"));
+                                return true;
+                              });
+                        else:
+                          - script.execute: mark_tater_http_failure
+                on_error:
+                  then:
                     - script.execute: mark_tater_http_failure
-          on_error:
-            then:
-              - script.execute: mark_tater_http_failure
+          else:
+            - logger.log:
+                level: INFO
+                tag: tater.display
+                format: "Waiting for Tater Display URL before fetching feed."
 
   - id: fetch_tater_events
     mode: single
     then:
-      - http_request.get:
-          url: !lambda |-
-            std::string base = id(tater_display_url).state;
-            if (base.empty()) {
-              base = "${tater_base_url}";
-            }
-            if (base.compare(0, 5, "http:") == 0 && base.compare(0, 7, "http://") != 0) {
-              std::string rest = base.substr(5);
-              while (!rest.empty() && rest.front() == '/') {
-                rest.erase(0, 1);
+      - if:
+          condition:
+            lambda: |-
+              std::string base = id(tater_display_url).state;
+              if (base.empty()) {
+                base = "${tater_base_url}";
               }
-              base = "http://" + rest;
-            } else if (base.compare(0, 6, "https:") == 0 && base.compare(0, 8, "https://") != 0) {
-              std::string rest = base.substr(6);
-              while (!rest.empty() && rest.front() == '/') {
-                rest.erase(0, 1);
-              }
-              base = "https://" + rest;
-            } else if (base.compare(0, 7, "http://") != 0 && base.compare(0, 8, "https://") != 0) {
-              base = "http://" + base;
-            }
-            while (!base.empty() && base.back() == '/') {
-              base.pop_back();
-            }
-            return base + "/tater-ha/v1/display/events"
-              + "?target=${display_target}"
-              + "&after_seq=" + std::to_string(id(last_event_seq))
-              + "&limit=4";
-          request_headers:
-            X-Tater-Token: "${tater_token}"
-          capture_response: true
-          on_response:
-            then:
-              - if:
-                  condition:
-                    lambda: return response->status_code == 200 && !body.empty();
+              return !base.empty()
+                && base != "http://tater.local:8501"
+                && base != "https://tater.local:8501"
+                && base != "tater.local:8501"
+                && base != "tater.local";
+          then:
+            - http_request.get:
+                url: !lambda |-
+                  std::string base = id(tater_display_url).state;
+                  if (base.empty()) {
+                    base = "${tater_base_url}";
+                  }
+                  if (base.compare(0, 5, "http:") == 0 && base.compare(0, 7, "http://") != 0) {
+                    std::string rest = base.substr(5);
+                    while (!rest.empty() && rest.front() == '/') {
+                      rest.erase(0, 1);
+                    }
+                    base = "http://" + rest;
+                  } else if (base.compare(0, 6, "https:") == 0 && base.compare(0, 8, "https://") != 0) {
+                    std::string rest = base.substr(6);
+                    while (!rest.empty() && rest.front() == '/') {
+                      rest.erase(0, 1);
+                    }
+                    base = "https://" + rest;
+                  } else if (base.compare(0, 7, "http://") != 0 && base.compare(0, 8, "https://") != 0) {
+                    base = "http://" + base;
+                  }
+                  while (!base.empty() && base.back() == '/') {
+                    base.pop_back();
+                  }
+                  return base + "/tater-ha/v1/display/events"
+                    + "?target=${display_target}"
+                    + "&after_seq=" + std::to_string(id(last_event_seq))
+                    + "&limit=4";
+                request_headers:
+                  X-Tater-Token: "${tater_token}"
+                capture_response: true
+                on_response:
                   then:
-                    - script.execute: mark_tater_http_success
-                    - lambda: |-
-                        json::parse_json(body, [](JsonObject root) -> bool {
-                          int last_seq = root["last_seq"] | id(last_event_seq);
-                          if (last_seq > id(last_event_seq)) {
-                            id(last_event_seq) = last_seq;
-                          }
-
-                          JsonArray events = root["events"].as<JsonArray>();
-                          if (events.size() == 0) {
-                            return true;
-                          }
-
-                          JsonObject event = events[events.size() - 1].as<JsonObject>();
-                          const char *kind = event["kind"] | "notification";
-                          const char *title = event["title"] | "";
-                          const char *message = event["message"] | "";
-                          const char *description = event["description"] | "";
-                          const char *priority = event["priority"] | "normal";
-                          const char *image_url = event["image_url"] | "";
-                          const char *tool = event["tool"] | "";
-                          int step_index = event["step_index"] | 0;
-                          int step_total = event["step_total"] | 0;
-                          int ttl = event["ttl_seconds"] | 18;
-
-                          std::string kind_text = kind == nullptr ? "notification" : std::string(kind);
-                          if (title == nullptr || title[0] == '\0') {
-                            title = kind_text == "tool_call" ? "Tool Call" : "${tater_first_name}";
-                          }
-                          std::string message_text = message == nullptr ? "" : std::string(message);
-                          std::string description_text = description == nullptr ? "" : std::string(description);
-                          if (message_text.empty() && !description_text.empty()) {
-                            message_text = description_text;
-                          }
-                          if (description_text == message_text) {
-                            description_text.clear();
-                          }
-
-                          id(event_title_text).publish_state(title);
-                          id(event_message_text).publish_state(message_text);
-                          id(event_description_text).publish_state(description_text);
-                          id(event_priority_text).publish_state(priority == nullptr ? "normal" : priority);
-
-                          std::string image_url_text = image_url == nullptr ? "" : std::string(image_url);
-                          auto set_image_if_empty = [&](const char *value) {
-                            if (!image_url_text.empty() || value == nullptr || value[0] == '\0') {
-                              return;
-                            }
-                            image_url_text = value;
-                          };
-                          set_image_if_empty(event["snapshot_url"] | "");
-                          set_image_if_empty(event["thumbnail_url"] | "");
-                          JsonObject meta = event["meta"].as<JsonObject>();
-                          if (!meta.isNull()) {
-                            set_image_if_empty(meta["image_url"] | "");
-                            set_image_if_empty(meta["snapshot_url"] | "");
-                            set_image_if_empty(meta["thumbnail_url"] | "");
-                          }
-                          JsonObject data = event["data"].as<JsonObject>();
-                          if (!data.isNull()) {
-                            set_image_if_empty(data["image_url"] | "");
-                            set_image_if_empty(data["snapshot_url"] | "");
-                            set_image_if_empty(data["thumbnail_url"] | "");
-                          }
-                          if (image_url_text.empty()) {
-                            const char *snapshot_id = event["snapshot_id"] | "";
-                            if ((snapshot_id == nullptr || snapshot_id[0] == '\0') && !data.isNull()) {
-                              snapshot_id = data["snapshot_id"] | "";
-                            }
-                            if ((snapshot_id == nullptr || snapshot_id[0] == '\0') && !meta.isNull()) {
-                              snapshot_id = meta["snapshot_id"] | "";
-                            }
-                            if (snapshot_id != nullptr && snapshot_id[0] != '\0') {
-                              image_url_text = std::string("/tater-ha/v1/display/snapshots/") + snapshot_id;
-                            }
-                          }
-                          if (!image_url_text.empty()) {
-                            auto normalize_base = []() -> std::string {
-                              std::string base = id(tater_display_url).state;
-                              if (base.empty()) {
-                                base = "${tater_base_url}";
-                              }
-                              if (base.compare(0, 5, "http:") == 0 && base.compare(0, 7, "http://") != 0) {
-                                std::string rest = base.substr(5);
-                                while (!rest.empty() && rest.front() == '/') {
-                                  rest.erase(0, 1);
+                    - if:
+                        condition:
+                          lambda: return response->status_code == 200 && !body.empty();
+                        then:
+                          - script.execute: mark_tater_http_success
+                          - lambda: |-
+                              json::parse_json(body, [](JsonObject root) -> bool {
+                                int last_seq = root["last_seq"] | id(last_event_seq);
+                                if (last_seq > id(last_event_seq)) {
+                                  id(last_event_seq) = last_seq;
                                 }
-                                base = "http://" + rest;
-                              } else if (base.compare(0, 6, "https:") == 0 && base.compare(0, 8, "https://") != 0) {
-                                std::string rest = base.substr(6);
-                                while (!rest.empty() && rest.front() == '/') {
-                                  rest.erase(0, 1);
+
+                                JsonArray events = root["events"].as<JsonArray>();
+                                if (events.size() == 0) {
+                                  return true;
                                 }
-                                base = "https://" + rest;
-                              } else if (base.compare(0, 7, "http://") != 0 && base.compare(0, 8, "https://") != 0) {
-                                base = "http://" + base;
-                              }
-                              while (!base.empty() && base.back() == '/') {
-                                base.pop_back();
-                              }
-                              return base;
-                            };
-                            if (image_url_text.compare(0, 5, "http:") == 0 && image_url_text.compare(0, 7, "http://") != 0) {
-                              std::string rest = image_url_text.substr(5);
-                              while (!rest.empty() && rest.front() == '/') {
-                                rest.erase(0, 1);
-                              }
-                              image_url_text = "http://" + rest;
-                            } else if (image_url_text.compare(0, 6, "https:") == 0 && image_url_text.compare(0, 8, "https://") != 0) {
-                              std::string rest = image_url_text.substr(6);
-                              while (!rest.empty() && rest.front() == '/') {
-                                rest.erase(0, 1);
-                              }
-                              image_url_text = "https://" + rest;
-                            } else if (image_url_text.front() == '/') {
-                              image_url_text = normalize_base() + image_url_text;
-                            } else if (image_url_text.compare(0, 7, "http://") != 0 && image_url_text.compare(0, 8, "https://") != 0) {
-                              image_url_text = normalize_base() + "/" + image_url_text;
-                            }
-                          }
-                          id(event_image_url_text).publish_state(image_url_text);
-                          id(tool_name_text).publish_state(
-                            tool != nullptr && tool[0] != '\0' ? tool : "${tater_first_name} is working"
-                          );
 
-                          static char step_buf[16];
-                          if (step_index > 0 && step_total > 0) {
-                            snprintf(step_buf, sizeof(step_buf), "%d/%d", step_index, step_total);
-                          } else {
-                            snprintf(step_buf, sizeof(step_buf), "running");
-                          }
-                          id(tool_step_text).publish_state(step_buf);
+                                JsonObject event = events[events.size() - 1].as<JsonObject>();
+                                const char *kind = event["kind"] | "notification";
+                                const char *title = event["title"] | "";
+                                const char *message = event["message"] | "";
+                                const char *description = event["description"] | "";
+                                const char *priority = event["priority"] | "normal";
+                                const char *image_url = event["image_url"] | "";
+                                const char *tool = event["tool"] | "";
+                                int step_index = event["step_index"] | 0;
+                                int step_total = event["step_total"] | 0;
+                                int ttl = event["ttl_seconds"] | 18;
 
-                          id(event_visible) = true;
-                          if (ttl < 6) {
-                            ttl = 6;
-                          }
-                          if (ttl > 90) {
-                            ttl = 90;
-                          }
-                          id(event_until_ms) = millis() + (uint32_t) ttl * 1000U;
-                          id(event_kind_text).publish_state(kind);
-                          return true;
-                        });
-                  else:
+                                std::string kind_text = kind == nullptr ? "notification" : std::string(kind);
+                                if (title == nullptr || title[0] == '\0') {
+                                  title = kind_text == "tool_call" ? "Tool Call" : "${tater_first_name}";
+                                }
+                                std::string message_text = message == nullptr ? "" : std::string(message);
+                                std::string description_text = description == nullptr ? "" : std::string(description);
+                                if (message_text.empty() && !description_text.empty()) {
+                                  message_text = description_text;
+                                }
+                                if (description_text == message_text) {
+                                  description_text.clear();
+                                }
+
+                                id(event_title_text).publish_state(title);
+                                id(event_message_text).publish_state(message_text);
+                                id(event_description_text).publish_state(description_text);
+                                id(event_priority_text).publish_state(priority == nullptr ? "normal" : priority);
+
+                                std::string image_url_text = image_url == nullptr ? "" : std::string(image_url);
+                                auto set_image_if_empty = [&](const char *value) {
+                                  if (!image_url_text.empty() || value == nullptr || value[0] == '\0') {
+                                    return;
+                                  }
+                                  image_url_text = value;
+                                };
+                                set_image_if_empty(event["snapshot_url"] | "");
+                                set_image_if_empty(event["thumbnail_url"] | "");
+                                JsonObject meta = event["meta"].as<JsonObject>();
+                                if (!meta.isNull()) {
+                                  set_image_if_empty(meta["image_url"] | "");
+                                  set_image_if_empty(meta["snapshot_url"] | "");
+                                  set_image_if_empty(meta["thumbnail_url"] | "");
+                                }
+                                JsonObject data = event["data"].as<JsonObject>();
+                                if (!data.isNull()) {
+                                  set_image_if_empty(data["image_url"] | "");
+                                  set_image_if_empty(data["snapshot_url"] | "");
+                                  set_image_if_empty(data["thumbnail_url"] | "");
+                                }
+                                if (image_url_text.empty()) {
+                                  const char *snapshot_id = event["snapshot_id"] | "";
+                                  if ((snapshot_id == nullptr || snapshot_id[0] == '\0') && !data.isNull()) {
+                                    snapshot_id = data["snapshot_id"] | "";
+                                  }
+                                  if ((snapshot_id == nullptr || snapshot_id[0] == '\0') && !meta.isNull()) {
+                                    snapshot_id = meta["snapshot_id"] | "";
+                                  }
+                                  if (snapshot_id != nullptr && snapshot_id[0] != '\0') {
+                                    image_url_text = std::string("/tater-ha/v1/display/snapshots/") + snapshot_id;
+                                  }
+                                }
+                                if (!image_url_text.empty()) {
+                                  auto normalize_base = []() -> std::string {
+                                    std::string base = id(tater_display_url).state;
+                                    if (base.empty()) {
+                                      base = "${tater_base_url}";
+                                    }
+                                    if (base.compare(0, 5, "http:") == 0 && base.compare(0, 7, "http://") != 0) {
+                                      std::string rest = base.substr(5);
+                                      while (!rest.empty() && rest.front() == '/') {
+                                        rest.erase(0, 1);
+                                      }
+                                      base = "http://" + rest;
+                                    } else if (base.compare(0, 6, "https:") == 0 && base.compare(0, 8, "https://") != 0) {
+                                      std::string rest = base.substr(6);
+                                      while (!rest.empty() && rest.front() == '/') {
+                                        rest.erase(0, 1);
+                                      }
+                                      base = "https://" + rest;
+                                    } else if (base.compare(0, 7, "http://") != 0 && base.compare(0, 8, "https://") != 0) {
+                                      base = "http://" + base;
+                                    }
+                                    while (!base.empty() && base.back() == '/') {
+                                      base.pop_back();
+                                    }
+                                    return base;
+                                  };
+                                  if (image_url_text.compare(0, 5, "http:") == 0 && image_url_text.compare(0, 7, "http://") != 0) {
+                                    std::string rest = image_url_text.substr(5);
+                                    while (!rest.empty() && rest.front() == '/') {
+                                      rest.erase(0, 1);
+                                    }
+                                    image_url_text = "http://" + rest;
+                                  } else if (image_url_text.compare(0, 6, "https:") == 0 && image_url_text.compare(0, 8, "https://") != 0) {
+                                    std::string rest = image_url_text.substr(6);
+                                    while (!rest.empty() && rest.front() == '/') {
+                                      rest.erase(0, 1);
+                                    }
+                                    image_url_text = "https://" + rest;
+                                  } else if (image_url_text.front() == '/') {
+                                    image_url_text = normalize_base() + image_url_text;
+                                  } else if (image_url_text.compare(0, 7, "http://") != 0 && image_url_text.compare(0, 8, "https://") != 0) {
+                                    image_url_text = normalize_base() + "/" + image_url_text;
+                                  }
+                                }
+                                id(event_image_url_text).publish_state(image_url_text);
+                                id(tool_name_text).publish_state(
+                                  tool != nullptr && tool[0] != '\0' ? tool : "${tater_first_name} is working"
+                                );
+
+                                static char step_buf[16];
+                                if (step_index > 0 && step_total > 0) {
+                                  snprintf(step_buf, sizeof(step_buf), "%d/%d", step_index, step_total);
+                                } else {
+                                  snprintf(step_buf, sizeof(step_buf), "running");
+                                }
+                                id(tool_step_text).publish_state(step_buf);
+
+                                id(event_visible) = true;
+                                if (ttl < 6) {
+                                  ttl = 6;
+                                }
+                                if (ttl > 90) {
+                                  ttl = 90;
+                                }
+                                id(event_until_ms) = millis() + (uint32_t) ttl * 1000U;
+                                id(event_kind_text).publish_state(kind);
+                                return true;
+                              });
+                        else:
+                          - script.execute: mark_tater_http_failure
+                on_error:
+                  then:
                     - script.execute: mark_tater_http_failure
-          on_error:
-            then:
-              - script.execute: mark_tater_http_failure
 
   - id: animate_tool_call
     mode: restart
