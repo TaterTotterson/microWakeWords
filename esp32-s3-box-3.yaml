@@ -471,10 +471,6 @@ voice_assistant:
         id: connection_status_text
         state: "Voice ready"
   on_client_disconnected:
-    - logger.log:
-        level: WARN
-        tag: tater.voice
-        format: "Voice assistant client disconnected; stopping wake word detection."
     - lambda: id(voice_api_connected) = false;
     - voice_assistant.stop:
     - micro_wake_word.stop:
@@ -652,7 +648,7 @@ switch:
     pin:
       number: GPIO46
       ignore_strapping_warning: true
-    restore_mode: RESTORE_DEFAULT_ON
+    restore_mode: ALWAYS_ON
     entity_category: config
     disabled_by_default: true
 
