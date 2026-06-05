@@ -17,13 +17,13 @@
           "kind": "ota",
           "path": "prebuilt_firmware/3.0.5/satellite1/tater-satellite1-3.0.5.ota.bin",
           "size_bytes": 2776864,
-          "sha256": "dfb23f003a7c73beaee033da49669075bb3298036fc3f610bf3bc7dd8936d604"
+          "sha256": "9c9377670594ced1e5d4f83a5b1466e8cc332ce24d675b6ee8767c0e0662f514"
         },
         "factory": {
           "kind": "factory",
           "path": "prebuilt_firmware/3.0.5/satellite1/tater-satellite1-3.0.5.factory.bin",
           "size_bytes": 2842400,
-          "sha256": "78edc93a5e6c8d37f21b38cec04637fd5b5e437f513694e611b53c0956375348"
+          "sha256": "3b9995155848bab622766c2a01d817168fb3a3288085a9379006e712ca09c6e3"
         }
       }
     },
