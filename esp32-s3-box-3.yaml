@@ -700,6 +700,21 @@ switch:
 
 text:
   - platform: template
+    id: tater_display_target
+    name: Tater Display Target
+    icon: mdi:crosshairs-gps
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: "${display_target}"
+    mode: TEXT
+    max_length: 64
+    set_action:
+      - script.execute: fetch_tater_feed
+      - delay: 1s
+      - script.execute: fetch_tater_events
+
+  - platform: template
     id: tater_display_url
     name: Tater Display URL
     icon: mdi:monitor-dashboard
@@ -1393,9 +1408,13 @@ script:
                   while (!base.empty() && base.back() == '/') {
                     base.pop_back();
                   }
+                  std::string target = id(tater_display_target).state;
+                  if (target.empty()) {
+                    target = "${display_target}";
+                  }
                   return base + "/tater-ha/v1/display/feed"
-                    + "?target=${display_target}"
-                    + "&selector=${display_target}"
+                    + "?target=" + target
+                    + "&selector=" + target
                     + "&format=compact";
                 request_headers:
                   X-Tater-Token: "${tater_token}"
@@ -1478,8 +1497,12 @@ script:
                   while (!base.empty() && base.back() == '/') {
                     base.pop_back();
                   }
+                  std::string target = id(tater_display_target).state;
+                  if (target.empty()) {
+                    target = "${display_target}";
+                  }
                   return base + "/tater-ha/v1/display/events"
-                    + "?target=${display_target}"
+                    + "?target=" + target
                     + "&after_seq=" + std::to_string(id(last_event_seq))
                     + "&limit=4";
                 request_headers:
