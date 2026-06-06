@@ -92,14 +92,14 @@
         "ota": {
           "kind": "ota",
           "path": "prebuilt_firmware/3.0.6/respeaker_xvf3800/tater-respeaker-xvf3800-3.0.6.ota.bin",
-          "size_bytes": 3170720,
-          "sha256": "6906ad91bd565fa21d3989ede2343eaa10741fc094d76dc5ec7aa74fd0a6f8cb"
+          "size_bytes": 3170976,
+          "sha256": "54848ca5007e9faf39cab229926bfd1d1e00d29ad838f1c1097104cb434bf4bb"
         },
         "factory": {
           "kind": "factory",
           "path": "prebuilt_firmware/3.0.6/respeaker_xvf3800/tater-respeaker-xvf3800-3.0.6.factory.bin",
-          "size_bytes": 3236256,
-          "sha256": "79791dcf1a3aaa6b011258a3debbaf4f78d8a8ee057696bef5d2ec79640e986f"
+          "size_bytes": 3236512,
+          "sha256": "2e12f85d86853d35292ec8b24b156c2017d82c1d2332b8cbfd90719bbe333d06"
         }
       }
     },

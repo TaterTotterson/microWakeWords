@@ -452,7 +452,9 @@ script:
     then:
       - lambda: |-
           constexpr int NUM_LEDS = 12;
-          static float smoothed_radius = 3.0f;
+          static float smoothed_radius = 2.6f;
+          static float smoothed_audio_level = 0.0f;
+          static float wave_phase = 0.0f;
           static uint8_t wave_tick = 0;
 
           auto clamp_u8 = [](float value) -> uint8_t {
@@ -472,7 +474,7 @@ script:
             return dist;
           };
 
-          float audio_level = id(i2s_audio_speaker).audio_level() * 14.0f;
+          float audio_level = id(i2s_audio_speaker).audio_level() * 22.0f;
           if (audio_level > 1.0f) {
             audio_level = 1.0f;
           }
@@ -482,7 +484,19 @@ script:
             volume_level = 0.0f;
           }
 
-          float target_radius = 3.0f + (audio_level * 3.8f) + (volume_level * 0.75f);
+          float visual_audio_level = audio_level;
+          if (volume_level > 0.0f && visual_audio_level < 0.16f) {
+            visual_audio_level = 0.16f;
+          }
+          float audio_alpha = visual_audio_level > smoothed_audio_level ? 0.62f : 0.24f;
+          smoothed_audio_level += (visual_audio_level - smoothed_audio_level) * audio_alpha;
+
+          wave_phase += 0.46f + (smoothed_audio_level * 0.95f);
+          while (wave_phase >= 6.28318f) {
+            wave_phase -= 6.28318f;
+          }
+
+          float target_radius = 2.15f + (smoothed_audio_level * 4.45f) + (volume_level * 0.35f);
           if (target_radius > 6.25f) {
             target_radius = 6.25f;
           }
@@ -515,13 +529,17 @@ script:
               level = 1.0f;
             }
             int ripple_dist = (int) roundf(dist);
-            float ripple = 0.70f + (0.30f * ((wave_tick + ripple_dist * 3) % 6) / 5.0f);
-            float color_level = (0.16f + (level * 0.84f)) * ripple * master_brightness;
-            float center_level = 1.0f - (dist / 1.35f);
+            float distance_wave = 0.5f + (0.5f * sinf(wave_phase - (dist * 1.35f)));
+            float tick_wave = ((wave_tick + ripple_dist * 3) % 6) / 5.0f;
+            float ripple = 0.55f + (0.30f * distance_wave) + (0.15f * tick_wave);
+            float speech_push = 0.68f + (smoothed_audio_level * 0.42f);
+            float color_level = (0.10f + (level * 0.78f) + (level * distance_wave * 0.22f)) *
+                                ripple * speech_push * master_brightness;
+            float center_level = 1.0f - (dist / 1.45f);
             if (center_level < 0.0f) {
               center_level = 0.0f;
             }
-            center_level *= 0.52f * master_brightness;
+            center_level *= (0.26f + (smoothed_audio_level * 0.34f)) * master_brightness;
 
             float r = id(effect_color_r) * color_level + 255.0f * center_level;
             float g = id(effect_color_g) * color_level + 240.0f * center_level;
