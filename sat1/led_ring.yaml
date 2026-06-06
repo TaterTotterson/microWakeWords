@@ -14,6 +14,10 @@ globals:
     type: bool
     restore_value: no
     initial_value: 'false'
+  - id: last_voice_direction_led
+    type: int
+    restore_value: no
+    initial_value: '12'
 
 light:
   # Hardware LED ring. Not used because remapping needed
@@ -188,6 +192,7 @@ light:
                 filtered_delay += (id(xmos_doa).sample_delay() - filtered_delay) * delay_filter_alpha;
                 target_position = delay_to_position(filtered_delay);
               }
+              id(last_voice_direction_led) = ((int) roundf(target_position)) % num_leds;
               last_valid_ms = now;
 
               float diff = target_position - animated_position;
@@ -386,7 +391,10 @@ light:
             };
 
             id(global_led_animation_index) = (id(global_led_animation_index) + 1) % 24;
-            constexpr int center = 12;
+            int center = id(last_voice_direction_led) % 24;
+            if (center < 0) {
+              center += 24;
+            }
             float audio_level = id(i2s_audio_speaker).audio_level() * 5.5f;
             if (audio_level > 1.0f) {
               audio_level = 1.0f;

@@ -1,6 +1,6 @@
 substitutions:
   # DEVICE IDENTITY
-  firmware_version: "3.0.5"
+  firmware_version: "3.0.6"
   device_name: tater-respeaker-lite
   friendly_name: Tater ReSpeaker Lite
 

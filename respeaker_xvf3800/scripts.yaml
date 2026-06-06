@@ -452,7 +452,6 @@ script:
     then:
       - lambda: |-
           constexpr int NUM_LEDS = 12;
-          constexpr int CENTER_LED = 6;
           static float smoothed_radius = 1.25f;
           static uint8_t wave_tick = 0;
 
@@ -465,12 +464,12 @@ script:
             }
             return (uint8_t) value;
           };
-          auto ring_distance = [](int a, int b) -> int {
-            int dist = a - b;
-            if (dist < 0) {
-              dist = -dist;
+          auto ring_distance = [](int led, float center) -> float {
+            float dist = fabsf((float) led - center);
+            if (dist > 6.0f) {
+              dist = 12.0f - dist;
             }
-            return dist > 6 ? 12 - dist : dist;
+            return dist;
           };
 
           float audio_level = id(i2s_audio_speaker).audio_level() * 5.5f;
@@ -498,9 +497,16 @@ script:
           }
 
           uint32_t colors[NUM_LEDS] = {0};
+          float center_pos = id(animated_beam_position);
+          while (center_pos >= NUM_LEDS) {
+            center_pos -= NUM_LEDS;
+          }
+          while (center_pos < 0.0f) {
+            center_pos += NUM_LEDS;
+          }
           for (int i = 0; i < NUM_LEDS; i++) {
-            int dist = ring_distance(i, CENTER_LED);
-            float level = smoothed_radius - (float) dist;
+            float dist = ring_distance(i, center_pos);
+            float level = smoothed_radius - dist;
             if (level <= 0.0f) {
               continue;
             }
@@ -508,9 +514,10 @@ script:
             if (level > 1.0f) {
               level = 1.0f;
             }
-            float ripple = 0.86f + (0.14f * ((wave_tick + dist * 5) % 4) / 3.0f);
+            int ripple_dist = (int) roundf(dist);
+            float ripple = 0.86f + (0.14f * ((wave_tick + ripple_dist * 5) % 4) / 3.0f);
             float color_level = (0.12f + (level * 0.76f)) * ripple * master_brightness;
-            float center_level = 1.0f - ((float) dist / 1.6f);
+            float center_level = 1.0f - (dist / 1.6f);
             if (center_level < 0.0f) {
               center_level = 0.0f;
             }
