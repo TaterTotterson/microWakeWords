@@ -413,7 +413,6 @@ voice_assistant:
         condition:
           lambda: return id(wake_engine_select).state == "microwakeword" || id(openwakeword_wake_detected) || id(push_to_intercom_active);
         then:
-          - script.execute: capture_voice_direction
           - lambda: id(voice_assistant_phase) = 4;
           - script.execute: control_leds
   on_tool_call_start:
