@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 158
+      "count": 159
     }
   ],
-  "count": 560,
+  "count": 561,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -8221,6 +8221,24 @@
       "model_path": "microWakeWordsV3/hey_computer.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_computer.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_computer.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:hey_cortahnah",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "hey_cortahnah",
+      "name": "hey_cortahnah",
+      "label": "Hey Cortahnah",
+      "path": "microWakeWordsV3/hey_cortahnah.json",
+      "model_path": "microWakeWordsV3/hey_cortahnah.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_cortahnah.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_cortahnah.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
