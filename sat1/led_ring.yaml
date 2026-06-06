@@ -117,6 +117,8 @@ light:
             static float filtered_delay = 0.0f;
             static uint32_t last_update_ms = 0;
             static uint32_t last_valid_ms = 0;
+            static float direction_scores[24] = {};
+            static int dominant_direction_led = 12;
             constexpr int num_leds = 24;
             constexpr int fade_leds = 6;
             constexpr float center_led = 12.0f;
@@ -175,10 +177,18 @@ light:
                                        id(xmos_doa).confidence() >= min_confidence;
 
             if (initial_run) {
+              for (int i = 0; i < num_leds; i++) {
+                direction_scores[i] = 0.0f;
+              }
+              dominant_direction_led = id(last_voice_direction_led);
+              if (dominant_direction_led < 0 || dominant_direction_led >= num_leds) {
+                dominant_direction_led = (int) center_led;
+              }
               filtered_delay = id(xmos_doa).sample_delay();
               animated_position = has_valid_doa
                   ? (id(xmos_doa).four_mic() ? (float) id(xmos_doa).led_index() : delay_to_position(filtered_delay))
                   : center_led;
+              id(last_voice_direction_led) = dominant_direction_led;
               last_valid_ms = has_valid_doa ? now : 0;
               dt = 0.0f;
             }
@@ -192,7 +202,30 @@ light:
                 filtered_delay += (id(xmos_doa).sample_delay() - filtered_delay) * delay_filter_alpha;
                 target_position = delay_to_position(filtered_delay);
               }
-              id(last_voice_direction_led) = ((int) roundf(target_position)) % num_leds;
+              int target_led = ((int) roundf(target_position)) % num_leds;
+              if (target_led < 0) {
+                target_led += num_leds;
+              }
+
+              float sample_seconds = dt;
+              if (sample_seconds <= 0.0f || sample_seconds > 0.20f) {
+                sample_seconds = 0.05f;
+              }
+              float sample_weight = sample_seconds * (1.0f + ((float) id(xmos_doa).confidence() * 0.20f));
+              direction_scores[target_led] += sample_weight;
+              direction_scores[(target_led + 1) % num_leds] += sample_weight * 0.28f;
+              direction_scores[(target_led + num_leds - 1) % num_leds] += sample_weight * 0.28f;
+
+              int best_led = dominant_direction_led;
+              float best_score = direction_scores[best_led];
+              for (int i = 0; i < num_leds; i++) {
+                if (direction_scores[i] > best_score) {
+                  best_score = direction_scores[i];
+                  best_led = i;
+                }
+              }
+              dominant_direction_led = best_led;
+              id(last_voice_direction_led) = dominant_direction_led;
               last_valid_ms = now;
 
               float diff = target_position - animated_position;

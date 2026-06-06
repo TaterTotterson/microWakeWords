@@ -452,7 +452,7 @@ script:
     then:
       - lambda: |-
           constexpr int NUM_LEDS = 12;
-          static float smoothed_radius = 1.25f;
+          static float smoothed_radius = 3.0f;
           static uint8_t wave_tick = 0;
 
           auto clamp_u8 = [](float value) -> uint8_t {
@@ -472,7 +472,7 @@ script:
             return dist;
           };
 
-          float audio_level = id(i2s_audio_speaker).audio_level() * 5.5f;
+          float audio_level = id(i2s_audio_speaker).audio_level() * 14.0f;
           if (audio_level > 1.0f) {
             audio_level = 1.0f;
           }
@@ -482,9 +482,9 @@ script:
             volume_level = 0.0f;
           }
 
-          float target_radius = 0.85f + (audio_level * 3.65f) + (volume_level * 0.85f);
-          if (target_radius > 5.5f) {
-            target_radius = 5.5f;
+          float target_radius = 3.0f + (audio_level * 3.8f) + (volume_level * 0.75f);
+          if (target_radius > 6.25f) {
+            target_radius = 6.25f;
           }
           float alpha = target_radius > smoothed_radius ? 0.45f : 0.20f;
           smoothed_radius += (target_radius - smoothed_radius) * alpha;
@@ -497,7 +497,7 @@ script:
           }
 
           uint32_t colors[NUM_LEDS] = {0};
-          float center_pos = id(animated_beam_position);
+          float center_pos = id(dominant_voice_direction_led);
           while (center_pos >= NUM_LEDS) {
             center_pos -= NUM_LEDS;
           }
@@ -506,7 +506,7 @@ script:
           }
           for (int i = 0; i < NUM_LEDS; i++) {
             float dist = ring_distance(i, center_pos);
-            float level = smoothed_radius - dist;
+            float level = (smoothed_radius - dist) / smoothed_radius;
             if (level <= 0.0f) {
               continue;
             }
@@ -515,9 +515,9 @@ script:
               level = 1.0f;
             }
             int ripple_dist = (int) roundf(dist);
-            float ripple = 0.86f + (0.14f * ((wave_tick + ripple_dist * 5) % 4) / 3.0f);
-            float color_level = (0.12f + (level * 0.76f)) * ripple * master_brightness;
-            float center_level = 1.0f - (dist / 1.6f);
+            float ripple = 0.70f + (0.30f * ((wave_tick + ripple_dist * 3) % 6) / 5.0f);
+            float color_level = (0.16f + (level * 0.84f)) * ripple * master_brightness;
+            float center_level = 1.0f - (dist / 1.35f);
             if (center_level < 0.0f) {
               center_level = 0.0f;
             }
@@ -661,11 +661,27 @@ script:
           constexpr int FADE_LEDS = 3;
           constexpr float TRANSITION_DURATION = 0.25f; // Duration of the smooth transition
           uint32_t colors[NUM_LEDS] = {0};
+          static float direction_scores[NUM_LEDS] = {};
 
           uint32_t now = millis();
           float dt = (now - id(last_led_update_time)) / 1000.0f;
           id(last_led_update_time) = now;
           float master_brightness = id(user_led_ring_brightness).state * id(effect_brightness);
+
+          if (id(beam_direction_tracking_reset)) {
+            for (int i = 0; i < NUM_LEDS; i++) {
+              direction_scores[i] = 0.0f;
+            }
+            float initial_pos = id(animated_beam_position);
+            while (initial_pos >= NUM_LEDS) {
+              initial_pos -= NUM_LEDS;
+            }
+            while (initial_pos < 0.0f) {
+              initial_pos += NUM_LEDS;
+            }
+            id(dominant_voice_direction_led) = initial_pos;
+            id(beam_direction_tracking_reset) = false;
+          }
 
           // Stock XVF3800 DoA mode uses a base color plus a distinct direction color.
           // Keep a low base glow so the ring has shape even between beam updates.
@@ -703,6 +719,31 @@ script:
             if (current_pos < 0.0f) current_pos += NUM_LEDS;
 
             id(animated_beam_position) = current_pos;
+
+            int sample_led = ((int) roundf(current_pos)) % NUM_LEDS;
+            if (sample_led < 0) {
+              sample_led += NUM_LEDS;
+            }
+            float sample_seconds = dt;
+            if (sample_seconds <= 0.0f || sample_seconds > 0.20f) {
+              sample_seconds = 0.05f;
+            }
+            direction_scores[sample_led] += sample_seconds;
+            direction_scores[(sample_led + 1) % NUM_LEDS] += sample_seconds * 0.25f;
+            direction_scores[(sample_led + NUM_LEDS - 1) % NUM_LEDS] += sample_seconds * 0.25f;
+
+            int dominant_led = ((int) roundf(id(dominant_voice_direction_led))) % NUM_LEDS;
+            if (dominant_led < 0) {
+              dominant_led += NUM_LEDS;
+            }
+            float dominant_score = direction_scores[dominant_led];
+            for (int i = 0; i < NUM_LEDS; i++) {
+              if (direction_scores[i] > dominant_score) {
+                dominant_score = direction_scores[i];
+                dominant_led = i;
+              }
+            }
+            id(dominant_voice_direction_led) = dominant_led;
 
             for (int i = 0; i < NUM_LEDS; i++) {
               // Calculate circular distance from current LED to the animated position
@@ -888,6 +929,7 @@ script:
   # Script executed when the voice assistant is waiting for a command (After the wake word)
   - id: control_leds_voice_assistant_waiting_for_command_phase
     then:
+      - lambda: id(beam_direction_tracking_reset) = true;
       - component.update: beam_direction
       - lambda: |
           if (id(beam_direction).has_state()) {
@@ -905,6 +947,10 @@ script:
   # Script executed when the voice assistant is listening to a command
   - id: control_leds_voice_assistant_listening_for_command_phase
     then:
+      - lambda: |-
+          if (id(current_led_effect) != "led_beam") {
+            id(beam_direction_tracking_reset) = true;
+          }
       - component.update: beam_direction
       - lambda: |
           if (id(beam_direction).has_state()) {
