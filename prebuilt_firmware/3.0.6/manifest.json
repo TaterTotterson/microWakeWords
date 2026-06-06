@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "version": "3.0.6",
+  "generated_date": "2026-06-05",
+  "default_install_artifact": "ota",
+  "notes": [
+    "Use ota artifacts for ESPHome OTA updates from Tater app.",
+    "Use factory artifacts for first USB/serial flash or recovery flashes at offset 0x0."
+  ],
+  "devices": [
+    {
+      "key": "satellite1",
+      "name": "Satellite1 / Sat1",
+      "config": "satellite1-TaterTimer.yaml",
+      "artifacts": {
+        "ota": {
+          "kind": "ota",
+          "path": "prebuilt_firmware/3.0.6/satellite1/tater-satellite1-3.0.6.ota.bin",
+          "size_bytes": 2777008,
+          "sha256": "062269eb71120c9d0e3f79a926c22e0a9733272e959e52ab5bbbf041016d1264"
+        },
+        "factory": {
+          "kind": "factory",
+          "path": "prebuilt_firmware/3.0.6/satellite1/tater-satellite1-3.0.6.factory.bin",
+          "size_bytes": 2842544,
+          "sha256": "b19ab9b122d45447e40c702bcfd39f33b5c5d07cb88281d4f5f6dacc88d0f36d"
+        }
+      }
+    },
+    {
+      "key": "voicepe",
+      "name": "Voice PE",
+      "config": "voicePE-TaterTimer.yaml",
+      "artifacts": {
+        "ota": {
+          "kind": "ota",
+          "path": "prebuilt_firmware/3.0.6/voicepe/tater-voicepe-3.0.6.ota.bin",
+          "size_bytes": 2788912,
+          "sha256": "76dbe42ddeab188c55e23f3d2ee31e7ca6f1630befe6768d03b7343a484d72ba"
+        },
+        "factory": {
+          "kind": "factory",
+          "path": "prebuilt_firmware/3.0.6/voicepe/tater-voicepe-3.0.6.factory.bin",
+          "size_bytes": 2854448,
+          "sha256": "8cb96fc8c73ed9347e4bd276e23cab065e89460bb88f9ce1aaf7a06e6099478c"
+        }
+      }
+    },
+    {
+      "key": "respeaker_lite",
+      "name": "Respeaker Lite",
+      "config": "respeakerLite-TaterTimer.yaml",
+      "artifacts": {
+        "ota": {
+          "kind": "ota",
+          "path": "prebuilt_firmware/3.0.6/respeaker_lite/tater-respeaker-lite-3.0.6.ota.bin",
+          "size_bytes": 2652960,
+          "sha256": "ba4f1147b3781da1ca7879cfa1e0c2387ff0ef11183c815b8705650f15b60a79"
+        },
+        "factory": {
+          "kind": "factory",
+          "path": "prebuilt_firmware/3.0.6/respeaker_lite/tater-respeaker-lite-3.0.6.factory.bin",
+          "size_bytes": 2718496,
+          "sha256": "866d6beedbc6145d7a0a90fea94d1a73ee7060c84c64e3640e8c58ea9d91a5f8"
+        }
+      }
+    },
+    {
+      "key": "koala",
+      "name": "Koala",
+      "config": "koala-TaterTimer.yaml",
+      "artifacts": {
+        "ota": {
+          "kind": "ota",
+          "path": "prebuilt_firmware/3.0.6/koala/tater-koala-3.0.6.ota.bin",
+          "size_bytes": 2663648,
+          "sha256": "cfc5aab775656bc77a4cfaab2992117c060e9608c7f5328eae29c70d1ffdf23b"
+        },
+        "factory": {
+          "kind": "factory",
+          "path": "prebuilt_firmware/3.0.6/koala/tater-koala-3.0.6.factory.bin",
+          "size_bytes": 2729184,
+          "sha256": "c2fc4c99f0bfccf0b4dc8f205a25a32b983982998cd50edcc4c4613b118fcc83"
+        }
+      }
+    },
+    {
+      "key": "respeaker_xvf3800",
+      "name": "Respeaker XVF3800",
+      "config": "respeakerXVF3800-TaterTimer.yaml",
+      "artifacts": {
+        "ota": {
+          "kind": "ota",
+          "path": "prebuilt_firmware/3.0.6/respeaker_xvf3800/tater-respeaker-xvf3800-3.0.6.ota.bin",
+          "size_bytes": 3170128,
+          "sha256": "0b24a9182308df6f4214e0ce2cb01b4c4b8c9c59a31131f8f3e120f9f6212030"
+        },
+        "factory": {
+          "kind": "factory",
+          "path": "prebuilt_firmware/3.0.6/respeaker_xvf3800/tater-respeaker-xvf3800-3.0.6.factory.bin",
+          "size_bytes": 3235664,
+          "sha256": "6dec9acb5aef479ff9a7a1be319d879f8c258d9d2891b2e2f3ca0de0d7045ee7"
+        }
+      }
+    },
+    {
+      "key": "s3box_display",
+      "name": "Tater ESP32-S3-BOX-3 Display",
+      "config": "esp32-s3-box-3.yaml",
+      "artifacts": {
+        "ota": {
+          "kind": "ota",
+          "path": "prebuilt_firmware/3.0.6/s3box_display/tater-s3box-display-3.0.6.ota.bin",
+          "size_bytes": 1732480,
+          "sha256": "53dc17deb16fadb4ed5042e222b9615e0150c00bfc21ef05ba2ce3e50eb9a245"
+        },
+        "factory": {
+          "kind": "factory",
+          "path": "prebuilt_firmware/3.0.6/s3box_display/tater-s3box-display-3.0.6.factory.bin",
+          "size_bytes": 1798016,
+          "sha256": "85b3cb0f6c12d05afb5f51c71a59df98068cf6d91aa908ccdf0608bfa5048cdd"
+        }
+      }
+    }
+  ]
+}
