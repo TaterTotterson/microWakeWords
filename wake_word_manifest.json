@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 156
+      "count": 157
     }
   ],
-  "count": 558,
+  "count": 559,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -9877,6 +9877,24 @@
       "model_path": "microWakeWordsV3/sayaka.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/sayaka.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/sayaka.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:sherlock",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "sherlock",
+      "name": "sherlock",
+      "label": "Sherlock",
+      "path": "microWakeWordsV3/sherlock.json",
+      "model_path": "microWakeWordsV3/sherlock.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/sherlock.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/sherlock.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
