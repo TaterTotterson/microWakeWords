@@ -188,6 +188,15 @@ light:
               animated_position = has_valid_doa
                   ? (id(xmos_doa).four_mic() ? (float) id(xmos_doa).led_index() : delay_to_position(filtered_delay))
                   : center_led;
+              if (has_valid_doa) {
+                dominant_direction_led = ((int) roundf(animated_position)) % num_leds;
+                if (dominant_direction_led < 0) {
+                  dominant_direction_led += num_leds;
+                }
+                direction_scores[dominant_direction_led] = 0.10f;
+                direction_scores[(dominant_direction_led + 1) % num_leds] = 0.028f;
+                direction_scores[(dominant_direction_led + num_leds - 1) % num_leds] = 0.028f;
+              }
               id(last_voice_direction_led) = dominant_direction_led;
               last_valid_ms = has_valid_doa ? now : 0;
               dt = 0.0f;
@@ -816,6 +825,21 @@ light:
               index = (index + 1);
 
 script:
+  - id: capture_voice_direction
+    then:
+      - component.update: xmos_doa
+      - lambda: |-
+          constexpr uint8_t min_confidence = 1;
+          if (!id(xmos_doa).valid() || id(xmos_doa).confidence() < min_confidence) {
+            return;
+          }
+
+          int led = id(xmos_doa).led_index() % 24;
+          if (led < 0) {
+            led += 24;
+          }
+          id(last_voice_direction_led) = led;
+
   # Master script controlling the LEDs, based on different conditions : initialization in progress, wifi and api connected and voice assistant phase.
   # For the sake of simplicity and re-usability, the script calls child scripts defined below.
   # This script will be called every time one of these conditions is changing.
@@ -935,15 +959,17 @@ script:
   # Slow clockwise spin of the LED ring.
   - id: control_leds_voice_assistant_waiting_for_command_phase
     then:
+      - script.execute: capture_voice_direction
       - light.turn_on:
           brightness: !lambda return max( id(led_ring).current_values.get_brightness() , 0.2f );
           id: voice_assistant_leds
           effect: "VoD Listening"
 
   # Script executed when the voice assistant is listening to a command
-  # Two-mic DoA beam from the XMOS firmware, limited to a front left/right arc.
+  # XMOS DoA beam; four-mic firmware gives 360 direction, two-mic firmware falls back to a front arc.
   - id: control_leds_voice_assistant_listening_for_command_phase
     then:
+      - script.execute: capture_voice_direction
       - light.turn_on:
           brightness: !lambda return max( id(led_ring).current_values.get_brightness() , 0.2f );
           id: voice_assistant_leds
