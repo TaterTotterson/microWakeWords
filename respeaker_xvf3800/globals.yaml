@@ -83,6 +83,14 @@ globals:
     type: float
     restore_value: no
     initial_value: '6.0'
+  - id: dominant_voice_direction_led
+    type: float
+    restore_value: no
+    initial_value: '6.0'
+  - id: beam_direction_tracking_reset
+    type: bool
+    restore_value: no
+    initial_value: 'true'
   - id: tool_call_led_index
     type: int
     restore_value: no

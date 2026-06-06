@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": "3.0.6",
-  "generated_date": "2026-06-05",
+  "generated_date": "2026-06-06",
   "default_install_artifact": "ota",
   "notes": [
     "Use ota artifacts for ESPHome OTA updates from Tater app.",
@@ -16,14 +16,14 @@
         "ota": {
           "kind": "ota",
           "path": "prebuilt_firmware/3.0.6/satellite1/tater-satellite1-3.0.6.ota.bin",
-          "size_bytes": 2777008,
-          "sha256": "062269eb71120c9d0e3f79a926c22e0a9733272e959e52ab5bbbf041016d1264"
+          "size_bytes": 2777120,
+          "sha256": "22af4362b826afa0df2433a437a771c783d54cc4d28bfc7fb7b0103227d31bc4"
         },
         "factory": {
           "kind": "factory",
           "path": "prebuilt_firmware/3.0.6/satellite1/tater-satellite1-3.0.6.factory.bin",
-          "size_bytes": 2842544,
-          "sha256": "b19ab9b122d45447e40c702bcfd39f33b5c5d07cb88281d4f5f6dacc88d0f36d"
+          "size_bytes": 2842656,
+          "sha256": "77b6d6f765c43630200fb5894e6f19c2b9d04fa181b118c9f5ba77a03390845c"
         }
       }
     },
@@ -92,14 +92,14 @@
         "ota": {
           "kind": "ota",
           "path": "prebuilt_firmware/3.0.6/respeaker_xvf3800/tater-respeaker-xvf3800-3.0.6.ota.bin",
-          "size_bytes": 3170128,
-          "sha256": "0b24a9182308df6f4214e0ce2cb01b4c4b8c9c59a31131f8f3e120f9f6212030"
+          "size_bytes": 3170720,
+          "sha256": "6906ad91bd565fa21d3989ede2343eaa10741fc094d76dc5ec7aa74fd0a6f8cb"
         },
         "factory": {
           "kind": "factory",
           "path": "prebuilt_firmware/3.0.6/respeaker_xvf3800/tater-respeaker-xvf3800-3.0.6.factory.bin",
-          "size_bytes": 3235664,
-          "sha256": "6dec9acb5aef479ff9a7a1be319d879f8c258d9d2891b2e2f3ca0de0d7045ee7"
+          "size_bytes": 3236256,
+          "sha256": "79791dcf1a3aaa6b011258a3debbaf4f78d8a8ee057696bef5d2ec79640e986f"
         }
       }
     },
