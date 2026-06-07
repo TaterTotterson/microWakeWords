@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 164
+      "count": 165
     }
   ],
-  "count": 566,
+  "count": 567,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -9787,6 +9787,24 @@
       "model_path": "microWakeWordsV3/okay_derek.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/okay_derek.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/okay_derek.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:okay_kris",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "okay_kris",
+      "name": "okay_kris",
+      "label": "Okay Kris",
+      "path": "microWakeWordsV3/okay_kris.json",
+      "model_path": "microWakeWordsV3/okay_kris.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/okay_kris.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/okay_kris.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
