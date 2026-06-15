@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 187
+      "count": 188
     }
   ],
-  "count": 589,
+  "count": 590,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -9373,6 +9373,24 @@
       "model_path": "microWakeWordsV3/hey_trump.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_trump.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_trump.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:hey_uniblab",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "hey_uniblab",
+      "name": "hey_uniblab",
+      "label": "Hey Uniblab",
+      "path": "microWakeWordsV3/hey_uniblab.json",
+      "model_path": "microWakeWordsV3/hey_uniblab.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_uniblab.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_uniblab.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
