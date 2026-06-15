@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 186
+      "count": 187
     }
   ],
-  "count": 588,
+  "count": 589,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -10327,6 +10327,24 @@
       "model_path": "microWakeWordsV3/sayaka.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/sayaka.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/sayaka.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:seor_sapo",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "seor_sapo",
+      "name": "seor_sapo",
+      "label": "Seor Sapo",
+      "path": "microWakeWordsV3/seor_sapo.json",
+      "model_path": "microWakeWordsV3/seor_sapo.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/seor_sapo.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/seor_sapo.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
