@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 193
+      "count": 194
     }
   ],
-  "count": 595,
+  "count": 596,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -9247,6 +9247,24 @@
       "model_path": "microWakeWordsV3/hey_skipper.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_skipper.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_skipper.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:hey_skynet",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "hey_skynet",
+      "name": "hey_skynet",
+      "label": "Hey Skynet",
+      "path": "microWakeWordsV3/hey_skynet.json",
+      "model_path": "microWakeWordsV3/hey_skynet.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_skynet.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_skynet.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
