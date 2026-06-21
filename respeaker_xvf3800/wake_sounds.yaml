@@ -1,0 +1,100 @@
+# Curated on-device wake sound catalog. Keep this small enough to fit every firmware target.
+globals:
+  - id: wake_sound_saved_option
+    type: std::string
+    restore_value: true
+    max_restore_data_length: 96
+    initial_value: '"${wake_sound}"'
+
+  - id: wake_sound_select_ready
+    type: bool
+    restore_value: false
+    initial_value: "false"
+
+interval:
+  - interval: 1s
+    startup_delay: 250ms
+    then:
+      - if:
+          condition:
+            lambda: return !id(wake_sound_select_ready);
+          then:
+            - lambda: |-
+                std::string saved = id(wake_sound_saved_option);
+
+                if (saved.empty() || !id(wake_sound_select).has_option(saved)) {
+                  auto current = id(wake_sound_select).current_option();
+                  if (!current.empty() && id(wake_sound_select).has_option(current.c_str())) {
+                    saved = current.c_str();
+                  }
+                }
+                if (saved.empty() || !id(wake_sound_select).has_option(saved)) {
+                  saved = "${wake_sound}";
+                }
+                if (saved.empty() || !id(wake_sound_select).has_option(saved)) {
+                  saved = "No Sound";
+                }
+
+                id(wake_sound_select).publish_state(saved);
+                id(wake_sound_saved_option) = saved;
+                id(wake_sound_select_ready) = true;
+
+select:
+  - platform: template
+    id: wake_sound_select
+    name: Wake Sound
+    icon: "mdi:music-note"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_option: "${wake_sound}"
+    options:
+      - "Default"
+      - "No Sound"
+      - "Blip2"
+      - "Message Notification 4"
+      - "Notification Ding"
+      - "Notification Squeak"
+      - "Phone Chime"
+      - "Pop Up Sound"
+      - "Short Definite Fart"
+      - "Star Treck Communications Start Transmission"
+      - "Star Treck Computer Work Beep"
+      - "Tater Notify Digital Blip"
+      - "Turning Off Microphone Percussion 1"
+      - "Wake Word Triggered"
+      - "Waterdrop"
+    on_value:
+      then:
+        - lambda: |-
+            if (id(wake_sound_select_ready)) {
+              id(wake_sound_saved_option) = x.c_str();
+            }
+
+audio_file:
+  - id: wake_sound_blip2
+    file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/blip2.wav
+  - id: wake_sound_message_notification_4
+    file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/message-notification-4.wav
+  - id: wake_sound_notification_ding
+    file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/notification-ding.wav
+  - id: wake_sound_notification_squeak
+    file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/notification-squeak.wav
+  - id: wake_sound_phone_chime
+    file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/phone-chime.wav
+  - id: wake_sound_pop_up_sound
+    file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/pop-up-sound.wav
+  - id: wake_sound_short_definite_fart
+    file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/short-definite-fart.wav
+  - id: wake_sound_star_treck_communications_start_transmission
+    file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/star_treck_communications_start_transmission.wav
+  - id: wake_sound_star_treck_computer_work_beep
+    file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/star_treck_computer_work_beep.wav
+  - id: wake_sound_tater_notify_digital_blip
+    file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/tater_notify_digital_blip.wav
+  - id: wake_sound_turning_off_microphone_percussion_1
+    file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/turning-off-microphone-percussion-1.wav
+  - id: wake_sound_wake_word_triggered
+    file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/wake_word_triggered.wav
+  - id: wake_sound_waterdrop
+    file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/wakeSounds/waterdrop.wav

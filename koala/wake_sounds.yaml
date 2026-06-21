@@ -1,4 +1,44 @@
 # Curated on-device wake sound catalog. Keep this small enough to fit every firmware target.
+globals:
+  - id: wake_sound_saved_option
+    type: std::string
+    restore_value: true
+    max_restore_data_length: 96
+    initial_value: '"${wake_sound}"'
+
+  - id: wake_sound_select_ready
+    type: bool
+    restore_value: false
+    initial_value: "false"
+
+interval:
+  - interval: 1s
+    startup_delay: 250ms
+    then:
+      - if:
+          condition:
+            lambda: return !id(wake_sound_select_ready);
+          then:
+            - lambda: |-
+                std::string saved = id(wake_sound_saved_option);
+
+                if (saved.empty() || !id(wake_sound_select).has_option(saved)) {
+                  auto current = id(wake_sound_select).current_option();
+                  if (!current.empty() && id(wake_sound_select).has_option(current.c_str())) {
+                    saved = current.c_str();
+                  }
+                }
+                if (saved.empty() || !id(wake_sound_select).has_option(saved)) {
+                  saved = "${wake_sound}";
+                }
+                if (saved.empty() || !id(wake_sound_select).has_option(saved)) {
+                  saved = "No Sound";
+                }
+
+                id(wake_sound_select).publish_state(saved);
+                id(wake_sound_saved_option) = saved;
+                id(wake_sound_select_ready) = true;
+
 select:
   - platform: template
     id: wake_sound_select
@@ -24,6 +64,12 @@ select:
       - "Turning Off Microphone Percussion 1"
       - "Wake Word Triggered"
       - "Waterdrop"
+    on_value:
+      then:
+        - lambda: |-
+            if (id(wake_sound_select_ready)) {
+              id(wake_sound_saved_option) = x.c_str();
+            }
 
 audio_file:
   - id: wake_sound_blip2

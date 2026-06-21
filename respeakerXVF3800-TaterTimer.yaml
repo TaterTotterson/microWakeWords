@@ -31,8 +31,8 @@ substitutions:
   timer_finished_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/timer_finished.flac
   wake_word_triggered_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/wake_word_triggered.flac
   wake_sound: "No Sound" # Initial Wake Sound select option. Users can change this live after boot.
-  wake_sound_catalog_package: github://TaterTotterson/microWakeWords/shared/wake_sounds.yaml@main
-  wake_sound_script_package: github://TaterTotterson/microWakeWords/shared/wake_sound_scripts.yaml@main
+  wake_sound_catalog_package: github://TaterTotterson/microWakeWords/respeaker_xvf3800/wake_sounds.yaml@main
+  wake_sound_script_package: github://TaterTotterson/microWakeWords/respeaker_xvf3800/wake_sound_scripts.yaml@main
   center_button_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/center_button_press.flac
   center_button_double_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/center_button_double_press.flac
   center_button_triple_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/center_button_triple_press.flac
