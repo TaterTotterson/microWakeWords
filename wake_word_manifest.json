@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 204
+      "count": 205
     }
   ],
-  "count": 606,
+  "count": 607,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -9121,6 +9121,24 @@
       "model_path": "microWakeWordsV3/hey_nell.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_nell.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_nell.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:hey_nest",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "hey_nest",
+      "name": "hey_nest",
+      "label": "Hey Nest",
+      "path": "microWakeWordsV3/hey_nest.json",
+      "model_path": "microWakeWordsV3/hey_nest.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_nest.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_nest.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
