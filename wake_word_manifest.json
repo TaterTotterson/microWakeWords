@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 203
+      "count": 204
     }
   ],
-  "count": 605,
+  "count": 606,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -7933,6 +7933,24 @@
       "model_path": "microWakeWordsV3/hello_jarvis.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hello_jarvis.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hello_jarvis.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:hello_winston",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "hello_winston",
+      "name": "hello_winston",
+      "label": "Hello Winston",
+      "path": "microWakeWordsV3/hello_winston.json",
+      "model_path": "microWakeWordsV3/hello_winston.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hello_winston.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hello_winston.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
