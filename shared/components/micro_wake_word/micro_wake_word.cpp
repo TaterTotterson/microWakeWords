@@ -50,6 +50,7 @@ static const size_t RUNTIME_MODEL_HTTP_BUFFER_SIZE = 2048;
 static const size_t RUNTIME_MODEL_MANIFEST_MAX_SIZE = 8192;
 static const size_t RUNTIME_MODEL_MAX_REDIRECTS = 5;
 static const uint32_t RUNTIME_MODEL_DOWNLOAD_TIMEOUT_MS = 20000;
+static const uint32_t OTA_PENDING_VERIFY_WAKE_START_DELAY_MS = 70000;
 static const uint32_t RUNTIME_MODEL_MAGIC = 0x4457574D;  // MWWD, little-endian in flash.
 static const uint16_t RUNTIME_MODEL_HEADER_VERSION = 1;
 static const uint32_t RUNTIME_MODEL_HEADER_SIZE = 512;
@@ -272,6 +273,7 @@ void MicroWakeWord::dump_config() {
 void MicroWakeWord::setup() {
   static_assert(sizeof(RuntimeModelHeader) == RUNTIME_MODEL_HEADER_SIZE,
                 "Runtime model header must stay one 512-byte block.");
+  this->boot_started_at_ms_ = millis();
   this->frontend_config_.window.size_ms = FEATURE_DURATION_MS;
   this->frontend_config_.window.step_size_ms = this->features_step_size_;
   this->frontend_config_.filterbank.num_channels = PREPROCESSOR_FEATURE_SIZE;
@@ -462,6 +464,20 @@ void MicroWakeWord::resume_task_() {
   }
 }
 
+bool MicroWakeWord::ota_boot_pending_verify_() const {
+  const esp_partition_t *running_partition = esp_ota_get_running_partition();
+  if (running_partition == nullptr) {
+    return false;
+  }
+
+  esp_ota_img_states_t ota_state;
+  if (esp_ota_get_state_partition(running_partition, &ota_state) != ESP_OK) {
+    return false;
+  }
+
+  return ota_state == ESP_OTA_IMG_PENDING_VERIFY;
+}
+
 void MicroWakeWord::loop() {
   uint32_t event_group_bits = xEventGroupGetBits(this->event_group_);
 
@@ -508,6 +524,15 @@ void MicroWakeWord::loop() {
   }
 
   if ((this->pending_start_) && (this->state_ == State::STOPPED)) {
+    if (this->wake_start_deferred_until_ms_ != 0) {
+      const bool still_pending_verify = this->ota_boot_pending_verify_();
+      const bool wait_elapsed = (int32_t) (millis() - this->wake_start_deferred_until_ms_) >= 0;
+      if (still_pending_verify && !wait_elapsed) {
+        return;
+      }
+      this->wake_start_deferred_until_ms_ = 0;
+      ESP_LOGI(TAG, "OTA boot verification window clear; starting wake word detection.");
+    }
     this->set_state_(State::STARTING);
     this->pending_start_ = false;
   }
@@ -589,17 +614,29 @@ void MicroWakeWord::start() {
 
   ESP_LOGD(TAG, "Starting wake word detection");
 
+  if (this->ota_boot_pending_verify_()) {
+    const uint32_t deferred_until = this->boot_started_at_ms_ + OTA_PENDING_VERIFY_WAKE_START_DELAY_MS;
+    if ((int32_t) (millis() - deferred_until) < 0) {
+      this->wake_start_deferred_until_ms_ = deferred_until;
+      ESP_LOGI(TAG, "Deferring wake word detection while OTA boot verification is pending.");
+    }
+  }
+
   this->pending_start_ = true;
   this->pending_stop_ = false;
 }
 
 void MicroWakeWord::stop() {
-  if (this->state_ == STOPPED)
+  if (this->state_ == STOPPED) {
+    this->pending_start_ = false;
+    this->wake_start_deferred_until_ms_ = 0;
     return;
+  }
 
   ESP_LOGD(TAG, "Stopping wake word detection");
 
   this->pending_start_ = false;
+  this->wake_start_deferred_until_ms_ = 0;
   this->pending_stop_ = true;
 }
 
@@ -721,34 +758,47 @@ bool MicroWakeWord::activate_runtime_model_partition_(const esp_partition_t *par
     return false;
   }
 
+  RAMAllocator<uint8_t> model_allocator;
+  uint8_t *model_copy = model_allocator.allocate(header.model_size);
+  if (model_copy == nullptr) {
+    ESP_LOGW(TAG, "Failed to allocate %u bytes for runtime microWakeWord model '%s'.", header.model_size,
+             header.wake_word);
+    esp_partition_munmap(mmap_handle);
+    return false;
+  }
+  std::memcpy(model_copy, mapped_data, header.model_size);
+  esp_partition_munmap(mmap_handle);
+
   std::vector<std::string> languages = split_languages(header.trained_languages);
   if (languages.empty()) {
     languages.push_back("en");
   }
 
-  if (!this->runtime_wake_word_model_->replace_model(mapped_data, header.probability_cutoff,
+  if (!this->runtime_wake_word_model_->replace_model(model_copy, header.probability_cutoff,
                                                      header.sliding_window_size, header.wake_word,
                                                      header.tensor_arena_size, languages)) {
     ESP_LOGW(TAG, "Runtime model '%s' failed TensorFlow validation; keeping previous model.", header.wake_word);
-    esp_partition_munmap(mmap_handle);
+    model_allocator.deallocate(model_copy, header.model_size);
     return false;
   }
 
-  const esp_partition_t *previous_partition = this->active_runtime_model_partition_;
-  const esp_partition_mmap_handle_t previous_handle = this->active_runtime_model_mmap_handle_;
+  uint8_t *previous_buffer = this->active_runtime_model_buffer_;
+  const size_t previous_size = this->active_runtime_model_size_;
 
   this->active_runtime_model_partition_ = partition;
-  this->active_runtime_model_mmap_handle_ = mmap_handle;
-  this->active_runtime_model_data_ = mapped_data;
+  this->active_runtime_model_buffer_ = model_copy;
+  this->active_runtime_model_size_ = header.model_size;
+  this->active_runtime_model_data_ = model_copy;
   this->runtime_model_sequence_ = header.sequence;
   this->runtime_model_url_ = header.source_url;
   this->active_runtime_wake_word_ = header.wake_word;
 
-  if (previous_handle != 0 && previous_partition != partition) {
-    esp_partition_munmap(previous_handle);
+  if (previous_buffer != nullptr) {
+    model_allocator.deallocate(previous_buffer, previous_size);
   }
 
-  ESP_LOGI(TAG, "Runtime microWakeWord model active: '%s' from %s.", header.wake_word, partition->label);
+  ESP_LOGI(TAG, "Runtime microWakeWord model active: '%s' from %s, copied to RAM.", header.wake_word,
+           partition->label);
   return true;
 }
 
@@ -789,10 +839,12 @@ bool MicroWakeWord::load_runtime_model_from_flash_() {
 }
 
 void MicroWakeWord::unmap_active_runtime_model_() {
-  if (this->active_runtime_model_mmap_handle_ != 0) {
-    esp_partition_munmap(this->active_runtime_model_mmap_handle_);
+  if (this->active_runtime_model_buffer_ != nullptr) {
+    RAMAllocator<uint8_t> model_allocator;
+    model_allocator.deallocate(this->active_runtime_model_buffer_, this->active_runtime_model_size_);
   }
-  this->active_runtime_model_mmap_handle_ = 0;
+  this->active_runtime_model_buffer_ = nullptr;
+  this->active_runtime_model_size_ = 0;
   this->active_runtime_model_partition_ = nullptr;
   this->active_runtime_model_data_ = nullptr;
 }
