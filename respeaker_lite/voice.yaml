@@ -497,6 +497,10 @@ voice_assistant:
         id: media_mixing_input
         decibel_reduction: 0
         duration: 1.0s
+    - wait_until:
+        not:
+          media_player.is_announcing:
+            id: external_media_player
     - if:
         condition:
           lambda: return !id(push_to_intercom_active);

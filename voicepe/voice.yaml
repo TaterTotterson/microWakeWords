@@ -528,6 +528,10 @@ voice_assistant:
         id: media_mixing_input
         decibel_reduction: 0
         duration: 1.0s
+    - wait_until:
+        not:
+          media_player.is_announcing:
+            id: external_media_player
     # Disable the stop word if the timer is not ringing, and re-enable the normal wake path.
     - if:
         condition:
