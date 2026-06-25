@@ -68,7 +68,7 @@ script:
                       then:
                         - micro_wake_word.disable_model: stop
                   - micro_wake_word.start:
-                  - micro_wake_word.enable_model: ${wake_word_name}
+                  - lambda: id(${wake_word_name}).set_enabled_temporarily(true);
 
   - id: recover_openwakeword_after_fallback
     mode: restart
@@ -99,7 +99,7 @@ script:
                 then:
                   - micro_wake_word.disable_model: stop
             - micro_wake_word.start:
-            - micro_wake_word.enable_model: ${wake_word_name}
+            - lambda: id(${wake_word_name}).set_enabled_temporarily(true);
             - script.execute: control_leds
             - delay: 60s
             - if:

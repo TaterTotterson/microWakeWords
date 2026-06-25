@@ -185,18 +185,22 @@ void StreamingModel::unload_model() {
     this->var_arena_ = nullptr;
   }
 
+  this->mrv_ = nullptr;
+  this->ma_ = nullptr;
   this->loaded_ = false;
 }
 
 bool StreamingModel::perform_streaming_inference(const int8_t features[PREPROCESSOR_FEATURE_SIZE]) {
-  if (this->enabled_ && !this->loaded_) {
+  const bool enabled = this->enabled_.load();
+
+  if (enabled && !this->loaded_) {
     // Model is enabled but isn't loaded
     if (!this->load_model_()) {
       return false;
     }
   }
 
-  if (!this->enabled_ && this->loaded_) {
+  if (!enabled && this->loaded_) {
     // Model is disabled but still loaded
     this->unload_model();
     return true;
@@ -268,10 +272,10 @@ WakeWordModel::WakeWordModel(const std::string &id, const uint8_t *model_start, 
   bool enabled;
   if (this->pref_.load(&enabled)) {
     // Use the enabled state loaded from flash
-    this->enabled_ = enabled;
+    this->enabled_.store(enabled);
   } else {
     // If no state saved, then use the default
-    this->enabled_ = default_enabled;
+    this->enabled_.store(default_enabled);
   }
 };
 
@@ -333,16 +337,18 @@ void WakeWordModel::restore_compiled_model() {
 }
 
 void WakeWordModel::enable() {
-  this->enabled_ = true;
+  this->enabled_.store(true);
   if (!this->internal_only_) {
-    this->pref_.save(&this->enabled_);
+    bool enabled = true;
+    this->pref_.save(&enabled);
   }
 }
 
 void WakeWordModel::disable() {
-  this->enabled_ = false;
+  this->enabled_.store(false);
   if (!this->internal_only_) {
-    this->pref_.save(&this->enabled_);
+    bool enabled = false;
+    this->pref_.save(&enabled);
   }
 }
 
@@ -352,7 +358,7 @@ DetectionEvent WakeWordModel::determine_detected() {
   detection_event.max_probability = 0;
   detection_event.average_probability = 0;
 
-  if ((this->ignore_windows_ < 0) || !this->enabled_) {
+  if ((this->ignore_windows_ < 0) || !this->enabled_.load()) {
     detection_event.detected = false;
     return detection_event;
   }
@@ -386,7 +392,7 @@ DetectionEvent VADModel::determine_detected() {
   detection_event.max_probability = 0;
   detection_event.average_probability = 0;
 
-  if (!this->enabled_) {
+  if (!this->enabled_.load()) {
     // We disabled the VAD model for some reason... so we shouldn't block wake words from being detected
     detection_event.detected = true;
     return detection_event;

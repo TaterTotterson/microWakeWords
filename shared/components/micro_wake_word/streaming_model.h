@@ -10,6 +10,7 @@
 #include <tensorflow/lite/micro/micro_interpreter.h>
 #include <tensorflow/lite/micro/micro_mutable_op_resolver.h>
 
+#include <atomic>
 #include <type_traits>
 
 namespace esphome {
@@ -56,13 +57,20 @@ class StreamingModel {
   void unload_model();
 
   /// @brief Enable the model. The next performing_streaming_inference call will load it.
-  virtual void enable() { this->enabled_ = true; }
+  virtual void enable() { this->enabled_.store(true); }
 
   /// @brief Disable the model. The next performing_streaming_inference call will unload it.
-  virtual void disable() { this->enabled_ = false; }
+  virtual void disable() { this->enabled_.store(false); }
+
+  /// @brief Set model enabled state without saving preferences.
+  ///
+  /// This is for temporary voice pipeline state changes. Persisted enable/disable
+  /// writes can briefly disable flash cache, which is unsafe while inference is
+  /// running from a response/stop-word path.
+  void set_enabled_temporarily(bool enabled) { this->enabled_.store(enabled); }
 
   /// @brief Return true if the model is enabled.
-  bool is_enabled() const { return this->enabled_; }
+  bool is_enabled() const { return this->enabled_.load(); }
 
   bool get_unprocessed_probability_status() const { return this->unprocessed_probability_status_; }
 
@@ -85,7 +93,7 @@ class StreamingModel {
   tflite::MicroMutableOpResolver<20> streaming_op_resolver_;
 
   bool loaded_{false};
-  bool enabled_{true};
+  std::atomic<bool> enabled_{true};
   bool tensor_arena_size_probed_{false};
   bool unprocessed_probability_status_{false};
   uint8_t current_stride_step_{0};

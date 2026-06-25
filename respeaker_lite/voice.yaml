@@ -422,7 +422,7 @@ voice_assistant:
         id: media_mixing_input
         decibel_reduction: 20
         duration: 0.0s
-    - micro_wake_word.disable_model: ${wake_word_name}
+    - lambda: id(${wake_word_name}).set_enabled_temporarily(false);
   on_listening:
     - if:
         condition:
