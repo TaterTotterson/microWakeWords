@@ -1,6 +1,6 @@
 # Tater display firmware for the ESP32-S3-BOX-3.
 substitutions:
-  firmware_version: "3.0.10"
+  firmware_version: "3.0.11"
   device_name: taters3box
   friendly_name: taterS3Box
   tater_first_name: Tater

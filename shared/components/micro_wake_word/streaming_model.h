@@ -87,6 +87,8 @@ class StreamingModel {
   /// Tries the manifest size first, then 2x if that fails.
   /// @return The required arena size rounded up to 16-byte alignment, or 0 on failure.
   size_t probe_arena_size_();
+  /// @brief Validate that all model operators are supported by this firmware before TFLM allocation.
+  bool validate_model_ops_(const tflite::Model *model) const;
   /// @brief Returns true if successfully registered the streaming model's TensorFlow operations
   bool register_streaming_ops_(tflite::MicroMutableOpResolver<20> &op_resolver);
 

@@ -5,6 +5,8 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
+#include "tensorflow/lite/schema/schema_generated.h"
+
 static const char *const TAG = "micro_wake_word";
 
 namespace esphome {
@@ -42,6 +44,9 @@ bool StreamingModel::load_model_() {
   const tflite::Model *model = tflite::GetModel(this->model_start_);
   if (model->version() != TFLITE_SCHEMA_VERSION) {
     ESP_LOGE(TAG, "Streaming model's schema is not supported");
+    return false;
+  }
+  if (!this->validate_model_ops_(model)) {
     return false;
   }
 
@@ -168,6 +173,44 @@ size_t StreamingModel::probe_arena_size_() {
   }
 
   return 0;
+}
+
+bool StreamingModel::validate_model_ops_(const tflite::Model *model) const {
+  if (model == nullptr || model->operator_codes() == nullptr) {
+    ESP_LOGE(TAG, "Streaming model is missing operator metadata.");
+    return false;
+  }
+
+  for (const tflite::OperatorCode *op_code : *model->operator_codes()) {
+    switch (op_code->builtin_code()) {
+      case tflite::BuiltinOperator_CALL_ONCE:
+      case tflite::BuiltinOperator_VAR_HANDLE:
+      case tflite::BuiltinOperator_RESHAPE:
+      case tflite::BuiltinOperator_READ_VARIABLE:
+      case tflite::BuiltinOperator_STRIDED_SLICE:
+      case tflite::BuiltinOperator_CONCATENATION:
+      case tflite::BuiltinOperator_ASSIGN_VARIABLE:
+      case tflite::BuiltinOperator_CONV_2D:
+      case tflite::BuiltinOperator_MUL:
+      case tflite::BuiltinOperator_ADD:
+      case tflite::BuiltinOperator_MEAN:
+      case tflite::BuiltinOperator_FULLY_CONNECTED:
+      case tflite::BuiltinOperator_LOGISTIC:
+      case tflite::BuiltinOperator_QUANTIZE:
+      case tflite::BuiltinOperator_DEPTHWISE_CONV_2D:
+      case tflite::BuiltinOperator_AVERAGE_POOL_2D:
+      case tflite::BuiltinOperator_MAX_POOL_2D:
+      case tflite::BuiltinOperator_PAD:
+      case tflite::BuiltinOperator_PACK:
+      case tflite::BuiltinOperator_SPLIT_V:
+        break;
+      default:
+        ESP_LOGW(TAG, "Streaming model uses unsupported operator code %d.", static_cast<int>(op_code->builtin_code()));
+        return false;
+    }
+  }
+
+  return true;
 }
 
 void StreamingModel::unload_model() {

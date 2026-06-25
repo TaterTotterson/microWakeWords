@@ -831,6 +831,11 @@ bool MicroWakeWord::load_runtime_model_from_flash_() {
 
   if (!this->activate_runtime_model_partition_(best_partition, best_header)) {
     ESP_LOGW(TAG, "Stored runtime microWakeWord model could not be loaded; using compiled model.");
+    const esp_err_t err = esp_partition_erase_range(best_partition, 0, 0x1000);
+    if (err != ESP_OK) {
+      ESP_LOGW(TAG, "Failed to clear invalid runtime model header in %s: %s", best_partition->label,
+               esp_err_to_name(err));
+    }
     this->restore_compiled_runtime_model_(false);
     return false;
   }
