@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 208
+      "count": 209
     }
   ],
-  "count": 610,
+  "count": 611,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -9859,6 +9859,24 @@
       "model_path": "microWakeWordsV3/kalina.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/kalina.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/kalina.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:kiria_fofie",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "kiria_fofie",
+      "name": "kiria_fofie",
+      "label": "Kiria Fofie",
+      "path": "microWakeWordsV3/kiria_fofie.json",
+      "model_path": "microWakeWordsV3/kiria_fofie.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/kiria_fofie.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/kiria_fofie.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
