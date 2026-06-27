@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 213
+      "count": 214
     }
   ],
-  "count": 615,
+  "count": 616,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -8689,6 +8689,24 @@
       "model_path": "microWakeWordsV3/hey_finnegan.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_finnegan.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_finnegan.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:hey_fofie",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "hey_fofie",
+      "name": "hey_fofie",
+      "label": "Hey Fofie",
+      "path": "microWakeWordsV3/hey_fofie.json",
+      "model_path": "microWakeWordsV3/hey_fofie.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_fofie.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_fofie.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
