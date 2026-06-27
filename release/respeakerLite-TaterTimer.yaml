@@ -1,0 +1,66 @@
+substitutions:
+  # DEVICE IDENTITY
+  firmware_version: "3.0.12"
+  device_name: tater-respeaker-lite
+  friendly_name: Tater ReSpeaker Lite
+
+  # WIFI / NETWORK
+  wifi_ssid: "__TATER_RELEASE_WIFI_UNUSED__"
+  wifi_password: "__TATER_RELEASE_PASSWORD_UNUSED__"
+  ha_voice_ip: "127.0.0.1"
+  hidden_ssid: "false"
+
+  # WAKE WORD CONFIG
+  wake_engine: microwakeword
+  openwakeword_server_url: ws://tater.local:8501
+  nanowakeword_server_url: ws://tater.local:8501
+  openwakeword_http_timeout_ms: "3000"
+  openwakeword_max_failures: "3"
+  wake_word_name: hey_tater
+  wake_word_model_url: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/microWakeWordsV3/hey_tater.json
+  wake_model_stop_url: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/wake_words/stop.json
+
+  # WAKE WORD SENSITIVITY
+  wake_cutoff_slight: "250"
+  wake_cutoff_moderate: "245"
+  wake_cutoff_very: "222"
+
+  # AUDIO FILE URLS
+  mute_switch_on_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/mute_switch_on.flac
+  mute_switch_off_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/mute_switch_off.flac
+  timer_finished_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/timer_finished.flac
+  wake_word_triggered_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/wake_word_triggered.flac
+  wake_sound: "No Sound" # Initial Wake Sound select option. Users can change this live after boot.
+  wake_sound_catalog_package: github://TaterTotterson/microWakeWords/respeaker_lite/wake_sounds.yaml@main
+  wake_sound_script_package: github://TaterTotterson/microWakeWords/respeaker_lite/wake_sound_scripts.yaml@main
+  center_button_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/center_button_press.flac
+  center_button_double_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/center_button_double_press.flac
+  center_button_triple_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/center_button_triple_press.flac
+  center_button_long_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/center_button_long_press.flac
+  factory_reset_initiated_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/factory_reset_initiated.mp3
+  factory_reset_cancelled_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/factory_reset_cancelled.mp3
+  factory_reset_confirmed_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/factory_reset_confirmed.mp3
+  error_cloud_expired_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/error_cloud_expired.mp3
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_name}
+  name_add_mac_suffix: true
+
+dashboard_import:
+  package_import_url: github://TaterTotterson/microWakeWords/respeakerLite-TaterTimer.yaml@main
+  import_full_config: true
+
+packages:
+  TaterTotterson.RespeakerLitePhaseIds: !include ../respeaker_lite/voice_assistant_phase_ids.yaml
+  TaterTotterson.RespeakerLiteDevice: !include respeaker_lite-device.yaml
+  TaterTotterson.RespeakerLiteGlobals: !include ../respeaker_lite/globals.yaml
+  TaterTotterson.RespeakerLiteControls: !include ../respeaker_lite/controls.yaml
+  TaterTotterson.RespeakerLiteLights: !include ../respeaker_lite/lights.yaml
+  TaterTotterson.RespeakerLiteScripts: !include ../respeaker_lite/scripts.yaml
+  TaterTotterson.RespeakerLiteTimer: !include ../respeaker_lite/timer.yaml
+  TaterTotterson.RespeakerLiteAudio: !include ../respeaker_lite/audio.yaml
+  TaterTotterson.RespeakerLiteVoice: !include ../respeaker_lite/voice.yaml
+  TaterTotterson.RespeakerLiteSystem: !include ../respeaker_lite/system.yaml
+  TaterTotterson.WakeSoundCatalog: ${wake_sound_catalog_package}
+  TaterTotterson.WakeSoundScript: ${wake_sound_script_package}

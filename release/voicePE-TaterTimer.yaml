@@ -1,0 +1,162 @@
+substitutions:
+  # DEVICE IDENTITY
+  firmware_version: "3.0.12"
+  device_name: tatervpe
+  friendly_name: TaterVPE
+
+  # WIFI / NETWORK
+  wifi_ssid: "__TATER_RELEASE_WIFI_UNUSED__"
+  wifi_password: "__TATER_RELEASE_PASSWORD_UNUSED__"
+  ha_voice_ip: "127.0.0.1"   # optional - remove if not needed
+
+  # WAKE WORD CONFIG
+  wake_engine: microwakeword
+  openwakeword_server_url: ws://tater.local:8501
+  nanowakeword_server_url: ws://tater.local:8501
+  openwakeword_http_timeout_ms: "3000"
+  openwakeword_max_failures: "3"
+  wake_word_name: hey_tater
+  wake_word_model_url: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/microWakeWordsV3/hey_tater.json
+
+  # WAKE WORD SENSITIVITY (probability cutoff)
+  wake_cutoff_slight: "250"     # ~0.98
+  wake_cutoff_moderate: "245"   # ~0.96
+  wake_cutoff_very: "222"       # ~0.87
+  # Change this to true in case you ahve a hidden SSID at home.
+  hidden_ssid: "false"
+  # Substitutions for audio files
+  jack_connected_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/jack_connected.flac
+  jack_disconnected_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/jack_disconnected.flac
+  mute_switch_on_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/mute_switch_on.flac
+  mute_switch_off_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/mute_switch_off.flac
+  timer_finished_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/timer_finished.flac
+  wake_word_triggered_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/wake_word_triggered.flac
+  wake_sound: "No Sound" # Initial Wake Sound select option. Users can change this live after boot.
+  wake_sound_catalog_package: github://TaterTotterson/microWakeWords/voicepe/wake_sounds.yaml@main
+  wake_sound_script_package: github://TaterTotterson/microWakeWords/voicepe/wake_sound_scripts.yaml@main
+  center_button_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/center_button_press.flac
+  center_button_double_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/center_button_double_press.flac
+  center_button_triple_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/center_button_triple_press.flac
+  center_button_long_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/center_button_long_press.flac
+  factory_reset_initiated_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/factory_reset_initiated.mp3
+  factory_reset_cancelled_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/factory_reset_cancelled.mp3
+  factory_reset_confirmed_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/factory_reset_confirmed.mp3
+  easter_egg_tick_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/easter_egg_tick.mp3
+  easter_egg_tada_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/easter_egg_tada.mp3
+  error_cloud_expired_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/error_cloud_expired.mp3
+
+packages:
+  TaterTotterson.VoicePEDevice: !include voicepe-device.yaml
+  TaterTotterson.VoicePEGlobals: !include ../voicepe/globals.yaml
+  TaterTotterson.VoicePEControls: !include ../voicepe/controls.yaml
+  TaterTotterson.VoicePELights: !include ../voicepe/lights.yaml
+  TaterTotterson.VoicePESensorsEvents: !include ../voicepe/sensors_events.yaml
+  TaterTotterson.VoicePEScripts: !include ../voicepe/scripts.yaml
+  TaterTotterson.VoicePEAudio: !include ../voicepe/audio.yaml
+  TaterTotterson.VoicePEVoice: !include ../voicepe/voice.yaml
+  TaterTotterson.VoicePEDoa: !include ../voicepe/doa.yaml
+  TaterTotterson.VoicePEButtons: !include ../voicepe/buttons.yaml
+  TaterTotterson.WakeSoundCatalog: ${wake_sound_catalog_package}
+  TaterTotterson.WakeSoundScript: ${wake_sound_script_package}
+
+globals:
+  # Remote (device-local) timer total duration in seconds.
+  - id: remote_timer_total_seconds
+    type: int
+    restore_value: yes
+    initial_value: "0"
+
+  # Remote (device-local) timer remaining duration in seconds.
+  - id: remote_timer_remaining_seconds
+    type: int
+    restore_value: yes
+    initial_value: "0"
+
+  # Tracks whether the remote timer is currently running.
+  - id: remote_timer_running
+    type: bool
+    restore_value: yes
+    initial_value: "false"
+
+interval:
+  - interval: 1s
+    then:
+      - if:
+          condition:
+            lambda: return id(remote_timer_running);
+          then:
+            - lambda: |-
+                if (id(remote_timer_remaining_seconds) > 0) {
+                  id(remote_timer_remaining_seconds) -= 1;
+                }
+            - script.execute: control_leds
+            - if:
+                condition:
+                  lambda: return id(remote_timer_running) && (id(remote_timer_remaining_seconds) <= 0);
+                then:
+                  - lambda: |-
+                      id(remote_timer_running) = false;
+                  - switch.turn_on: timer_ringing
+                  - script.execute: control_leds
+
+number:
+  - platform: template
+    id: remote_timer_seconds
+    name: "VoicePE Remote Timer Seconds"
+    icon: mdi:timer
+    min_value: 0
+    max_value: 7200
+    step: 1
+    optimistic: true
+    restore_value: true
+    set_action:
+      - lambda: |-
+          int v = (int) x;
+          if (v < 0) v = 0;
+          id(remote_timer_total_seconds) = v;
+          id(remote_timer_remaining_seconds) = v;
+          id(control_leds).execute();
+
+binary_sensor:
+  - platform: template
+    id: voicepe_remote_timer_running
+    name: "VoicePE Remote Timer Running"
+    device_class: running
+    lambda: |-
+      return id(remote_timer_running);
+
+sensor:
+  - platform: template
+    id: voicepe_remote_timer_remaining_seconds
+    name: "VoicePE Remote Timer Remaining Seconds"
+    icon: mdi:timer-sand
+    unit_of_measurement: s
+    accuracy_decimals: 0
+    update_interval: 1s
+    lambda: |-
+      return id(remote_timer_remaining_seconds);
+
+button:
+  - platform: template
+    id: voicepe_remote_timer_start
+    name: "VoicePE Remote Timer Start"
+    icon: mdi:play
+    on_press:
+      - lambda: |-
+          // Start/reset the device-local timer
+          id(remote_timer_remaining_seconds) = id(remote_timer_total_seconds);
+          id(remote_timer_running) = (id(remote_timer_remaining_seconds) > 0);
+      - switch.turn_off: timer_ringing
+      - script.execute: control_leds
+
+  - platform: template
+    id: voicepe_remote_timer_cancel
+    name: "VoicePE Remote Timer Cancel"
+    icon: mdi:stop
+    on_press:
+      - lambda: |-
+          id(remote_timer_running) = false;
+          id(remote_timer_total_seconds) = 0;
+          id(remote_timer_remaining_seconds) = 0;
+      - switch.turn_off: timer_ringing
+      - script.execute: control_leds

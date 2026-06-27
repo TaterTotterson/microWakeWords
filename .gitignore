@@ -3,6 +3,11 @@ __pycache__/
 *.pyc
 .esphome/
 .venv-esphome/
+dist/
+
+# Generated release firmware output. Only the latest pointer is allowed in git.
+prebuilt_firmware/*
+!prebuilt_firmware/latest.json
 
 # Local ESPHome test configs/components
 satellite1-local-usb.yaml

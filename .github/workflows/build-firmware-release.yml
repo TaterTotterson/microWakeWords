@@ -64,6 +64,7 @@ jobs:
           path: |
             ~/.platformio
             .esphome
+            release/.esphome
           key: esphome-${{ runner.os }}-${{ env.ESPHOME_VERSION }}-${{ hashFiles('**/*.yaml', '**/*.yml', 'shared/components/**', 'sat1/components/**', 'voicepe/components/**', 'respeaker_lite/components/**', 'respeaker_xvf3800/components/**', 'koala/components/**') }}
           restore-keys: |
             esphome-${{ runner.os }}-${{ env.ESPHOME_VERSION }}-
@@ -74,12 +75,12 @@ jobs:
           python -m pip install "esphome==${ESPHOME_VERSION}"
           esphome version
 
-      - name: Create ESPHome CI secrets
+      - name: Create ESPHome release placeholder secrets
         run: |
           cat > secrets.yaml <<'EOF'
-          wifi_ssid: ci-placeholder
-          wifi_password: ci-placeholder
-          wifi_ap_password: ci-placeholder
+          wifi_ssid: "__TATER_RELEASE_WIFI_UNUSED__"
+          wifi_password: "__TATER_RELEASE_PASSWORD_UNUSED__"
+          wifi_ap_password: "tater-setup"
           EOF
 
       - name: Compile all firmware
@@ -88,12 +89,12 @@ jobs:
         run: |
           set -euo pipefail
           configs=(
-            satellite1-TaterTimer.yaml
-            voicePE-TaterTimer.yaml
-            respeakerLite-TaterTimer.yaml
-            respeakerXVF3800-TaterTimer.yaml
-            koala-TaterTimer.yaml
-            esp32-s3-box-3.yaml
+            release/satellite1-TaterTimer.yaml
+            release/voicePE-TaterTimer.yaml
+            release/respeakerLite-TaterTimer.yaml
+            release/respeakerXVF3800-TaterTimer.yaml
+            release/koala-TaterTimer.yaml
+            release/esp32-s3-box-3.yaml
           )
 
           for config in "${configs[@]}"; do
@@ -108,9 +109,11 @@ jobs:
       - name: Package prebuilt firmware
         env:
           VERSION: ${{ steps.version.outputs.version }}
+          ASSET_BASE_URL: https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag_name }}
         run: |
           python3 scripts/package_prebuilt_firmware.py \
             --version "${VERSION}" \
+            --asset-base-url "${ASSET_BASE_URL}" \
             --output-root dist/prebuilt_firmware \
             --release-dir dist/release
 
@@ -139,27 +142,6 @@ jobs:
           name: packaged-firmware-${{ needs.build.outputs.version }}
           path: dist
 
-      - name: Update prebuilt firmware on default branch
-        env:
-          VERSION: ${{ needs.build.outputs.version }}
-        run: |
-          set -euo pipefail
-          mkdir -p prebuilt_firmware
-          rm -rf "prebuilt_firmware/${VERSION}"
-          cp -R "dist/prebuilt_firmware/${VERSION}" "prebuilt_firmware/"
-          cp "dist/prebuilt_firmware/latest.json" "prebuilt_firmware/latest.json"
-
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add "prebuilt_firmware/${VERSION}" prebuilt_firmware/latest.json
-
-          if git diff --cached --quiet; then
-            echo "No prebuilt firmware changes to commit."
-          else
-            git commit -m "Add prebuilt firmware ${VERSION}"
-            git push origin "HEAD:${{ github.event.repository.default_branch }}"
-          fi
-
       - name: Create or update GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -187,3 +169,22 @@ jobs:
           assets+=("dist/release/tater-firmware-${VERSION}.zip")
 
           gh release upload "${TAG_NAME}" "${assets[@]}" --clobber
+
+      - name: Update latest firmware pointer on default branch
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p prebuilt_firmware
+          cp "dist/prebuilt_firmware/latest.json" "prebuilt_firmware/latest.json"
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add prebuilt_firmware/latest.json
+
+          if git diff --cached --quiet; then
+            echo "No latest firmware pointer changes to commit."
+          else
+            git commit -m "Update latest firmware pointer ${VERSION}"
+            git push origin "HEAD:${{ github.event.repository.default_branch }}"
+          fi

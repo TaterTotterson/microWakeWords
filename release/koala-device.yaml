@@ -1,0 +1,149 @@
+esphome:
+  project:
+    name: tater.koala
+    version: ${firmware_version}
+  min_version: 2026.4.0
+  on_boot:
+    - priority: 375
+      then:
+        - sensor.template.publish:
+            id: next_timer
+            state: -1
+        # Run the script to refresh the LED status
+        - script.execute: control_leds
+        # If after 10 minutes, the device is still initializing (It did not yet connect to Home Assistant), turn off the init_in_progress variable and run the script to refresh the LED status
+        - delay: 10min
+        - if:
+            condition:
+              lambda: return id(init_in_progress);
+            then:
+              - lambda: id(init_in_progress) = false;
+              - script.execute: control_leds
+    - priority: -100
+      then:
+        - lambda: |-
+            auto call = id(alarm_action).make_call();
+            call.set_option(id(saved_alarm_action));
+            call.perform();
+        - lambda: |-
+            setenv("TZ", id(saved_time_zone).c_str(), 1);
+            tzset();
+  on_shutdown:
+    then:
+      # Prevent loud noise on software restart
+      - lambda: id(respeaker).mute_speaker();
+esp32:
+  board: esp32-s3-devkitc-1
+  cpu_frequency: 240MHz
+  variant: esp32s3
+  flash_size: 16MB
+  partitions:
+    - name: mww_model_a
+      type: data
+      subtype: 0x40
+      size: 0x80000
+    - name: mww_model_b
+      type: data
+      subtype: 0x41
+      size: 0x80000
+  framework:
+    type: esp-idf
+    version: recommended
+    components:
+      - espressif/esp-nn==1.1.2
+    sdkconfig_options:
+      CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
+      CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
+      CONFIG_ESP32S3_INSTRUCTION_CACHE_32KB: "y"
+
+      # Moves instructions and read only data from flash into PSRAM on boot.
+      # Both enabled allows instructions to execute while a flash operation is in progress without needing to be placed in IRAM.
+      # Considerably speeds up mWW at the cost of using more PSRAM.
+      CONFIG_SPIRAM_RODATA: "y"
+      CONFIG_SPIRAM_FETCH_INSTRUCTIONS: "y"
+
+      CONFIG_BT_ALLOCATION_FROM_SPIRAM_FIRST: "y"
+      CONFIG_BT_BLE_DYNAMIC_ENV_MEMORY: "y"
+
+      CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC: "y"
+      CONFIG_MBEDTLS_SSL_PROTO_TLS1_3: "y"  # TLS1.3 support isn't enabled by default in IDF 5.1.5
+wifi:
+  id: wifi_id
+  reboot_timeout: 0s
+  ap:
+    ssid: "${friendly_name} Setup"
+  on_connect:
+    - lambda: id(improv_ble_in_progress) = false;
+    - script.execute: control_leds
+  on_disconnect:
+    - script.execute: control_leds
+network:
+  enable_ipv6: true
+logger:
+  level: debug
+  initial_level: debug
+  logs:
+    sensor: WARN  # avoids logging debug sensor updates
+#  hardware_uart: uart0  #Uncomment to see serial logs via USB connection. Comment out after debufgging - this line introduces noise on speaker...
+api:
+  id: api_id
+  actions:
+    - action: start_va
+      then:
+        - voice_assistant.start
+    - action: stop_va
+      then:
+        - voice_assistant.stop
+    - action: set_time_zone
+      variables:
+        posix_time_zone: string
+      then:
+        - lambda: |-
+            setenv("TZ", posix_time_zone.c_str(), 1);
+            tzset();
+            id(saved_time_zone) = posix_time_zone;
+            id(publish_current_time).execute();
+
+  on_client_connected:
+    - script.execute: control_leds
+  on_client_disconnected:
+    - script.execute: control_leds
+  encryption:
+ota:
+  - platform: esphome
+    id: ota_esphome
+improv_serial:
+captive_portal:
+i2c:
+  - id: internal_i2c
+    sda: GPIO5
+    scl: GPIO6
+    frequency: 400kHz
+psram:
+  mode: octal
+  speed: 80MHz
+  ignore_not_found: false
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+    on_time:
+      # Every 1 minute
+      - seconds: 0
+        then:
+          - script.execute: check_alarm
+    on_time_sync:
+      - script.execute: publish_current_time
+datetime:
+  # schedule the alarm time from Home Assistant
+  - platform: template
+    icon: mdi:bell-ring
+    name: "Alarm time"
+    id: alarm_time
+    type: time
+    initial_value: "00:00:00"
+    restore_value: true
+    optimistic: true
+    internal: false
+    set_action:
+      then:
+        - switch.turn_on: alarm_on

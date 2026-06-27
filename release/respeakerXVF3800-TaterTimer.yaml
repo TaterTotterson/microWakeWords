@@ -1,0 +1,66 @@
+substitutions:
+  # DEVICE IDENTITY
+  firmware_version: "3.0.12"
+  device_name: tater-respeaker-xvf3800
+  friendly_name: Tater ReSpeaker XVF3800
+
+  # WIFI / NETWORK
+  wifi_ssid: "__TATER_RELEASE_WIFI_UNUSED__"
+  wifi_password: "__TATER_RELEASE_PASSWORD_UNUSED__"
+  ha_voice_ip: "127.0.0.1"
+  hidden_ssid: "false"
+
+  # WAKE WORD CONFIG
+  wake_engine: microwakeword
+  openwakeword_server_url: ws://tater.local:8501
+  nanowakeword_server_url: ws://tater.local:8501
+  openwakeword_http_timeout_ms: "3000"
+  openwakeword_max_failures: "3"
+  wake_word_name: hey_tater
+  wake_word_model_url: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/microWakeWordsV3/hey_tater.json
+  wake_model_stop_url: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/wake_words/stop.json
+
+  # WAKE WORD SENSITIVITY
+  wake_cutoff_slight: "250"
+  wake_cutoff_moderate: "245"
+  wake_cutoff_very: "222"
+
+  # AUDIO FILE URLS
+  mute_switch_on_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/mute_switch_on.flac
+  mute_switch_off_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/mute_switch_off.flac
+  timer_finished_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/timer_finished.flac
+  wake_word_triggered_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/wake_word_triggered.flac
+  wake_sound: "No Sound" # Initial Wake Sound select option. Users can change this live after boot.
+  wake_sound_catalog_package: github://TaterTotterson/microWakeWords/respeaker_xvf3800/wake_sounds.yaml@main
+  wake_sound_script_package: github://TaterTotterson/microWakeWords/respeaker_xvf3800/wake_sound_scripts.yaml@main
+  center_button_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/center_button_press.flac
+  center_button_double_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/center_button_double_press.flac
+  center_button_triple_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/center_button_triple_press.flac
+  center_button_long_press_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/center_button_long_press.flac
+  factory_reset_initiated_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/factory_reset_initiated.mp3
+  factory_reset_cancelled_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/factory_reset_cancelled.mp3
+  factory_reset_confirmed_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/factory_reset_confirmed.mp3
+  error_cloud_expired_sound_file: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/shared/assets/sounds/error_cloud_expired.mp3
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_name}
+  name_add_mac_suffix: true
+
+dashboard_import:
+  package_import_url: github://TaterTotterson/microWakeWords/respeakerXVF3800-TaterTimer.yaml@main
+  import_full_config: true
+
+packages:
+  TaterTotterson.RespeakerXVF3800PhaseIds: !include ../respeaker_xvf3800/voice_assistant_phase_ids.yaml
+  TaterTotterson.RespeakerXVF3800Device: !include respeaker_xvf3800-device.yaml
+  TaterTotterson.RespeakerXVF3800Globals: !include ../respeaker_xvf3800/globals.yaml
+  TaterTotterson.RespeakerXVF3800Lights: !include ../respeaker_xvf3800/lights.yaml
+  TaterTotterson.RespeakerXVF3800Controls: !include ../respeaker_xvf3800/controls.yaml
+  TaterTotterson.RespeakerXVF3800Scripts: !include ../respeaker_xvf3800/scripts.yaml
+  TaterTotterson.RespeakerXVF3800Timer: !include ../respeaker_xvf3800/timer.yaml
+  TaterTotterson.RespeakerXVF3800Audio: !include ../respeaker_xvf3800/audio.yaml
+  TaterTotterson.RespeakerXVF3800Voice: !include ../respeaker_xvf3800/voice.yaml
+  TaterTotterson.RespeakerXVF3800System: !include ../respeaker_xvf3800/system.yaml
+  TaterTotterson.WakeSoundCatalog: ${wake_sound_catalog_package}
+  TaterTotterson.WakeSoundScript: ${wake_sound_script_package}

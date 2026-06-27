@@ -1,0 +1,3 @@
+# Local ESPHome output for release-only configs.
+/.esphome/
+/secrets.yaml

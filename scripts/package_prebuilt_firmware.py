@@ -29,27 +29,33 @@ class FirmwareDevice:
 
 
 DEVICES: tuple[FirmwareDevice, ...] = (
-    FirmwareDevice("satellite1", "Satellite1 / Sat1", "satellite1-TaterTimer.yaml", "tatersat1", "tater-satellite1"),
-    FirmwareDevice("voicepe", "Voice PE", "voicePE-TaterTimer.yaml", "tatervpe", "tater-voicepe"),
+    FirmwareDevice(
+        "satellite1",
+        "Satellite1 / Sat1",
+        "release/satellite1-TaterTimer.yaml",
+        "tatersat1",
+        "tater-satellite1",
+    ),
+    FirmwareDevice("voicepe", "Voice PE", "release/voicePE-TaterTimer.yaml", "tatervpe", "tater-voicepe"),
     FirmwareDevice(
         "respeaker_lite",
         "Respeaker Lite",
-        "respeakerLite-TaterTimer.yaml",
+        "release/respeakerLite-TaterTimer.yaml",
         "tater-respeaker-lite",
         "tater-respeaker-lite",
     ),
-    FirmwareDevice("koala", "Koala", "koala-TaterTimer.yaml", "tater-koala", "tater-koala"),
+    FirmwareDevice("koala", "Koala", "release/koala-TaterTimer.yaml", "tater-koala", "tater-koala"),
     FirmwareDevice(
         "respeaker_xvf3800",
         "Respeaker XVF3800",
-        "respeakerXVF3800-TaterTimer.yaml",
+        "release/respeakerXVF3800-TaterTimer.yaml",
         "tater-respeaker-xvf3800",
         "tater-respeaker-xvf3800",
     ),
     FirmwareDevice(
         "s3box_display",
         "Tater ESP32-S3-BOX-3 Display",
-        "esp32-s3-box-3.yaml",
+        "release/esp32-s3-box-3.yaml",
         "taters3box",
         "tater-s3box-display",
     ),
@@ -84,16 +90,24 @@ def copy_artifact(
     }
 
 
-def build_manifest(version: str, output_root: Path, generated_date: str) -> dict[str, Any]:
+def release_asset_url(asset_base_url: str, asset_name: str) -> str:
+    if not asset_base_url:
+        return ""
+    return f"{asset_base_url.rstrip('/')}/{asset_name}"
+
+
+def build_manifest(version: str, output_root: Path, generated_date: str, asset_base_url: str = "") -> dict[str, Any]:
     devices: list[dict[str, Any]] = []
     for device in DEVICES:
         device_dir = output_root / version / device.key
-        build_dir = Path(".esphome") / "build" / device.build_name / ".pioenvs" / device.build_name
+        config_dir = Path(device.config).parent
+        build_root = (config_dir / ".esphome" / "build") if config_dir != Path(".") else Path(".esphome") / "build"
+        build_dir = build_root / device.build_name / ".pioenvs" / device.build_name
 
         ota_name = f"{device.artifact_basename}-{version}.ota.bin"
         factory_name = f"{device.artifact_basename}-{version}.factory.bin"
-        ota_repo_path = f"{REPO_PREBUILT_PREFIX}/{version}/{device.key}/{ota_name}"
-        factory_repo_path = f"{REPO_PREBUILT_PREFIX}/{version}/{device.key}/{factory_name}"
+        ota_repo_path = release_asset_url(asset_base_url, ota_name) or f"{REPO_PREBUILT_PREFIX}/{version}/{device.key}/{ota_name}"
+        factory_repo_path = release_asset_url(asset_base_url, factory_name) or f"{REPO_PREBUILT_PREFIX}/{version}/{device.key}/{factory_name}"
 
         artifacts = {
             "ota": copy_artifact(
@@ -126,6 +140,7 @@ def build_manifest(version: str, output_root: Path, generated_date: str) -> dict
         "notes": [
             "Use ota artifacts for ESPHome OTA updates from Tater app.",
             "Use factory artifacts for first USB/serial flash or recovery flashes at offset 0x0.",
+            "Use USB Improv or captive portal setup to provision Wi-Fi after first install or recovery.",
         ],
         "devices": devices,
     }
@@ -160,6 +175,7 @@ def write_release_notes(path: Path, version: str, manifest: dict[str, Any]) -> N
                 device_lines,
                 "",
                 "Use OTA images for app-driven updates. Use factory images for first USB/serial flash or recovery.",
+                "Use USB Improv or captive portal setup to provision Wi-Fi after first install or recovery.",
                 "",
             ]
         ),
@@ -184,6 +200,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--version", required=True, help="Firmware version, usually from tag vX.Y.Z")
     parser.add_argument("--output-root", default=REPO_PREBUILT_PREFIX, help="Directory to write prebuilt firmware into")
     parser.add_argument("--release-dir", default="dist/release", help="Directory for release helper assets")
+    parser.add_argument("--asset-base-url", default="", help="GitHub release asset base URL for manifest artifact paths")
     parser.add_argument("--generated-date", help="Manifest generated date, defaults to current UTC date")
     return parser.parse_args()
 
@@ -198,13 +215,14 @@ def main() -> None:
     release_dir = Path(args.release_dir)
     generated_date = args.generated_date or datetime.now(timezone.utc).date().isoformat()
 
-    manifest = build_manifest(version, output_root, generated_date)
+    asset_base_url = args.asset_base_url.strip().rstrip("/")
+    manifest = build_manifest(version, output_root, generated_date, asset_base_url)
     write_json(output_root / version / "manifest.json", manifest)
     write_json(
         output_root / "latest.json",
         {
             "version": version,
-            "manifest": f"{REPO_PREBUILT_PREFIX}/{version}/manifest.json",
+            "manifest": release_asset_url(asset_base_url, "manifest.json") or f"{REPO_PREBUILT_PREFIX}/{version}/manifest.json",
         },
     )
     write_checksums(release_dir / f"tater-firmware-{version}-checksums.txt", manifest, output_root)
