@@ -74,6 +74,14 @@ jobs:
           python -m pip install "esphome==${ESPHOME_VERSION}"
           esphome version
 
+      - name: Create ESPHome CI secrets
+        run: |
+          cat > secrets.yaml <<'EOF'
+          wifi_ssid: ci-placeholder
+          wifi_password: ci-placeholder
+          wifi_ap_password: ci-placeholder
+          EOF
+
       - name: Compile all firmware
         env:
           VERSION: ${{ steps.version.outputs.version }}
