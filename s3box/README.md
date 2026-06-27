@@ -40,7 +40,7 @@ If Tater voice/display API auth is enabled, the Tater firmware flasher injects t
 
 Use the Tater firmware flasher in Tater's Tater Voice/Firmware tab.
 
-Choose the Tater S3Box Display firmware, pick the target display, then flash the prebuilt firmware over OTA or browser USB. Weather/display sensor slots are managed live in Tater after the firmware is installed, so changing sensors does not require another firmware build.
+Choose the Tater S3Box Display firmware, pick the target display, then build and flash over OTA or browser USB. Weather/display sensor slots are managed live in Tater after the firmware is installed, so changing sensors does not require another firmware build.
 
 ## Requirements
 
