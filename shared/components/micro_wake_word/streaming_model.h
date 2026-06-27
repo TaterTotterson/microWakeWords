@@ -11,6 +11,9 @@
 #include <tensorflow/lite/micro/micro_mutable_op_resolver.h>
 
 #include <atomic>
+#include <cstddef>
+#include <cstdint>
+#include <string>
 #include <type_traits>
 
 namespace esphome {
@@ -18,6 +21,17 @@ namespace micro_wake_word {
 
 static const uint8_t MIN_SLICES_BEFORE_DETECTION = 100;
 static const uint32_t STREAMING_MODEL_VARIABLE_ARENA_SIZE = 1024;
+static const size_t DETECTION_HISTORY_SIZE = 16;
+
+enum class DetectionProfile : uint8_t {
+  VERY_SENSITIVE = 0,
+  BALANCED = 1,
+  STRICT = 2,
+  TV_NEARBY = 3,
+};
+
+const char *detection_profile_to_string(DetectionProfile profile);
+DetectionProfile detection_profile_from_string(const std::string &profile);
 
 enum class DetectionEventType : uint8_t {
   NONE = 0,
@@ -32,6 +46,16 @@ struct DetectionEvent {
   bool partially_detection{false};  // Set if the close-miss capture threshold is crossed without a wake trigger.
   uint8_t max_probability{0};
   uint8_t average_probability{0};
+  uint8_t probability_history[DETECTION_HISTORY_SIZE]{0};
+  uint8_t probability_history_size{0};
+  uint8_t probability_cutoff{0};
+  uint8_t peak_probability_cutoff{0};
+  uint8_t active_window_count{0};
+  uint8_t min_active_windows{0};
+  int16_t rise_score{0};
+  uint8_t vad_max_probability{0};
+  uint8_t vad_average_probability{0};
+  DetectionProfile detection_profile{DetectionProfile::BALANCED};
   bool blocked_by_vad{false};
   DetectionEventType event_type{DetectionEventType::NONE};
 };
@@ -78,6 +102,8 @@ class StreamingModel {
   uint8_t get_default_probability_cutoff() const { return this->default_probability_cutoff_; }
   uint8_t get_probability_cutoff() const { return this->probability_cutoff_; }
   void set_probability_cutoff(uint8_t probability_cutoff) { this->probability_cutoff_ = probability_cutoff; }
+  void set_detection_profile(DetectionProfile profile);
+  DetectionProfile get_detection_profile() const;
 
  protected:
   /// @brief Allocates tensor and variable arenas and sets up the model interpreter
@@ -91,6 +117,12 @@ class StreamingModel {
   bool validate_model_ops_(const tflite::Model *model) const;
   /// @brief Returns true if successfully registered the streaming model's TensorFlow operations
   bool register_streaming_ops_(tflite::MicroMutableOpResolver<20> &op_resolver);
+  size_t probability_index_(size_t chronological_offset) const;
+  void fill_probability_history_(DetectionEvent &detection_event) const;
+  uint8_t effective_peak_probability_cutoff_(DetectionProfile profile) const;
+  uint8_t minimum_active_windows_(DetectionProfile profile) const;
+  int16_t rise_score_() const;
+  int16_t minimum_rise_score_(DetectionProfile profile) const;
 
   tflite::MicroMutableOpResolver<20> streaming_op_resolver_;
 
@@ -103,6 +135,7 @@ class StreamingModel {
 
   uint8_t default_probability_cutoff_;
   uint8_t probability_cutoff_;
+  std::atomic<uint8_t> detection_profile_{static_cast<uint8_t>(DetectionProfile::BALANCED)};
   size_t sliding_window_size_;
 
   size_t last_n_index_{0};

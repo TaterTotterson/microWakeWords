@@ -301,12 +301,28 @@ select:
     on_value:
       lambda: |-
         if (x == "Slightly sensitive") {
-          id(${wake_word_name}).set_probability_cutoff(${wake_cutoff_slight});
+          id(mww).set_wake_word_probability_cutoff(${wake_cutoff_slight});
         } else if (x == "Moderately sensitive") {
-          id(${wake_word_name}).set_probability_cutoff(${wake_cutoff_moderate});
+          id(mww).set_wake_word_probability_cutoff(${wake_cutoff_moderate});
         } else if (x == "Very sensitive") {
-          id(${wake_word_name}).set_probability_cutoff(${wake_cutoff_very});
+          id(mww).set_wake_word_probability_cutoff(${wake_cutoff_very});
         }
+
+  - platform: template
+    name: "Wake word profile"
+    id: wake_word_profile
+    icon: "mdi:tune-variant"
+    optimistic: true
+    initial_option: Balanced
+    restore_value: true
+    entity_category: config
+    options:
+      - Very sensitive
+      - Balanced
+      - Strict
+      - TV nearby
+    on_value:
+      lambda: id(mww).set_detection_profile(x);
 
   - platform: logger
     id: logger_select
@@ -352,6 +368,14 @@ voice_assistant:
         id(mww).set_capture_upload_enabled(id(capture_wake_audio).state);
         id(mww).set_capture_close_misses_enabled(id(capture_close_misses).state);
         id(mww).set_capture_close_miss_probability_cutoff(id(close_miss_threshold).state);
+        id(mww).set_detection_profile(id(wake_word_profile).state);
+        if (id(wake_word_sensitivity).current_option() == "Slightly sensitive") {
+          id(mww).set_wake_word_probability_cutoff(${wake_cutoff_slight});
+        } else if (id(wake_word_sensitivity).current_option() == "Moderately sensitive") {
+          id(mww).set_wake_word_probability_cutoff(${wake_cutoff_moderate});
+        } else if (id(wake_word_sensitivity).current_option() == "Very sensitive") {
+          id(mww).set_wake_word_probability_cutoff(${wake_cutoff_very});
+        }
         id(mww).set_capture_upload_url(id(trainer_app_url).state);
         if (id(wake_engine_select).current_option() == "nanowakeword") {
           id(oww).set_url(id(nanowakeword_server_url).state);

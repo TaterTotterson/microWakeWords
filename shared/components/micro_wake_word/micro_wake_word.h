@@ -51,8 +51,17 @@ class MicroWakeWord : public Component
     std::vector<uint8_t> pcm_data;
     uint8_t max_probability;
     uint8_t average_probability;
+    uint8_t probability_cutoff;
+    uint8_t peak_probability_cutoff;
+    uint8_t active_window_count;
+    uint8_t min_active_windows;
+    int16_t rise_score;
+    uint8_t vad_max_probability;
+    uint8_t vad_average_probability;
     bool blocked_by_vad;
     std::string event_type;
+    std::string detection_profile;
+    std::string probability_history;
   };
 
   struct RuntimeModelUpdateRequest {
@@ -96,6 +105,16 @@ class MicroWakeWord : public Component
   float get_capture_close_miss_probability_cutoff() const {
     return this->capture_close_miss_probability_cutoff_.load() / 255.0f;
   }
+  void set_detection_profile(const std::string &detection_profile);
+  void set_detection_profile(DetectionProfile detection_profile);
+  DetectionProfile get_detection_profile() const {
+    const uint8_t profile = this->detection_profile_.load();
+    if (profile > static_cast<uint8_t>(DetectionProfile::TV_NEARBY)) {
+      return DetectionProfile::BALANCED;
+    }
+    return static_cast<DetectionProfile>(profile);
+  }
+  void set_wake_word_probability_cutoff(uint8_t probability_cutoff);
   void set_capture_upload_url(const std::string &capture_upload_url) { this->capture_upload_url_ = capture_upload_url; }
   const std::string &get_capture_upload_url() const { return this->capture_upload_url_; }
   void set_runtime_model_url(const std::string &runtime_model_url);
@@ -141,8 +160,13 @@ class MicroWakeWord : public Component
   std::atomic<bool> capture_upload_enabled_{false};
   std::atomic<bool> capture_close_misses_enabled_{false};
   std::atomic<uint8_t> capture_close_miss_probability_cutoff_{200};
+  std::atomic<uint8_t> detection_profile_{static_cast<uint8_t>(DetectionProfile::BALANCED)};
+  std::atomic<uint16_t> minimum_wake_interval_ms_{1200};
+  std::atomic<bool> wake_word_probability_cutoff_override_{false};
+  std::atomic<uint8_t> wake_word_probability_cutoff_{0};
   std::atomic<bool> capture_upload_in_progress_{false};
   uint32_t last_close_miss_upload_ms_{0};
+  uint32_t last_wake_detection_ms_{0};
   std::string capture_upload_url_;
   bool pending_close_miss_{false};
   DetectionEvent pending_close_miss_event_;
@@ -217,6 +241,7 @@ class MicroWakeWord : public Component
   bool validate_runtime_model_header_(const RuntimeModelHeader &header, const esp_partition_t *partition) const;
   bool map_runtime_model_(const esp_partition_t *partition, const RuntimeModelHeader &header, const uint8_t **data,
                           esp_partition_mmap_handle_t *handle) const;
+  void apply_wake_word_probability_cutoff_();
   void unmap_active_runtime_model_();
   bool ota_boot_pending_verify_() const;
   static void runtime_model_update_task(void *params);

@@ -7,17 +7,60 @@
 
 #include "tensorflow/lite/schema/schema_generated.h"
 
+#include <algorithm>
+#include <cctype>
+
 static const char *const TAG = "micro_wake_word";
 
 namespace esphome {
 namespace micro_wake_word {
 
+const char *detection_profile_to_string(DetectionProfile profile) {
+  switch (profile) {
+    case DetectionProfile::VERY_SENSITIVE:
+      return "very_sensitive";
+    case DetectionProfile::BALANCED:
+      return "balanced";
+    case DetectionProfile::STRICT:
+      return "strict";
+    case DetectionProfile::TV_NEARBY:
+      return "tv_nearby";
+    default:
+      return "balanced";
+  }
+}
+
+DetectionProfile detection_profile_from_string(const std::string &profile) {
+  std::string normalized;
+  normalized.reserve(profile.size());
+  for (char ch : profile) {
+    if (ch == ' ' || ch == '-') {
+      normalized.push_back('_');
+    } else {
+      normalized.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(ch))));
+    }
+  }
+
+  if (normalized == "very_sensitive" || normalized == "sensitive") {
+    return DetectionProfile::VERY_SENSITIVE;
+  }
+  if (normalized == "strict") {
+    return DetectionProfile::STRICT;
+  }
+  if (normalized == "tv_nearby" || normalized == "tv" || normalized == "near_tv") {
+    return DetectionProfile::TV_NEARBY;
+  }
+  return DetectionProfile::BALANCED;
+}
+
 void WakeWordModel::log_model_config() {
   ESP_LOGCONFIG(TAG,
                 "    - Wake Word: %s\n"
                 "      Probability cutoff: %.2f\n"
-                "      Sliding window size: %d",
-                this->wake_word_.c_str(), this->probability_cutoff_ / 255.0f, this->sliding_window_size_);
+                "      Sliding window size: %d\n"
+                "      Detection profile: %s",
+                this->wake_word_.c_str(), this->probability_cutoff_ / 255.0f, this->sliding_window_size_,
+                detection_profile_to_string(this->get_detection_profile()));
 }
 
 void VADModel::log_model_config() {
@@ -291,6 +334,110 @@ void StreamingModel::reset_probabilities() {
   this->ignore_windows_ = -MIN_SLICES_BEFORE_DETECTION;
 }
 
+void StreamingModel::set_detection_profile(DetectionProfile profile) {
+  this->detection_profile_.store(static_cast<uint8_t>(profile));
+}
+
+DetectionProfile StreamingModel::get_detection_profile() const {
+  const uint8_t profile = this->detection_profile_.load();
+  if (profile > static_cast<uint8_t>(DetectionProfile::TV_NEARBY)) {
+    return DetectionProfile::BALANCED;
+  }
+  return static_cast<DetectionProfile>(profile);
+}
+
+size_t StreamingModel::probability_index_(size_t chronological_offset) const {
+  if (this->sliding_window_size_ == 0) {
+    return 0;
+  }
+  return (this->last_n_index_ + 1 + chronological_offset) % this->sliding_window_size_;
+}
+
+void StreamingModel::fill_probability_history_(DetectionEvent &detection_event) const {
+  const size_t history_size = std::min(this->sliding_window_size_, DETECTION_HISTORY_SIZE);
+  detection_event.probability_history_size = static_cast<uint8_t>(history_size);
+  const size_t start_offset = this->sliding_window_size_ - history_size;
+
+  for (size_t i = 0; i < history_size; i++) {
+    detection_event.probability_history[i] =
+        this->recent_streaming_probabilities_[this->probability_index_(start_offset + i)];
+  }
+}
+
+uint8_t StreamingModel::effective_peak_probability_cutoff_(DetectionProfile profile) const {
+  switch (profile) {
+    case DetectionProfile::STRICT:
+      return std::max<uint8_t>(this->probability_cutoff_, 220);
+    case DetectionProfile::TV_NEARBY:
+      return std::max<uint8_t>(this->probability_cutoff_, 235);
+    case DetectionProfile::VERY_SENSITIVE:
+    case DetectionProfile::BALANCED:
+    default:
+      return this->probability_cutoff_;
+  }
+}
+
+uint8_t StreamingModel::minimum_active_windows_(DetectionProfile profile) const {
+  if (this->sliding_window_size_ == 0) {
+    return 0;
+  }
+
+  size_t minimum = 1;
+  switch (profile) {
+    case DetectionProfile::VERY_SENSITIVE:
+      minimum = 1;
+      break;
+    case DetectionProfile::STRICT:
+      minimum = std::max<size_t>(2, ((this->sliding_window_size_ * 2) + 2) / 3);
+      break;
+    case DetectionProfile::TV_NEARBY:
+      minimum = std::max<size_t>(3, ((this->sliding_window_size_ * 3) + 3) / 4);
+      break;
+    case DetectionProfile::BALANCED:
+    default:
+      minimum = std::max<size_t>(1, (this->sliding_window_size_ + 1) / 2);
+      break;
+  }
+
+  return static_cast<uint8_t>(std::min(minimum, this->sliding_window_size_));
+}
+
+int16_t StreamingModel::rise_score_() const {
+  if (this->sliding_window_size_ < 2) {
+    return 0;
+  }
+
+  const size_t edge_count = this->sliding_window_size_ / 2;
+  if (edge_count == 0) {
+    return 0;
+  }
+
+  uint32_t early_sum = 0;
+  uint32_t late_sum = 0;
+  for (size_t i = 0; i < edge_count; i++) {
+    early_sum += this->recent_streaming_probabilities_[this->probability_index_(i)];
+    late_sum += this->recent_streaming_probabilities_[
+        this->probability_index_(this->sliding_window_size_ - edge_count + i)];
+  }
+
+  const int32_t early_average = early_sum / edge_count;
+  const int32_t late_average = late_sum / edge_count;
+  return static_cast<int16_t>(std::max<int32_t>(-255, std::min<int32_t>(255, late_average - early_average)));
+}
+
+int16_t StreamingModel::minimum_rise_score_(DetectionProfile profile) const {
+  switch (profile) {
+    case DetectionProfile::STRICT:
+      return -8;
+    case DetectionProfile::TV_NEARBY:
+      return 4;
+    case DetectionProfile::VERY_SENSITIVE:
+    case DetectionProfile::BALANCED:
+    default:
+      return -255;
+  }
+}
+
 WakeWordModel::WakeWordModel(const std::string &id, const uint8_t *model_start, uint8_t default_probability_cutoff,
                              size_t sliding_window_average_size, const std::string &wake_word, size_t tensor_arena_size,
                              bool default_enabled, bool internal_only) {
@@ -407,13 +554,30 @@ DetectionEvent WakeWordModel::determine_detected() {
   }
 
   uint32_t sum = 0;
+  uint8_t active_window_count = 0;
   for (auto &prob : this->recent_streaming_probabilities_) {
     detection_event.max_probability = std::max(detection_event.max_probability, prob);
+    if (prob >= this->probability_cutoff_) {
+      active_window_count++;
+    }
     sum += prob;
   }
 
+  const DetectionProfile profile = this->get_detection_profile();
   detection_event.average_probability = sum / this->sliding_window_size_;
-  detection_event.detected = sum > this->probability_cutoff_ * this->sliding_window_size_;
+  detection_event.probability_cutoff = this->probability_cutoff_;
+  detection_event.peak_probability_cutoff = this->effective_peak_probability_cutoff_(profile);
+  detection_event.active_window_count = active_window_count;
+  detection_event.min_active_windows = this->minimum_active_windows_(profile);
+  detection_event.rise_score = this->rise_score_();
+  detection_event.detection_profile = profile;
+  this->fill_probability_history_(detection_event);
+
+  const bool average_detected = sum > this->probability_cutoff_ * this->sliding_window_size_;
+  const bool peak_detected = detection_event.max_probability >= detection_event.peak_probability_cutoff;
+  const bool active_windows_detected = active_window_count >= detection_event.min_active_windows;
+  const bool shape_detected = detection_event.rise_score >= this->minimum_rise_score_(profile);
+  detection_event.detected = average_detected && peak_detected && active_windows_detected && shape_detected;
 
   this->unprocessed_probability_status_ = false;
   return detection_event;
@@ -448,6 +612,7 @@ DetectionEvent VADModel::determine_detected() {
   }
 
   detection_event.average_probability = sum / this->sliding_window_size_;
+  detection_event.probability_cutoff = this->probability_cutoff_;
   detection_event.detected = sum > (this->probability_cutoff_ * this->sliding_window_size_);
 
   return detection_event;

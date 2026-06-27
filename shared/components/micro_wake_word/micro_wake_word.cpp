@@ -153,6 +153,31 @@ static uint8_t quantize_probability(float probability) {
   return static_cast<uint8_t>(probability * 255.0f);
 }
 
+static uint16_t minimum_wake_interval_for_profile(DetectionProfile profile) {
+  switch (profile) {
+    case DetectionProfile::VERY_SENSITIVE:
+      return 800;
+    case DetectionProfile::STRICT:
+      return 1600;
+    case DetectionProfile::TV_NEARBY:
+      return 2400;
+    case DetectionProfile::BALANCED:
+    default:
+      return 1200;
+  }
+}
+
+static std::string probability_history_to_header(const DetectionEvent &detection_event) {
+  std::string out;
+  for (uint8_t i = 0; i < detection_event.probability_history_size; i++) {
+    if (!out.empty()) {
+      out += ",";
+    }
+    out += std::to_string(detection_event.probability_history[i]);
+  }
+  return out;
+}
+
 static uint32_t crc32_update(uint32_t crc, const uint8_t *data, size_t len) {
   for (size_t i = 0; i < len; i++) {
     crc ^= data[i];
@@ -260,6 +285,9 @@ void MicroWakeWord::dump_config() {
   ESP_LOGCONFIG(TAG, "  captured wake audio uploads: %s", YESNO(this->capture_upload_enabled_.load()));
   ESP_LOGCONFIG(TAG, "  captured close-miss uploads: %s", YESNO(this->capture_close_misses_enabled_.load()));
   ESP_LOGCONFIG(TAG, "  close-miss threshold: %.2f", this->get_capture_close_miss_probability_cutoff());
+  ESP_LOGCONFIG(TAG, "  detection profile: %s", detection_profile_to_string(this->get_detection_profile()));
+  ESP_LOGCONFIG(TAG, "  minimum wake interval: %u ms",
+                static_cast<unsigned int>(this->minimum_wake_interval_ms_.load()));
   const std::string capture_upload_url = this->build_capture_upload_url_();
   ESP_LOGCONFIG(TAG, "  trainer capture endpoint: %s",
                 capture_upload_url.empty() ? "not configured" : capture_upload_url.c_str());
@@ -439,10 +467,12 @@ std::vector<WakeWordModel *> MicroWakeWord::get_wake_words() {
 }
 
 void MicroWakeWord::add_wake_word_model(WakeWordModel *model) {
+  model->set_detection_profile(this->get_detection_profile());
   this->wake_word_models_.push_back(model);
   if (this->runtime_wake_word_model_ == nullptr && !model->get_internal_only()) {
     this->runtime_wake_word_model_ = model;
   }
+  this->apply_wake_word_probability_cutoff_();
 }
 
 #ifdef USE_MICRO_WAKE_WORD_VAD
@@ -568,17 +598,28 @@ void MicroWakeWord::loop() {
         constexpr float uint8_to_float_divisor =
             255.0f;  // Converting a quantized uint8 probability to floating point
         if (detection_event.blocked_by_vad) {
-          ESP_LOGD(TAG, "Wake word model predicts '%s', but VAD model doesn't.", detection_event.wake_word->c_str());
+          ESP_LOGD(TAG, "Wake word model predicts '%s', but VAD model doesn't. Profile=%s active=%u/%u rise=%d",
+                   detection_event.wake_word->c_str(),
+                   detection_profile_to_string(detection_event.detection_profile),
+                   detection_event.active_window_count, detection_event.min_active_windows, detection_event.rise_score);
           this->queue_detection_capture_(detection_event, detection_event.event_type);
         } else if (detection_event.partially_detection) {
-          ESP_LOGD(TAG, "Close miss for '%s' with sliding average probability %.2f and max probability %.2f",
+          ESP_LOGD(TAG,
+                   "Close miss for '%s' with sliding average probability %.2f and max probability %.2f. "
+                   "Profile=%s active=%u/%u rise=%d",
                    detection_event.wake_word->c_str(), (detection_event.average_probability / uint8_to_float_divisor),
-                   (detection_event.max_probability / uint8_to_float_divisor));
+                   (detection_event.max_probability / uint8_to_float_divisor),
+                   detection_profile_to_string(detection_event.detection_profile),
+                   detection_event.active_window_count, detection_event.min_active_windows, detection_event.rise_score);
           this->queue_detection_capture_(detection_event, detection_event.event_type);
         } else {
-          ESP_LOGD(TAG, "Detected '%s' with sliding average probability is %.2f and max probability is %.2f",
+          ESP_LOGD(TAG,
+                   "Detected '%s' with sliding average probability %.2f and max probability %.2f. "
+                   "Profile=%s active=%u/%u rise=%d",
                    detection_event.wake_word->c_str(), (detection_event.average_probability / uint8_to_float_divisor),
-                   (detection_event.max_probability / uint8_to_float_divisor));
+                   (detection_event.max_probability / uint8_to_float_divisor),
+                   detection_profile_to_string(detection_event.detection_profile),
+                   detection_event.active_window_count, detection_event.min_active_windows, detection_event.rise_score);
           this->queue_detection_capture_(detection_event, DetectionEventType::WAKE_DETECTED);
           this->wake_word_detected_trigger_.trigger(*detection_event.wake_word);
           if (this->stop_after_detection_) {
@@ -638,6 +679,38 @@ void MicroWakeWord::stop() {
   this->pending_start_ = false;
   this->wake_start_deferred_until_ms_ = 0;
   this->pending_stop_ = true;
+}
+
+void MicroWakeWord::set_detection_profile(const std::string &detection_profile) {
+  this->set_detection_profile(detection_profile_from_string(detection_profile));
+}
+
+void MicroWakeWord::set_detection_profile(DetectionProfile detection_profile) {
+  const uint8_t next_profile = static_cast<uint8_t>(detection_profile);
+  const uint8_t previous_profile = this->detection_profile_.exchange(next_profile);
+  this->minimum_wake_interval_ms_.store(minimum_wake_interval_for_profile(detection_profile));
+
+  for (auto &model : this->wake_word_models_) {
+    model->set_detection_profile(detection_profile);
+  }
+
+  if (previous_profile != next_profile) {
+    ESP_LOGI(TAG, "Wake word detection profile set to %s.", detection_profile_to_string(detection_profile));
+  }
+}
+
+void MicroWakeWord::set_wake_word_probability_cutoff(uint8_t probability_cutoff) {
+  this->wake_word_probability_cutoff_.store(probability_cutoff);
+  this->wake_word_probability_cutoff_override_.store(true);
+  this->apply_wake_word_probability_cutoff_();
+  ESP_LOGI(TAG, "Wake word probability cutoff set to %.2f.", probability_cutoff / 255.0f);
+}
+
+void MicroWakeWord::apply_wake_word_probability_cutoff_() {
+  if (!this->wake_word_probability_cutoff_override_.load() || this->runtime_wake_word_model_ == nullptr) {
+    return;
+  }
+  this->runtime_wake_word_model_->set_probability_cutoff(this->wake_word_probability_cutoff_.load());
 }
 
 void MicroWakeWord::set_state_(State state) {
@@ -781,6 +854,7 @@ bool MicroWakeWord::activate_runtime_model_partition_(const esp_partition_t *par
     model_allocator.deallocate(model_copy, header.model_size);
     return false;
   }
+  this->apply_wake_word_probability_cutoff_();
 
   uint8_t *previous_buffer = this->active_runtime_model_buffer_;
   const size_t previous_size = this->active_runtime_model_size_;
@@ -860,6 +934,7 @@ bool MicroWakeWord::restore_compiled_runtime_model_(bool erase_slots) {
   }
 
   this->runtime_wake_word_model_->restore_compiled_model();
+  this->apply_wake_word_probability_cutoff_();
   this->unmap_active_runtime_model_();
   this->runtime_model_url_.clear();
   this->active_runtime_wake_word_ = "compiled";
@@ -1378,10 +1453,24 @@ void MicroWakeWord::process_probabilities_() {
     if (model->get_unprocessed_probability_status()) {
       // Only detect wake words if there is a new probability since the last check
       DetectionEvent wake_word_state = model->determine_detected();
+#ifdef USE_MICRO_WAKE_WORD_VAD
+      wake_word_state.vad_max_probability = vad_state.max_probability;
+      wake_word_state.vad_average_probability = vad_state.average_probability;
+#endif
       if (wake_word_state.detected) {
 #ifdef USE_MICRO_WAKE_WORD_VAD
         if (vad_state.detected) {
 #endif
+          const uint32_t now = millis();
+          const uint16_t minimum_wake_interval_ms = this->minimum_wake_interval_ms_.load();
+          if ((this->last_wake_detection_ms_ != 0) &&
+              ((now - this->last_wake_detection_ms_) < minimum_wake_interval_ms)) {
+            ESP_LOGD(TAG, "Ignoring '%s' because the wake profile cooldown is active.",
+                     wake_word_state.wake_word == nullptr ? "unknown" : wake_word_state.wake_word->c_str());
+            model->reset_probabilities();
+            continue;
+          }
+          this->last_wake_detection_ms_ = now;
           xQueueSend(this->detection_queue_, &wake_word_state, portMAX_DELAY);
 
           // Wake main loop immediately to process wake word detection
@@ -1587,8 +1676,17 @@ void MicroWakeWord::queue_detection_capture_(const DetectionEvent &detection_eve
   request->pcm_data = std::move(pcm_data);
   request->max_probability = detection_event.max_probability;
   request->average_probability = detection_event.average_probability;
+  request->probability_cutoff = detection_event.probability_cutoff;
+  request->peak_probability_cutoff = detection_event.peak_probability_cutoff;
+  request->active_window_count = detection_event.active_window_count;
+  request->min_active_windows = detection_event.min_active_windows;
+  request->rise_score = detection_event.rise_score;
+  request->vad_max_probability = detection_event.vad_max_probability;
+  request->vad_average_probability = detection_event.vad_average_probability;
   request->blocked_by_vad = detection_event.blocked_by_vad;
   request->event_type = event_type_header;
+  request->detection_profile = detection_profile_to_string(detection_event.detection_profile);
+  request->probability_history = probability_history_to_header(detection_event);
 
   BaseType_t task_created = xTaskCreate(MicroWakeWord::capture_upload_task, "mww_capture_upload",
                                         CAPTURE_UPLOAD_TASK_STACK_SIZE, request, CAPTURE_UPLOAD_TASK_PRIORITY, nullptr);
@@ -1645,6 +1743,13 @@ bool MicroWakeWord::upload_capture_(const CaptureUploadRequest &request) {
 
   const std::string max_probability = std::to_string(request.max_probability);
   const std::string average_probability = std::to_string(request.average_probability);
+  const std::string probability_cutoff = std::to_string(request.probability_cutoff);
+  const std::string peak_probability_cutoff = std::to_string(request.peak_probability_cutoff);
+  const std::string active_window_count = std::to_string(request.active_window_count);
+  const std::string min_active_windows = std::to_string(request.min_active_windows);
+  const std::string rise_score = std::to_string(request.rise_score);
+  const std::string vad_max_probability = std::to_string(request.vad_max_probability);
+  const std::string vad_average_probability = std::to_string(request.vad_average_probability);
   const std::string blocked_by_vad = request.blocked_by_vad ? "true" : "false";
   const std::string original_name = "wake_capture.raw";
 
@@ -1657,6 +1762,15 @@ bool MicroWakeWord::upload_capture_(const CaptureUploadRequest &request) {
   esp_http_client_set_header(client, "X-Blocked-By-Vad", blocked_by_vad.c_str());
   esp_http_client_set_header(client, "X-Max-Probability", max_probability.c_str());
   esp_http_client_set_header(client, "X-Average-Probability", average_probability.c_str());
+  esp_http_client_set_header(client, "X-Probability-Cutoff", probability_cutoff.c_str());
+  esp_http_client_set_header(client, "X-Peak-Probability-Cutoff", peak_probability_cutoff.c_str());
+  esp_http_client_set_header(client, "X-Active-Windows", active_window_count.c_str());
+  esp_http_client_set_header(client, "X-Min-Active-Windows", min_active_windows.c_str());
+  esp_http_client_set_header(client, "X-Rise-Score", rise_score.c_str());
+  esp_http_client_set_header(client, "X-Vad-Max-Probability", vad_max_probability.c_str());
+  esp_http_client_set_header(client, "X-Vad-Average-Probability", vad_average_probability.c_str());
+  esp_http_client_set_header(client, "X-Detection-Profile", request.detection_profile.c_str());
+  esp_http_client_set_header(client, "X-Probability-History", request.probability_history.c_str());
 
   esp_err_t err = esp_http_client_open(client, request.pcm_data.size());
   if (err != ESP_OK) {

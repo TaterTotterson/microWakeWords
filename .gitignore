@@ -6,11 +6,16 @@ __pycache__/
 
 # Local ESPHome test configs/components
 satellite1-local-usb.yaml
-sat1/*.local.yaml
-sat1/components.local/
+sat1/voice_assistant.local.yaml
 voicePE-local*.yaml
 voicepe/*.local.yaml
-voicepe/components.local/
+respeakerLite-local*.yaml
+respeaker_lite/*.local.yaml
+respeakerXVF3800-local*.yaml
+respeaker_xvf3800/*.local.yaml
+koala-local*.yaml
+koala/*.local.yaml
+esp32-s3-box-3-local*.yaml
 s3box/secrets.yaml
 
 sat1/xmos_firmware/

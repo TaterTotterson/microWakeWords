@@ -37,6 +37,7 @@ DOMAIN = "micro_wake_word"
 
 
 CONF_FEATURE_STEP_SIZE = "feature_step_size"
+CONF_DETECTION_PROFILE = "detection_profile"
 CONF_MODELS = "models"
 CONF_ON_WAKE_WORD_DETECTED = "on_wake_word_detected"
 CONF_PROBABILITY_CUTOFF = "probability_cutoff"
@@ -48,6 +49,7 @@ CONF_VAD = "vad"
 
 TYPE_HTTP = "http"
 RUNTIME_MODEL_PARTITION_SIZE = 0x80000
+DETECTION_PROFILES = ("very_sensitive", "balanced", "strict", "tv_nearby")
 
 
 def _add_runtime_model_partition(name: str, subtype: int) -> None:
@@ -367,6 +369,9 @@ CONFIG_SCHEMA = cv.All(
             ),
             cv.Optional(CONF_VAD): _maybe_empty_vad_schema,
             cv.Optional(CONF_STOP_AFTER_DETECTION, default=True): cv.boolean,
+            cv.Optional(CONF_DETECTION_PROFILE, default="balanced"): cv.one_of(
+                *DETECTION_PROFILES, lower=True, space="_"
+            ),
             cv.Optional(CONF_MODEL): cv.invalid(
                 f"The {CONF_MODEL} parameter has moved to be a list element under the {CONF_MODELS} parameter."
             ),
@@ -529,6 +534,7 @@ async def to_code(config):
 
     cg.add(var.set_features_step_size(manifest[KEY_MICRO][CONF_FEATURE_STEP_SIZE]))
     cg.add(var.set_stop_after_detection(config[CONF_STOP_AFTER_DETECTION]))
+    cg.add(var.set_detection_profile(config[CONF_DETECTION_PROFILE]))
 
     if on_wake_word_detection_config := config.get(CONF_ON_WAKE_WORD_DETECTED):
         await automation.build_automation(

@@ -101,6 +101,13 @@ wake_cutoff_very: "222"       # Very sensitive
 Lower numbers = more sensitive  
 Higher numbers = fewer false activations
 
+### 🎛️ Wake Word Profile
+The Tater firmware also exposes a **Wake word profile** selector in Home Assistant:
+- **Very sensitive** keeps detection closest to the original microWakeWord behavior
+- **Balanced** adds light filtering for one-frame spikes
+- **Strict** requires a stronger, more stable wake-word shape
+- **TV nearby** is the strictest profile for satellites placed near speakers or televisions
+
 ---
 
 ### 🔔 Optional – Change the Wake Sound
