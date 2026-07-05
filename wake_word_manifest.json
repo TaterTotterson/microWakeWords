@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 220
+      "count": 221
     }
   ],
-  "count": 622,
+  "count": 623,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -11191,6 +11191,24 @@
       "model_path": "microWakeWordsV3/watson.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/watson.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/watson.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:yo_marvin",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "yo_marvin",
+      "name": "yo_marvin",
+      "label": "Yo Marvin",
+      "path": "microWakeWordsV3/yo_marvin.json",
+      "model_path": "microWakeWordsV3/yo_marvin.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/yo_marvin.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/yo_marvin.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
