@@ -15,10 +15,10 @@
     {
       "key": "microWakeWordsV3",
       "label": "microWakeWordsV3",
-      "count": 230
+      "count": 231
     }
   ],
-  "count": 632,
+  "count": 633,
   "entries": [
     {
       "id": "microWakeWords:achim",
@@ -9391,6 +9391,24 @@
       "model_path": "microWakeWordsV3/hey_molly.tflite",
       "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_molly.json",
       "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_molly.json",
+      "author": "Tater Totterson",
+      "trained_languages": [
+        "en"
+      ],
+      "version": 2,
+      "minimum_esphome_version": "2024.7.0"
+    },
+    {
+      "id": "microWakeWordsV3:hey_moneypenny",
+      "source": "microWakeWordsV3",
+      "source_label": "microWakeWordsV3",
+      "slug": "hey_moneypenny",
+      "name": "hey_moneypenny",
+      "label": "Hey Moneypenny",
+      "path": "microWakeWordsV3/hey_moneypenny.json",
+      "model_path": "microWakeWordsV3/hey_moneypenny.tflite",
+      "url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_moneypenny.json",
+      "download_url": "https://raw.githubusercontent.com/TaterTotterson/microWakeWords/main/microWakeWordsV3/hey_moneypenny.json",
       "author": "Tater Totterson",
       "trained_languages": [
         "en"
