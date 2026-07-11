@@ -7,136 +7,35 @@
   <a href="https://taterassistant.com">taterassistant.com</a>
 </h3>
 
-## 🗣️ Request a New Wake Word
-
-You can request a new microWakeWord model by opening a GitHub issue.
-
-### ✅ How to request a word
-
-1. Go to the **Issues** tab  
-2. Click **New issue**
-3. Set the **title** to:
-
-mww: your wake word here
-
-Examples:
-```
-mww: hey tater  
-mww: tater totterson  
-mww: hello computer  
-```
-That’s it — no labels, no templates, no body text required.
-
 ---
 
-### 🔄 What happens next
-- The `.tflite` and `.json` files are added to the repository
-- The issue is labeled, commented on, and closed when complete
+## Repository Archived
 
----
+This repository is no longer the active firmware home for Tater voice satellites.
 
-### ⚠️ Notes
+Tater has moved away from ESPHome-based satellite firmware and now uses dedicated native firmware built specifically for Tater hardware. That change lets Tater provide a more polished satellite experience with direct pairing, native device settings, streaming audio, firmware updates, diagnostics, display support, LED control, intercom, timers, and tighter coordination between satellites.
 
-- **Test your wake word with TTS first.**  
-  Make sure your text-to-speech engine pronounces the phrase the way you expect.  
-  You may need to spell it *phonetically* or a little “funny” so TTS says it correctly — the trainer uses the same pronunciation.
-- Please request **one wake word per issue**
-- Avoid punctuation or emojis in the title
-- Training runs sequentially if multiple requests are open
+The current firmware project lives here:
 
----
+**[Tater Native Firmware](https://github.com/TaterTotterson/Tater-Native-Firmware)**
 
-## 🗣️ Set Up Your Custom Wake Word on Home Assistant Voice
+## What This Means
 
-⚠️ **Important:** voicePE-TaterTimer.yaml is for **Voice PE**, satellite1-TaterTimer.yaml is for **Satellite1**, respeakerLite-TaterTimer.yaml is for **ReSpeaker Lite**, koala-TaterTimer.yaml is for **Koala Satellite**, and respeakerXVF3800-TaterTimer.yaml is for **ReSpeaker XVF3800**, but the same structure and steps apply to *any* Home Assistant voice device.
-You can **mimic these instructions** for your own hardware by updating the equivalent file for your device.
+The ESPHome/Home Assistant satellite firmware in this repository is no longer maintained as the supported Tater satellite path. New Tater satellite development happens in the native firmware repository instead.
 
-All of the settings below are located **at the very top of the YAML file** inside the `substitutions:` section.  
-You no longer need to hunt for line numbers — everything commonly edited lives in one place.
+This repository should be treated as historical reference only. It is not the recommended way to build, flash, or configure Tater satellites.
 
-Open `voicePE-TaterTimer.yaml` (or your device’s YAML) and edit the `substitutions:` block.
+## Home Assistant Users
 
----
+The old firmware path in this repository is no longer supported as a Home Assistant voice satellite setup.
 
-### 🧾 Device Name & Friendly Name
-Change how the device appears in ESPHome and Home Assistant:
-```
-device_name: tatervpe
-friendly_name: TaterVPE
-```
----
+If you still want to use Home Assistant with Tater satellites, use the satellites through Tater Native Firmware, then connect Home Assistant to Tater. In that setup, Tater manages the satellites and voice pipeline, while Home Assistant can still be used alongside Tater for smart-home devices, automations, and control.
 
-### 📡 Wi-Fi & Network Settings
-Set your Wi-Fi credentials (or use secrets) and optionally pin the device to a Home Assistant Voice IP:
-```
-wifi_ssid: !secret wifi_ssid
-wifi_password: !secret wifi_password
-ha_voice_ip: "127.0.0.1"
-```
-If you don’t want a fixed IP, simply remove `ha_voice_ip` and the device will use DHCP.
+Start here:
 
----
+- **Tater:** [https://github.com/TaterTotterson/Tater](https://github.com/TaterTotterson/Tater)
+- **Tater Native Firmware:** [https://github.com/TaterTotterson/Tater-Native-Firmware](https://github.com/TaterTotterson/Tater-Native-Firmware)
 
-### 🎙️ Wake Word Model
-Choose the wake word model and give it a matching ID:
-```
-wake_word_name: hey_tater
-wake_word_model_url: https://raw.githubusercontent.com/TaterTotterson/microWakeWords/refs/heads/main/microWakeWords/hey_tater.json
-```
-The `wake_word_name` **must match** the model ID used internally.
+## Status
 
-After flashing the Tater firmware with runtime model support, you can also change the local microWakeWord model from Home Assistant by editing the **microWakeWord Model URL** entity. Paste a compatible model `.json` URL and the device will download, validate, store, and reload it without another firmware rebuild. Clear the entity, or set it to `compiled`/`default`, to return to the model compiled into the firmware.
-
-Note: devices need one full USB/serial flash with the new partition table before runtime model storage is available. A normal OTA firmware update cannot add the `mww_model_a` and `mww_model_b` flash partitions.
-
----
-
-### 🎚️ Wake Word Sensitivity
-Tune how sensitive the wake word detection is:
-```
-wake_cutoff_slight: "250"     # Slightly sensitive (very strict)
-wake_cutoff_moderate: "245"   # Balanced
-wake_cutoff_very: "222"       # Very sensitive
-```
-Lower numbers = more sensitive  
-Higher numbers = fewer false activations
-
-### 🎛️ Wake Word Profile
-The Tater firmware also exposes a **Wake word profile** selector in Home Assistant:
-- **Very sensitive** keeps detection closest to the original microWakeWord behavior
-- **Balanced** adds light filtering for one-frame spikes
-- **Strict** requires a stronger, more stable wake-word shape
-- **TV nearby** is the strictest profile for satellites placed near speakers or televisions
-
----
-
-### 🔔 Optional – Change the Wake Sound
-You can customize the sound played when the wake word is detected.
-
-Edit the wake sound URL in the substitutions section:
-```
-wake_word_triggered_sound_file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/wake_word_triggered.flac
-```
-You can point this to any compatible `.mp3` or `.flac` file hosted online.
-
----
-
-### ✅ Final Notes
-• These values are read throughout the config automatically  
-• No other parts of the YAML need to be edited  
-• Test your wake word in **TTS first** to ensure it’s pronounced correctly  
-  (you may need to spell it creatively for best results)
-
----
-
-## 🤖 Use These Wake Words in Tater
-
-If you are using **Tater**, you can now do all of this directly from the **ESPHome → Firmware** tab instead of editing the YAML by hand.
-
-### Quick steps
-1. Open **ESPHome** in Tater and go to the **Firmware** tab  
-2. Pick your firmware template and connected device  
-3. In the **Micro Wake Word** section, choose any wake word from the built-in list or paste your own custom model URL  
-4. Review the other substitutions and click **Build + Flash**
-
-Tater reads its wake-word picker from this repository, so when a new wake word is added here, it will show up in Tater automatically.
+Archived. No new wake-word requests, ESPHome YAML updates, or Home Assistant satellite firmware changes are planned here.
